@@ -119,7 +119,7 @@ public class ProjectService {
                 return new ProjectResponse(
                     project.getId(),
                     project.getTitle(),
-                    project.getColor() != null ? project.getColor().name() : null,
+                    project.getColor() != null ? project.getColor().name() : "E3EEFC", //version 1 default color
                     memberDtos
                 );
             })
