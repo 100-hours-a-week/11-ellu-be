@@ -22,11 +22,7 @@ public record ScheduleResponse(
 
     LocalDateTime startTime,
 
-    LocalDateTime endTime,
-
-    LocalDateTime createdAt,
-
-    LocalDateTime updatedAt
+    LocalDateTime endTime
 
 ) {
 

@@ -50,7 +50,7 @@ public class ProjectSchedule {
   @Column(columnDefinition = "TEXT")
   private String description;
 
-  @Column(nullable = false, length = 15)
+  @Column(length = 15)
   private String position;
 
   @Column(name = "start_time", nullable = false)

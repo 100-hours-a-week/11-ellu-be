@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "project_member")
@@ -41,6 +42,7 @@ public class ProjectMember {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Setter
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
@@ -59,6 +61,4 @@ public class ProjectMember {
         this.deletedAt = LocalDateTime.now();
     }
 
-    public void setDeletedAt(LocalDateTime now) {
-    }
 }

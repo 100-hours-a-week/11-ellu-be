@@ -92,6 +92,7 @@ public class ScheduleController {
           userId, ym.atDay(1), ym.atEndOfMonth());
       return ResponseEntity.ok(Map.of("message", "monthly_schedule", "data", data));
     } catch (Exception e) {
+      System.out.println("e = " + e);
       return ResponseEntity.badRequest().body(Map.of("message", "validation_failed", "data",
           Map.of("errors",
               Map.of("date", "Missing or invalid month parameter. Format must be YYYY-MM."))));

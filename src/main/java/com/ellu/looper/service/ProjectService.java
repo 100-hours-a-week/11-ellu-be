@@ -13,6 +13,7 @@ import com.ellu.looper.repository.UserRepository;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -159,8 +160,8 @@ public class ProjectService {
             throw new SecurityException("Only project creator can delete this project");
         }
 
-        project.setDeletedAt(LocalDateTime.now());
-        projectRepository.save(project);
+        Project deltetedProject = project.toBuilder().deletedAt(LocalDateTime.now()).build();
+        projectRepository.save(deltetedProject);
 
         List<ProjectMember> members = projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
         for (ProjectMember member : members) {
@@ -180,8 +181,8 @@ public class ProjectService {
             throw new SecurityException("Only project creator can update this project");
         }
 
-        if (request.getTitle() == null || request.getTitle().trim().isEmpty()) {
-            throw new IllegalArgumentException("Title is required");
+        if (request.getTitle() != null && request.getTitle().trim().isEmpty()) {
+            throw new IllegalArgumentException("title must not be blank if provided");
         }
 
         List<User> updatedUsers = new ArrayList<>();
@@ -197,12 +198,11 @@ public class ProjectService {
             throw new IllegalArgumentException("Too many members");
         }
 
-        // Update project
-        project.setTitle(request.getTitle());
-        project.setUpdatedAt(LocalDateTime.now());
+        // 프로젝트 업데이트
+        project.toBuilder().title(request.getTitle()).updatedAt(LocalDateTime.now()).build();
         projectRepository.save(project);
 
-        // Update members
+        // 멤버 업데이트
         List<ProjectMember> existing = projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
         List<ProjectMember> toRemove = existing.stream()
             .filter(pm -> !pm.getUser().getId().equals(userId) && updatedUsers.stream().noneMatch(u -> u.getId().equals(pm.getUser().getId())))
