@@ -1,6 +1,7 @@
 package com.ellu.looper.service;
 
 import com.ellu.looper.dto.AuthResponse;
+import com.ellu.looper.dto.TokenRefreshResponse;
 import com.ellu.looper.dto.oauth.KakaoUserInfo;
 import com.ellu.looper.entity.RefreshToken;
 import com.ellu.looper.entity.User;
@@ -109,7 +110,7 @@ public class AuthService {
   }
 
   @Transactional
-  public AuthResponse refreshAccessToken(String oldRefreshToken) {
+  public TokenRefreshResponse refreshAccessToken(String oldRefreshToken) {
     RefreshToken savedToken =
         refreshTokenRepository
             .findByRefreshToken(oldRefreshToken)
@@ -124,7 +125,16 @@ public class AuthService {
 
     savedToken.updateToken(newRefreshToken);
 
-    return new AuthResponse(newAccessToken, newRefreshToken, false);
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new RuntimeException("User not found"));
+
+    TokenRefreshResponse.UserInfo userInfo = new TokenRefreshResponse.UserInfo(
+        user.getId(),
+        user.getNickname(),
+        user.getFileName()
+    );
+
+    return new TokenRefreshResponse(newAccessToken, userInfo);
   }
 
   public void setTokenCookies(HttpServletResponse response, String refreshToken) {
