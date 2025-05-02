@@ -1,4 +1,4 @@
-package com.ellu.auth.external;
+package com.ellu.external;
 
 import lombok.Getter;
 import lombok.Setter;

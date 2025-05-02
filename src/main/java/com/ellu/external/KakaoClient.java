@@ -1,4 +1,4 @@
-package com.ellu.auth.external;
+package com.ellu.external;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;

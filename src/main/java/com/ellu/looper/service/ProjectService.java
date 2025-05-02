@@ -4,6 +4,8 @@ import com.ellu.looper.commons.enums.Role;
 import com.ellu.looper.dto.MemberDto;
 import com.ellu.looper.dto.ProjectCreateRequest;
 import com.ellu.looper.dto.ProjectResponse;
+import com.ellu.looper.dto.WikiRequest;
+import com.ellu.looper.dto.MeetingNoteRequest;
 import com.ellu.looper.entity.Project;
 import com.ellu.looper.entity.ProjectMember;
 import com.ellu.looper.entity.User;
@@ -15,12 +17,14 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProjectService {
@@ -28,10 +32,11 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
-    private final AiService aiService;
+    private final FastApiService fastApiService;
 
     @Transactional
     public void createProject(ProjectCreateRequest request, Long creatorId) {
+        log.info("Creating project with title: {} for user: {}", request.getTitle(), creatorId);
 
         User creator = userRepository.findById(creatorId)
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -96,14 +101,27 @@ public class ProjectService {
 
         projectMemberRepository.saveAll(projectMembers);
 
+        // Create wiki if wiki content is provided
+        if (request.getWiki() != null && !request.getWiki().trim().isEmpty()) {
+            log.info("Creating wiki for project: {}", project.getId());
+            WikiRequest wikiRequest = WikiRequest.builder()
+                .content(request.getWiki())
+                .projectId(project.getId())
+                .build();
+            fastApiService.createWiki(project.getId(), wikiRequest);
+        }
+
         // TODO: 초대 알림 보내기 (version2+)
+        log.info("Project created successfully with ID: {}", project.getId());
     }
 
     @Transactional(readOnly = true)
     public List<ProjectResponse> getProjects(Long userId) {
-        List<ProjectMember> memberships = projectMemberRepository.findByUserIdAndDeletedAtIsNull(userId);
+        log.info("Getting projects for user: {}", userId);
+        List<ProjectMember> memberships = projectMemberRepository.findByUserIdAndDeletedAtIsNull(
+            userId);
 
-        return memberships.stream()
+        List<ProjectResponse> responses = memberships.stream()
             .map(ProjectMember::getProject)
             .filter(project -> project.getDeletedAt() == null)
             .map(project -> {
@@ -124,10 +142,14 @@ public class ProjectService {
                 );
             })
             .collect(Collectors.toList());
+
+        log.info("Found {} projects for user: {}", responses.size(), userId);
+        return responses;
     }
 
     @Transactional(readOnly = true)
     public ProjectResponse getProjectDetail(Long projectId, Long userId) {
+        log.info("Getting project details for project: {} and user: {}", projectId, userId);
         Project project = projectRepository.findByIdAndDeletedAtIsNull(projectId)
             .orElseThrow(() -> new IllegalArgumentException("Project not found"));
 
@@ -135,13 +157,18 @@ public class ProjectService {
             throw new SecurityException("Only project creator can view this project");
         }
 
-        List<ProjectMember> members = projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
+        List<ProjectMember> members = projectMemberRepository.findByProjectAndDeletedAtIsNull(
+            project);
         List<MemberDto> memberDtos = members.stream()
             .map(pm -> new MemberDto(
                 pm.getUser().getId(),
                 pm.getUser().getNickname(),
                 pm.getUser().getFileName()))
             .collect(Collectors.toList());
+
+        // Get wiki content
+        String wiki = fastApiService.getWiki(projectId).block();
+        log.info("Retrieved wiki content for project: {}", projectId);
 
         return new ProjectResponse(
             project.getId(),
@@ -163,7 +190,8 @@ public class ProjectService {
         Project deltetedProject = project.toBuilder().deletedAt(LocalDateTime.now()).build();
         projectRepository.save(deltetedProject);
 
-        List<ProjectMember> members = projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
+        List<ProjectMember> members = projectMemberRepository.findByProjectAndDeletedAtIsNull(
+            project);
         for (ProjectMember member : members) {
             member.setDeletedAt(LocalDateTime.now());
         }
@@ -174,6 +202,7 @@ public class ProjectService {
 
     @Transactional
     public void updateProject(Long projectId, ProjectCreateRequest request, Long userId) {
+        log.info("Updating project: {} for user: {}", projectId, userId);
         Project project = projectRepository.findByIdAndDeletedAtIsNull(projectId)
             .orElseThrow(() -> new IllegalArgumentException("Project not found"));
 
@@ -189,7 +218,8 @@ public class ProjectService {
         if (request.getAddedMembers() != null) {
             for (ProjectCreateRequest.AddedMember member : request.getAddedMembers()) {
                 User user = userRepository.findByNicknameAndDeletedAtIsNull(member.getNickname())
-                    .orElseThrow(() -> new IllegalArgumentException("User not found: " + member.getNickname()));
+                    .orElseThrow(() -> new IllegalArgumentException(
+                        "User not found: " + member.getNickname()));
                 updatedUsers.add(user);
             }
         }
@@ -203,9 +233,11 @@ public class ProjectService {
         projectRepository.save(project);
 
         // 멤버 업데이트
-        List<ProjectMember> existing = projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
+        List<ProjectMember> existing = projectMemberRepository.findByProjectAndDeletedAtIsNull(
+            project);
         List<ProjectMember> toRemove = existing.stream()
-            .filter(pm -> !pm.getUser().getId().equals(userId) && updatedUsers.stream().noneMatch(u -> u.getId().equals(pm.getUser().getId())))
+            .filter(pm -> !pm.getUser().getId().equals(userId) && updatedUsers.stream()
+                .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
             .collect(Collectors.toList());
 
         toRemove.forEach(pm -> pm.setDeletedAt(LocalDateTime.now()));
@@ -230,41 +262,53 @@ public class ProjectService {
                     .build());
             }
         }
+
+        // Update wiki if wiki content is provided
+        if (request.getWiki() != null && !request.getWiki().trim().isEmpty()) {
+            log.info("Updating wiki for project: {}", projectId);
+            WikiRequest wikiRequest = WikiRequest.builder()
+                .content(request.getWiki())
+                .projectId(projectId)
+                .build();
+            fastApiService.updateWiki(projectId, wikiRequest);
+        }
+
+        log.info("Project updated successfully: {}", projectId);
     }
 
     @Transactional
-    public void createProjectWiki(Long projectId, String content, User loginUser) {
+    public void createWiki(Long projectId, Long userId, WikiRequest request) {
         Project project = projectRepository.findByIdAndDeletedAtIsNull(projectId)
             .orElseThrow(() -> new IllegalArgumentException("Project not found"));
-
-        if (!project.getMember().getId().equals(loginUser.getId())) {
+        
+        if (!project.getMember().getId().equals(userId)) {
             throw new SecurityException("Only project creator can create wiki");
         }
 
-        aiService.createProjectWiki(projectId, content);
-    }
-
-    @Transactional
-    public void updateProjectWiki(Long projectId, String content, User loginUser) {
-        Project project = projectRepository.findByIdAndDeletedAtIsNull(projectId)
-            .orElseThrow(() -> new IllegalArgumentException("Project not found"));
-
-        if (!project.getMember().getId().equals(loginUser.getId())) {
-            throw new SecurityException("Only project creator can update wiki");
-        }
-
-        aiService.updateProjectWiki(projectId, content);
+        fastApiService.createWiki(projectId, request);
     }
 
     @Transactional(readOnly = true)
-    public String getProjectWiki(Long projectId, User loginUser) {
+    public String getWiki(Long projectId, Long userId) {
         Project project = projectRepository.findByIdAndDeletedAtIsNull(projectId)
             .orElseThrow(() -> new IllegalArgumentException("Project not found"));
-
-        if (!project.getMember().getId().equals(loginUser.getId())) {
+        
+        if (!project.getMember().getId().equals(userId)) {
             throw new SecurityException("Only project creator can view wiki");
         }
 
-        return aiService.getProjectWiki(projectId);
+        return fastApiService.getWiki(projectId).block();
+    }
+
+    @Transactional
+    public void updateWiki(Long projectId, Long userId, WikiRequest request) {
+        Project project = projectRepository.findByIdAndDeletedAtIsNull(projectId)
+            .orElseThrow(() -> new IllegalArgumentException("Project not found"));
+        
+        if (!project.getMember().getId().equals(userId)) {
+            throw new SecurityException("Only project creator can modify wiki");
+        }
+
+        fastApiService.updateWiki(projectId, request);
     }
 }
