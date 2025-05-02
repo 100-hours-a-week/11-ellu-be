@@ -8,6 +8,7 @@ import com.ellu.looper.dto.NicknameRequest;
 import com.ellu.looper.service.AuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 import java.util.Map;
@@ -113,9 +114,14 @@ public class AuthController {
 
 
   @DeleteMapping("/auth/token")
-  public ResponseEntity<ApiResponse<Void>> logout(@RequestBody LogoutRequest request, HttpServletResponse response) {
-    authService.logout(request.getRefreshToken());
+  public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest request, HttpServletResponse response) {
+    // 쿠키에서 refresh_token 가져오기
+    String refreshToken = authService.extractRefreshTokenFromCookies(request);
+    if (refreshToken == null) {
+      throw new RuntimeException("Refresh token not found in cookies");
+    }
 
+    authService.logout(refreshToken);
     Cookie refreshCookie = new Cookie("refresh_token", null);
     refreshCookie.setPath("/");
     refreshCookie.setHttpOnly(true);
@@ -124,6 +130,7 @@ public class AuthController {
     response.addCookie(refreshCookie);
     return ResponseEntity.ok(new ApiResponse("로그아웃 성공", null));
   }
+
 
   @PostMapping("/auth/users/nickname")
   public ResponseEntity<?> registerNickname(

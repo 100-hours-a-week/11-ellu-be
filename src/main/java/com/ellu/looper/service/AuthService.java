@@ -11,6 +11,7 @@ import com.ellu.looper.repository.RefreshTokenRepository;
 import com.ellu.looper.repository.UserRepository;
 import com.ellu.looper.service.oauth.KakaoOAuthService;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
@@ -136,4 +137,14 @@ public class AuthService {
     response.addCookie(refreshCookie);
   }
 
+  public String extractRefreshTokenFromCookies(HttpServletRequest request) {
+    if (request.getCookies() == null) return null;
+
+    for (Cookie cookie : request.getCookies()) {
+      if ("refresh_token".equals(cookie.getName())) {
+        return cookie.getValue();
+      }
+    }
+    return null;
+  }
 }

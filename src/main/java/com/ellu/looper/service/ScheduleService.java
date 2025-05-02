@@ -1,13 +1,14 @@
 package com.ellu.looper.service;
 
+import com.ellu.looper.dto.schedule.ProjectScheduleResponse;
 import com.ellu.looper.dto.schedule.ScheduleCreateRequest;
 import com.ellu.looper.dto.schedule.ScheduleResponse;
 import com.ellu.looper.dto.schedule.ScheduleUpdateRequest;
 import com.ellu.looper.entity.Schedule;
 import com.ellu.looper.entity.User;
+import com.ellu.looper.repository.ProjectRepository;
 import com.ellu.looper.repository.ScheduleRepository;
 import com.ellu.looper.repository.UserRepository;
-import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -19,13 +20,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class ScheduleService {
 
   private final ScheduleRepository scheduleRepository;
   private final UserRepository memberRepository;
+  private final ProjectRepository projectRepository;
+  private final ProjectScheduleService projectScheduleService;
 
   private void validateTimeOrder(LocalDateTime startTime, LocalDateTime endTime) {
     if (endTime.isEqual(startTime) || endTime.isBefore(startTime)) {
@@ -92,7 +95,7 @@ public class ScheduleService {
         .map(s -> toResponse(s, false))
         .collect(Collectors.toList());
 
-    List<ScheduleResponse> projectSchedules = getProjectSchedules(memberId, start, end);
+    List<ScheduleResponse> projectSchedules = getProjectDailySchedules(memberId, start, end);
 
     responses.addAll(projectSchedules);
     return responses;
@@ -110,19 +113,57 @@ public class ScheduleService {
 
     List<ScheduleResponse> project = getProjectSchedules(memberId, startDate.atStartOfDay(),
         endDate.plusDays(1).atStartOfDay());
-
     List<ScheduleResponse> all = new ArrayList<>();
     all.addAll(responses);
     all.addAll(project);
-
     return all.stream().collect(Collectors.groupingBy(r -> r.startTime().toLocalDate()));
   }
 
-  private List<ScheduleResponse> getProjectSchedules(Long memberId, LocalDateTime start,
-      LocalDateTime end) {
-    // ProjectScheduleService 에서 가져온다고 가정
-    return List.of(); // 예시
+  public List<ScheduleResponse> getProjectSchedules(Long memberId, LocalDateTime start, LocalDateTime end) {
+
+    List<ProjectScheduleResponse> projectSchedules = projectRepository.findAllByMemberId(memberId).stream()
+        .flatMap(project -> projectScheduleService
+            .getSchedulesByRange(project.getId(), start, end)
+            .values().stream()
+            .flatMap(List::stream))
+        .toList();
+    return projectSchedules.stream()
+        .map(ps -> new ScheduleResponse(
+            ps.title(),
+            ps.description(),
+            ps.is_completed(),
+            false,
+            ps.is_project_schedule(),
+            ps.start_time(),
+            ps.end_time()
+        ))
+        .toList();
   }
+
+  public List<ScheduleResponse> getProjectDailySchedules(Long memberId, LocalDateTime start, LocalDateTime end) {
+    if (!start.toLocalDate().equals(end.minusNanos(1).toLocalDate())) {
+      throw new IllegalArgumentException("일일 조회가 아닙니다. 일일 범위만 getDailySchedules에서 지원됩니다.");
+    }
+
+    List<ProjectScheduleResponse> projectSchedules = projectRepository.findAllByMemberId(memberId).stream()
+        .flatMap(project -> projectScheduleService
+            .getDailySchedules(project.getId(), start.toLocalDate())
+            .stream())
+        .toList();
+
+    return projectSchedules.stream()
+        .map(ps -> new ScheduleResponse(
+            ps.title(),
+            ps.description(),
+            ps.is_completed(),
+            false,
+            ps.is_project_schedule(),
+            ps.start_time(),
+            ps.end_time()
+        ))
+        .toList();
+  }
+
 
   private ScheduleResponse toResponse(Schedule s, boolean isProject) {
     return ScheduleResponse.builder()
@@ -133,8 +174,6 @@ public class ScheduleService {
         .projectSchedule(isProject)
         .startTime(s.getStartTime())
         .endTime(s.getEndTime())
-        .createdAt(s.getCreatedAt())
-        .updatedAt(s.getUpdatedAt())
         .build();
   }
 }
