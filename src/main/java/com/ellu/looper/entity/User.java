@@ -50,4 +50,9 @@ public class User {
     this.nickname = nickname;
     this.createdAt = LocalDateTime.now();
   }
+
+  public void setProfileImage(String fileName) {
+    this.fileName = fileName;
+    this.updatedAt = LocalDateTime.now();
+  }
 }

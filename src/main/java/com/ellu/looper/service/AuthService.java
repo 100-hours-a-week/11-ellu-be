@@ -29,6 +29,7 @@ public class AuthService {
   private final UserRepository userRepository;
   private final JwtProvider jwtProvider;
   private final RefreshTokenRepository refreshTokenRepository;
+  private final ProfileImageService profileImageService;
 
   @Transactional
   public AuthResponse loginOrSignUp(String provider, String accessToken) {
@@ -43,6 +44,7 @@ public class AuthService {
             .findByEmail(kakaoUserInfo.getEmail())
             .orElseGet(
                 () -> {
+                  String randomProfileImage = profileImageService.getRandomProfileImage();
                   User newUser =
                       new User(
                           null,
@@ -50,7 +52,7 @@ public class AuthService {
                           kakaoUserInfo.getEmail(),
                           "kakao",
                           kakaoUserInfo.getId(),
-                          "default_profile.jpg", // default image
+                          randomProfileImage,
                           LocalDateTime.now(),
                           LocalDateTime.now(),
                           null);
