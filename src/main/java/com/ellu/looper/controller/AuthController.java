@@ -3,7 +3,6 @@ package com.ellu.looper.controller;
 import com.ellu.looper.commons.ApiResponse;
 import com.ellu.looper.commons.CurrentUser;
 import com.ellu.looper.dto.AuthResponse;
-import com.ellu.looper.dto.LogoutRequest;
 import com.ellu.looper.dto.NicknameRequest;
 import com.ellu.looper.dto.TokenRefreshResponse;
 import com.ellu.looper.service.AuthService;
@@ -15,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -28,8 +28,11 @@ public class AuthController {
 
   private final AuthService authService;
 
-  private final String clientId = "44153da72adabc7e47959244ebe53bac"; // 카카오 REST API 키
-  private final String redirectUri = "http://localhost:3000/auth/kakao/callback";
+  @Value("${kakao.client-id}")
+  private String clientId;
+
+  @Value("${kakao.redirect-uri}")
+  private String redirectUri;
 
   @GetMapping("/auth/kakao/callback")
   public ResponseEntity<?> kakaoCallback(@RequestParam("code") String code,
