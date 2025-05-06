@@ -6,22 +6,25 @@ import lombok.Builder;
 
 @Builder
 public record ScheduleResponse(
+    Long id,
 
     String title,
 
     String description,
 
-    @JsonProperty("isCompleted")
+    @JsonProperty("is_completed")
     boolean completed,
 
-    @JsonProperty("isAiRecommended")
+    @JsonProperty("is_ai_recommended")
     boolean aiRecommended,
 
-    @JsonProperty("isProjectSchedule")
+    @JsonProperty("is_project_schedule")
     boolean projectSchedule,
 
+    @JsonProperty("start_time")
     LocalDateTime startTime,
 
+    @JsonProperty("end_time")
     LocalDateTime endTime
 
 ) {

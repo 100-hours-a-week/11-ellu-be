@@ -34,7 +34,7 @@ public class ScheduleController {
 
   @PostMapping
   public ResponseEntity<?> create(@CurrentUser Long userId,
-      @Valid @RequestBody ScheduleCreateRequest request) {
+      @RequestBody ScheduleCreateRequest request) {
     ScheduleResponse response = scheduleService.createSchedule(userId, request);
     return ResponseEntity.status(HttpStatus.CREATED).body(
         Map.of("message", "schedule_created", "data", response));

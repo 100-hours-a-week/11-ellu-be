@@ -6,12 +6,14 @@ import com.ellu.looper.dto.schedule.ScheduleResponse;
 import com.ellu.looper.dto.schedule.ScheduleUpdateRequest;
 import com.ellu.looper.entity.Schedule;
 import com.ellu.looper.entity.User;
+import com.ellu.looper.exception.ValidationException;
 import com.ellu.looper.repository.ProjectRepository;
 import com.ellu.looper.repository.ScheduleRepository;
 import com.ellu.looper.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -32,16 +34,28 @@ public class ScheduleService {
 
   private void validateTimeOrder(LocalDateTime startTime, LocalDateTime endTime) {
     if (endTime.isEqual(startTime) || endTime.isBefore(startTime)) {
-      throw new IllegalArgumentException("종료 시각은 시작 시각보다 나중이어야 합니다.");
+      throw new IllegalArgumentException("start_time_must_be_in_the_future");
     }
   }
 
   public ScheduleResponse createSchedule(Long memberId, ScheduleCreateRequest request) {
     User user = memberRepository.findById(memberId)
         .orElseThrow(() -> new AccessDeniedException("unauthorized"));
-    
-    validateTimeOrder(request.startTime(), request.endTime());
-    
+
+    Map<String, String> errors = new HashMap<>();
+
+    if (request.title() == null || request.title().isBlank()) {
+      errors.put("title", "Title is required");
+    }
+
+    if (!request.startTime().isBefore(request.endTime())) {
+      errors.put("start_time", "Start time must be in the future");
+    }
+
+    if (!errors.isEmpty()) {
+      throw new ValidationException(errors);
+    }
+
     Schedule schedule = Schedule.builder()
         .user(user)
         .title(request.title())
@@ -129,6 +143,7 @@ public class ScheduleService {
         .toList();
     return projectSchedules.stream()
         .map(ps -> new ScheduleResponse(
+            ps.id(),
             ps.title(),
             ps.description(),
             ps.is_completed(),
@@ -153,6 +168,7 @@ public class ScheduleService {
 
     return projectSchedules.stream()
         .map(ps -> new ScheduleResponse(
+            ps.id(),
             ps.title(),
             ps.description(),
             ps.is_completed(),
@@ -167,6 +183,7 @@ public class ScheduleService {
 
   private ScheduleResponse toResponse(Schedule s, boolean isProject) {
     return ScheduleResponse.builder()
+        .id(s.getId())
         .title(s.getTitle())
         .description(s.getDescription())
         .completed(s.isCompleted())

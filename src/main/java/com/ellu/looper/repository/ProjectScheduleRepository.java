@@ -29,5 +29,6 @@ public interface ProjectScheduleRepository extends JpaRepository<ProjectSchedule
   List<ProjectSchedule> findSchedulesBetween(@Param("projectId") Long projectId,
       @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
+  List<ProjectSchedule> findByProjectAndDeletedAtIsNull(Project project);
 }
 

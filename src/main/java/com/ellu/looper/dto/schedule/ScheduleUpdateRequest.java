@@ -9,11 +9,13 @@ public record ScheduleUpdateRequest(
 
     String description,
 
-    @JsonProperty("isCompleted")
+    @JsonProperty("is_completed")
     Boolean completed,
 
+    @JsonProperty("start_time")
     LocalDateTime startTime,
 
+    @JsonProperty("end_time")
     LocalDateTime endTime
 ) {
 

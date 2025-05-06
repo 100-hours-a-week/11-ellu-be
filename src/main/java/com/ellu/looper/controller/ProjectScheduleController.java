@@ -35,7 +35,7 @@ public class ProjectScheduleController {
   @PostMapping
   public ResponseEntity<ApiResponse<List<ProjectScheduleResponse>>> createSchedules(
       @PathVariable Long projectId,
-      @RequestBody @Valid ProjectScheduleCreateRequest request,
+      @RequestBody ProjectScheduleCreateRequest request,
       @CurrentUser Long userId
   ) {
     List<ProjectScheduleResponse> result = scheduleService.createSchedules(projectId, userId,
@@ -49,7 +49,7 @@ public class ProjectScheduleController {
   public ResponseEntity<ApiResponse<ProjectScheduleResponse>> updateSchedule(
       @PathVariable Long projectId,
       @PathVariable Long scheduleId,
-      @RequestBody @Valid ProjectScheduleUpdateRequest request,
+      @RequestBody ProjectScheduleUpdateRequest request,
       @CurrentUser Long userId
   ) {
     ProjectScheduleResponse result = scheduleService.updateSchedule(projectId, scheduleId, userId,

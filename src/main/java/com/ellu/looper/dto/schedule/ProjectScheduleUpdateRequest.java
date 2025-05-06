@@ -7,8 +7,13 @@ import java.time.LocalDateTime;
 
 public record ProjectScheduleUpdateRequest(
     @NotBlank String title,
+
+    String description,
+
     @NotNull LocalDateTime start_time,
+
     @NotNull LocalDateTime end_time,
+
     @JsonProperty("is_completed")
     Boolean completed
 ) {}
