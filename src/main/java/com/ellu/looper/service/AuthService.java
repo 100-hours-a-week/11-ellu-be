@@ -88,7 +88,7 @@ public class AuthService {
 
   @Transactional
   public void registerNickname(Long userId, String nickname) {
-    if (nickname.length() < 1 || nickname.length() > 10) {
+    if (nickname.isEmpty() || nickname.length() > 10) {
       throw new IllegalArgumentException("Nickname should be 1-10 letters.");
     }
 
@@ -100,6 +100,7 @@ public class AuthService {
         userRepository.findById(userId).orElseThrow(() -> new RuntimeException("user_not_found"));
 
     user.updateNickname(nickname);
+    userRepository.save(user);
   }
 
   @Transactional

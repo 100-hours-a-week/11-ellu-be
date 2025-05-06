@@ -11,11 +11,13 @@ public record ScheduleCreateRequest(
 
     String description,
 
-    @JsonProperty("isAiRecommended")
+    @JsonProperty("is_ai_recommended")
     boolean aiRecommended,
 
+    @JsonProperty("start_time")
     @NotNull LocalDateTime startTime,
 
+    @JsonProperty("end_time")
     @NotNull LocalDateTime endTime
 
 ) {

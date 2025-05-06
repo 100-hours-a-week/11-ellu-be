@@ -7,6 +7,7 @@ import com.ellu.looper.dto.schedule.ScheduleResponse;
 import com.ellu.looper.entity.Project;
 import com.ellu.looper.entity.ProjectSchedule;
 import com.ellu.looper.entity.User;
+import com.ellu.looper.exception.ValidationException;
 import com.ellu.looper.repository.ProjectRepository;
 import com.ellu.looper.repository.ProjectScheduleRepository;
 import com.ellu.looper.repository.UserRepository;
@@ -15,6 +16,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Year;
 import java.time.YearMonth;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,8 +52,37 @@ public class ProjectScheduleService {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new IllegalArgumentException("Invalid user ID"));
 
+    Map<String, String> errors = new HashMap<>();
+
+    int index = 0;
+    for (ProjectScheduleCreateRequest.ProjectScheduleDto dto : request.getProject_schedules()) {
+      String prefix = "project_schedules[" + index + "]";
+
+      if (dto.getTitle() == null || dto.getTitle().isBlank()) {
+        errors.put(prefix + ".title", "Title is required");
+      }
+
+      if (dto.getStartTime() == null) {
+        errors.put(prefix + ".start_time", "Start time is required");
+      }
+
+      if (dto.getEndTime() == null) {
+        errors.put(prefix + ".end_time", "End time is required");
+      }
+
+      if (dto.getStartTime() != null && dto.getEndTime() != null &&
+          !dto.getStartTime().isBefore(dto.getEndTime())) {
+        errors.put(prefix + ".time", "End time must be after start time");
+      }
+      index++;
+    }
+
+    if (!errors.isEmpty()) {
+      throw new ValidationException(errors);
+    }
+
     List<ProjectSchedule> saved = request.getProject_schedules().stream()
-        .peek(dto -> validateTimeOrder(dto.getStartTime(), dto.getEndTime()))
+//        .peek(dto -> validateTimeOrder(dto.getStartTime(), dto.getEndTime()))
         .map(dto -> ProjectSchedule.builder()
             .project(project)
             .user(user)
@@ -66,7 +97,8 @@ public class ProjectScheduleService {
 
     return saved.stream()
         .map(s -> new ProjectScheduleResponse(
-            s.getTitle(), s.getDescription(), s.getStartTime(), s.getEndTime(), s.isCompleted(),true))
+            s.getId(), s.getTitle(), s.getDescription(), s.getStartTime(), s.getEndTime(),
+            s.isCompleted(), true))
         .toList();
   }
 
@@ -83,7 +115,8 @@ public class ProjectScheduleService {
 
     schedule.update(request.title(), null, request.start_time(), request.end_time(),
         request.completed());
-    return new ProjectScheduleResponse(schedule.getTitle(), schedule.getDescription(),
+    return new ProjectScheduleResponse(schedule.getId(), schedule.getTitle(),
+        schedule.getDescription(),
         schedule.getStartTime(),
         schedule.getEndTime(), schedule.isCompleted(), true);
   }
@@ -112,6 +145,7 @@ public class ProjectScheduleService {
 
   private ProjectScheduleResponse toResponse(ProjectSchedule s, boolean isProject) {
     return ProjectScheduleResponse.builder()
+        .id(s.getId())
         .title(s.getTitle())
         .description(s.getDescription())
         .start_time(s.getStartTime())
@@ -153,6 +187,7 @@ public class ProjectScheduleService {
             s -> s.getStartTime().toLocalDate().toString(),
             LinkedHashMap::new,
             Collectors.mapping(s -> new ProjectScheduleResponse(
+                s.getId(),
                 s.getTitle(),
                 s.getDescription(),
                 s.getStartTime(),

@@ -4,7 +4,9 @@ import com.ellu.looper.commons.ApiResponse;
 import com.ellu.looper.commons.CurrentUser;
 import com.ellu.looper.commons.PreviewHolder;
 import com.ellu.looper.dto.MeetingNoteRequest;
+import com.ellu.looper.repository.UserRepository;
 import com.ellu.looper.service.FastApiService;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +20,7 @@ public class MeetingNoteController {
 
     private final FastApiService fastApiService;
     private final PreviewHolder previewHolder;
+    private final UserRepository userRepository;
 
     @PostMapping("/projects/{projectId}/notes")
     public ResponseEntity<ApiResponse<?>> createMeetingNote(
@@ -25,7 +28,7 @@ public class MeetingNoteController {
             @PathVariable Long projectId,
             @RequestBody MeetingNoteRequest request) {
         
-        if (request.getMeetingNote() == null || request.getMeetingNote().trim().isEmpty()) {
+        if (request.getMeeting_note() == null || request.getMeeting_note().trim().isEmpty()) {
             return ResponseEntity.badRequest().body(
                 ApiResponse.error("Content must not be empty")
             );
@@ -40,10 +43,10 @@ public class MeetingNoteController {
             ApiResponse.success("note_uploaded", Map.of(
                 "project_id", projectId,
                 "author", Map.of(
-                    "member_id", request.getAuthorId(),
-                    "nickname", request.getNickname()
+                    "member_id", userId,
+                    "nickname", userRepository.findById(userId).get().getNickname()
                 ),
-                "created_at", request.getCreatedAt()
+                "created_at", LocalDateTime.now()
             ))
         );
     }

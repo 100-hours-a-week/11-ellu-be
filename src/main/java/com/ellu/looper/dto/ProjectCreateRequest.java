@@ -15,7 +15,7 @@ public class ProjectCreateRequest {
 
     private String position; // 생성자 본인의 position
 
-    private List<AddedMember> addedMembers;
+    private List<AddedMember> added_members;
 
     private String wiki;
 

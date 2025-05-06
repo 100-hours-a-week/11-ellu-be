@@ -59,16 +59,24 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(NicknameAlreadyExistsException.class)
   public ResponseEntity<?> handleNicknameAlreadyExists(NicknameAlreadyExistsException ex) {
     return ResponseEntity.status(HttpStatus.CONFLICT) // 409
-        .body(new ApiResponse("닉네임이 이미 존재합니다.", null));
+        .body(new ApiResponse("nickname_already_exists", null));
   }
 
+  @ExceptionHandler(ValidationException.class)
+  public ResponseEntity<?> handleValidationException(ValidationException ex) {
+    Map<String, Object> responseBody = Map.of(
+        "message", "validation_failed",
+        "data", Map.of("errors", ex.getErrors())
+    );
+    return ResponseEntity.badRequest().body(responseBody);
+  }
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
     ex.printStackTrace(); // 서버 콘솔에 로그 남기기
     return ResponseEntity
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .body(new ErrorResponse("Internal server error"));
+        .body(new ErrorResponse("internal_server_error"));
   }
 
   @Getter

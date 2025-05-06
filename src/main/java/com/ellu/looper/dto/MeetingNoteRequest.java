@@ -12,9 +12,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MeetingNoteRequest {
-    private String meetingNote;
-    private LocalDateTime createdAt;
-    private Long authorId;
+    private String meeting_note;
+    private Long author_id;
     private String nickname;
     private String position;
 } 

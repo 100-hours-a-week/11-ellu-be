@@ -144,7 +144,7 @@ public class AuthController {
   public ResponseEntity<?> registerNickname(
       @CurrentUser Long userId, @RequestBody NicknameRequest request) {
     authService.registerNickname(userId, request.getNickname());
-    return ResponseEntity.ok(new ApiResponse("닉네임 등록 완료", null));
+    return ResponseEntity.ok(new ApiResponse("nickname_registered", null));
   }
 
   @PostMapping("/auth/token/refresh")

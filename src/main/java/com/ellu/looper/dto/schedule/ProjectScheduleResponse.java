@@ -6,6 +6,7 @@ import lombok.Builder;
 
 @Builder(toBuilder = true)
 public record ProjectScheduleResponse(
+    Long id,
     String title,
     String description,
     LocalDateTime start_time,
