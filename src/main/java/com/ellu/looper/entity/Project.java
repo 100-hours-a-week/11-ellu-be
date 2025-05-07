@@ -37,6 +37,10 @@ public class Project {
   @Column(name = "deleted_at")
   private LocalDateTime deletedAt;
 
+  @Lob
+  @Column(columnDefinition = "TEXT")
+  private String wiki;
+
   public void setDeletedAt(LocalDateTime now) {
     this.deletedAt = now;
   }

@@ -33,19 +33,6 @@ public class WikiController {
         .body(ApiResponse.success("wiki_uploaded", Map.of("status", "success")));
   }
 
-  @GetMapping("/wiki")
-  public ResponseEntity<ApiResponse<?>> getWiki(
-      @CurrentUser Long userId, @PathVariable Long projectId) {
-
-    String wiki = projectService.getWiki(projectId, userId);
-
-    return ResponseEntity.ok(
-        ApiResponse.success(
-            "wiki_fetched",
-            Map.of(
-                "wiki", wiki,
-                "project_id", projectId)));
-  }
 
   @PatchMapping("/wiki")
   public ResponseEntity<ApiResponse<?>> updateWiki(

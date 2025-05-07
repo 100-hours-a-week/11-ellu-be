@@ -73,7 +73,8 @@ public class ProjectService {
             null, // color enum 매칭은 version2+
             LocalDateTime.now(),
             LocalDateTime.now(),
-            null);
+            null,
+            request.getWiki());
     projectRepository.save(project);
 
     List<ProjectMember> projectMembers = new ArrayList<>();
@@ -106,7 +107,7 @@ public class ProjectService {
 
     // wiki 저장하는 FastAPI 호출
     if (request.getWiki() != null && !request.getWiki().trim().isEmpty()) {
-      log.info("Creating wiki for project: {}", project.getId());
+      log.info("Saving wiki in vectorDB for project: {}", project.getId());
       WikiRequest wikiRequest =
           WikiRequest.builder().content(request.getWiki()).projectId(project.getId()).build();
       fastApiService.createWiki(project.getId(), wikiRequest);
@@ -143,9 +144,10 @@ public class ProjectService {
                   return new ProjectResponse(
                       project.getId(),
                       project.getTitle(),
-                      project.getColor() != null ? project.getColor().name() : "E3EEFC",
-                      // version 1 default color
-                      memberDtos);
+                      project.getColor() != null ? project.getColor().name() : "E3EEFC", // version 1 default color
+                      memberDtos,
+                      project.getWiki()
+                      );
                 })
             .collect(Collectors.toList());
 
@@ -176,15 +178,12 @@ public class ProjectService {
                         pm.getUser().getFileName()))
             .collect(Collectors.toList());
 
-    // Get wiki content
-    String wiki = fastApiService.getWiki(projectId).block();
-    log.info("Retrieved wiki content for project: {}", projectId);
-
     return new ProjectResponse(
         project.getId(),
         project.getTitle(),
-        project.getColor() != null ? project.getColor().name() : null,
-        memberDtos);
+        project.getColor() != null ? project.getColor().name() : "E3EEFC", // version 1 default color
+        memberDtos,
+        project.getWiki());
   }
 
   @Transactional
@@ -257,10 +256,15 @@ public class ProjectService {
     }
 
     // 프로젝트 업데이트
-    project.toBuilder().title(request.getTitle()).updatedAt(LocalDateTime.now()).build();
+    project = project.toBuilder()
+        .title(request.getTitle())
+        .wiki(request.getWiki() != null ? request.getWiki() : project.getWiki())
+        .updatedAt(LocalDateTime.now())
+        .build();
     projectRepository.save(project);
 
     // 멤버 업데이트
+    // 기존 멤버 제거 처리(요청에서 빠진 멤버)
     List<ProjectMember> existing = projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
     List<ProjectMember> toRemove =
         existing.stream()
@@ -268,12 +272,13 @@ public class ProjectService {
                 pm ->
                     !pm.getUser().getId().equals(userId)
                         && updatedUsers.stream()
-                            .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
+                        .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
             .collect(Collectors.toList());
 
     toRemove.forEach(pm -> pm.setDeletedAt(LocalDateTime.now()));
     projectMemberRepository.saveAll(toRemove);
 
+    // 새로운 멤버 추가
     for (int i = 0; i < updatedUsers.size(); i++) {
       User user = updatedUsers.get(i);
       ProjectCreateRequest.AddedMember member = request.getAdded_members().get(i);
@@ -294,7 +299,7 @@ public class ProjectService {
       }
     }
 
-    // Update wiki if wiki content is provided
+    // 위키 내용이 있다면 수정
     if (request.getWiki() != null && !request.getWiki().trim().isEmpty()) {
       log.info("Updating wiki for project: {}", projectId);
       WikiRequest wikiRequest =
@@ -317,20 +322,6 @@ public class ProjectService {
     }
 
     fastApiService.createWiki(projectId, request);
-  }
-
-  @Transactional(readOnly = true)
-  public String getWiki(Long projectId, Long userId) {
-    Project project =
-        projectRepository
-            .findByIdAndDeletedAtIsNull(projectId)
-            .orElseThrow(() -> new IllegalArgumentException("Project not found"));
-
-    if (!project.getMember().getId().equals(userId)) {
-      throw new SecurityException("Only project creator can view wiki");
-    }
-
-    return fastApiService.getWiki(projectId).block();
   }
 
   @Transactional

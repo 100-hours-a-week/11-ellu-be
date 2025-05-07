@@ -1,5 +1,6 @@
 package com.ellu.looper.controller;
 
+import com.ellu.looper.commons.ApiResponse;
 import com.ellu.looper.commons.CurrentUser;
 import com.ellu.looper.dto.schedule.ScheduleCreateRequest;
 import com.ellu.looper.dto.schedule.ScheduleResponse;
@@ -8,6 +9,7 @@ import com.ellu.looper.service.ScheduleService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -104,23 +106,46 @@ public class ScheduleController {
     try {
       YearMonth ym = YearMonth.parse(month);
 
-      Map<LocalDate, List<ScheduleResponse>> data =
-          scheduleService.getSchedulesByRange(userId, ym.atDay(1), ym.atEndOfMonth());
-      return ResponseEntity.ok(Map.of("message", "monthly_schedule", "data", data));
+      YearMonth prevMonth = ym.minusMonths(1);
+      YearMonth nextMonth = ym.plusMonths(1);
+
+      LocalDate startDate = prevMonth.atDay(1);
+      LocalDate endDate = nextMonth.atEndOfMonth();
+
+      Map<LocalDate, List<ScheduleResponse>> allSchedules =
+          scheduleService.getSchedulesByRange(userId, startDate, endDate);
+
+      // 월별로 일정 나누기
+      Map<String, Map<LocalDate, List<ScheduleResponse>>> groupedByMonth = new HashMap<>();
+      groupedByMonth.put(prevMonth.toString(), new HashMap<>());
+      groupedByMonth.put(ym.toString(), new HashMap<>());
+      groupedByMonth.put(nextMonth.toString(), new HashMap<>());
+
+      for (Map.Entry<LocalDate, List<ScheduleResponse>> entry : allSchedules.entrySet()) {
+        LocalDate date = entry.getKey();
+        YearMonth dateMonth = YearMonth.from(date);
+        String key = dateMonth.toString();
+
+        // key가 포함된 월일 경우만 넣음 (혹시 모를 범위 외 날짜 대비)
+        if (groupedByMonth.containsKey(key)) {
+          groupedByMonth.get(key).put(date, entry.getValue());
+        }
+      }
+      return ResponseEntity.ok(ApiResponse.success("monthly_schedule", groupedByMonth));
     } catch (Exception e) {
       System.out.println("e = " + e);
       return ResponseEntity.badRequest()
-          .body(
-              Map.of(
-                  "message",
-                  "validation_failed",
-                  "data",
-                  Map.of(
-                      "errors",
-                      Map.of(
-                          "date", "Missing or invalid month parameter. Format must be YYYY-MM."))));
+          .body(Map.of(
+              "message", "validation_failed",
+              "data", Map.of(
+                  "errors", Map.of(
+                      "date", "Missing or invalid month parameter. Format must be YYYY-MM."
+                  )
+              )
+          ));
     }
   }
+
 
   @GetMapping("/yearly")
   public ResponseEntity<?> yearly(@CurrentUser Long userId, @RequestParam String year) {

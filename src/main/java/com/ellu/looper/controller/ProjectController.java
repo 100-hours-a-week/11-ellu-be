@@ -42,9 +42,8 @@ public class ProjectController {
       @CurrentUser Long userId,
       @PathVariable Long projectId,
       @RequestBody ProjectCreateRequest request) {
-    ProjectResponse updated = null;
     projectService.updateProject(projectId, request, userId);
-    return ResponseEntity.ok(ApiResponse.success("project_updated", updated));
+    return ResponseEntity.ok(ApiResponse.success("project_updated", null));
   }
 
   @DeleteMapping("/{projectId}")
