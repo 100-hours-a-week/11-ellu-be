@@ -1,5 +1,6 @@
 package com.ellu.looper.service;
 
+import com.ellu.looper.commons.PreviewHolder;
 import com.ellu.looper.dto.MeetingNoteRequest;
 import com.ellu.looper.dto.MeetingNoteResponse;
 import com.ellu.looper.dto.WikiRequest;
@@ -18,6 +19,18 @@ import reactor.core.publisher.Mono;
 public class FastApiService {
 
   private final WebClient webClient;
+  private final PreviewHolder previewHolder;
+
+  // AI 서버로부터 응답을 전달받아 처리
+  public void handleAiPreviewResponse(Long projectId, MeetingNoteResponse aiResponse) {
+    // aiResponse는 AI 서버가 반환한 task preview 결과
+    previewHolder.complete(projectId, aiResponse);
+  }
+
+  // 예외 상황 처리
+  public void handleAiPreviewError(Long projectId, Throwable error) {
+    previewHolder.completeWithError(projectId, error);
+  }
 
   public void sendNoteToAI(
       MeetingNoteRequest noteRequest,
