@@ -154,6 +154,6 @@ public class AuthController {
   public ResponseEntity<?> refreshToken(@RequestHeader("Authorization") String refreshTokenHeader) {
     String refreshToken = refreshTokenHeader.replace("Bearer ", "");
     TokenRefreshResponse response = authService.refreshAccessToken(refreshToken);
-    return ResponseEntity.ok(Map.of("message", "token_refreshed", "data", response));
+    return ResponseEntity.ok(new ApiResponse("token_refreshed", response));
   }
 }
