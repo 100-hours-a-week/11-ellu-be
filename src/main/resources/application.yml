@@ -37,3 +37,21 @@ jwt:
 
 fastapi:
   base-url: ${FASTAPI_BASE_URL:http://localhost:8000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always  # 필요 시 의존성 상태를 자세히 표시
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    version: 1.0.1
+    description: Looper API 서버

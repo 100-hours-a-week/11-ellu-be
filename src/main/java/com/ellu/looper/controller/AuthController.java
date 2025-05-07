@@ -3,11 +3,11 @@ package com.ellu.looper.controller;
 import com.ellu.looper.commons.ApiResponse;
 import com.ellu.looper.commons.CurrentUser;
 import com.ellu.looper.dto.AuthResponse;
+import com.ellu.looper.dto.LoginResponse;
 import com.ellu.looper.dto.NicknameRequest;
 import com.ellu.looper.dto.TokenRefreshResponse;
 import com.ellu.looper.service.AuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
@@ -86,7 +86,7 @@ public class AuthController {
   }
 
   @PostMapping("/auth/token")
-  public ResponseEntity<ApiResponse<AuthResponse>> kakaoLogin(
+  public ResponseEntity<ApiResponse<LoginResponse>> kakaoLogin(
       @RequestBody Map<String, String> request, HttpServletResponse response) {
     String code = request.get("code");
     if (code == null || code.isBlank()) {
@@ -102,8 +102,10 @@ public class AuthController {
     // RefreshToken을 쿠키로 설정
     authService.setTokenCookies(response, authResponse.getRefreshToken());
 
-    ResponseEntity<ApiResponse<AuthResponse>> responseEntity =
-        ResponseEntity.ok(ApiResponse.success("로그인 성공", authResponse));
+    LoginResponse loginResponse = new LoginResponse(authResponse.getAccessToken(), authResponse.isNewUser());
+
+    ResponseEntity<ApiResponse<LoginResponse>> responseEntity =
+        ResponseEntity.ok(ApiResponse.success("로그인 성공", loginResponse));
 
     // ObjectMapper는 보통 Bean으로 등록되어 있으니 주입받거나 새로 생성할 수 있음
     ObjectMapper objectMapper = new ObjectMapper();
@@ -128,12 +130,16 @@ public class AuthController {
     }
 
     authService.logout(refreshToken);
-    Cookie refreshCookie = new Cookie("refresh_token", null);
-    refreshCookie.setPath("/");
-    refreshCookie.setHttpOnly(true);
-    refreshCookie.setMaxAge(0);
+    ResponseCookie deleteRefreshCookie = ResponseCookie.from("refresh_token", refreshToken)
+        .httpOnly(true)
+        .secure(true)
+        .sameSite("None")
+        .path("/")
+        .maxAge(0)
+        .build();
 
-    response.addCookie(refreshCookie);
+    response.addHeader(HttpHeaders.SET_COOKIE, deleteRefreshCookie.toString());
+
     return ResponseEntity.ok(new ApiResponse("로그아웃 성공", null));
   }
 
@@ -148,6 +154,6 @@ public class AuthController {
   public ResponseEntity<?> refreshToken(@RequestHeader("Authorization") String refreshTokenHeader) {
     String refreshToken = refreshTokenHeader.replace("Bearer ", "");
     TokenRefreshResponse response = authService.refreshAccessToken(refreshToken);
-    return ResponseEntity.ok(Map.of("message", "token_refreshed", "data", response));
+    return ResponseEntity.ok(new ApiResponse("token_refreshed", response));
   }
 }

@@ -10,6 +10,6 @@ public class AuthResponse {
   private String accessToken;
   private String refreshToken;
 
-  @JsonProperty("isNewUser")
+  @JsonProperty("is_new_user")
   private boolean newUser;
 }
