@@ -13,9 +13,6 @@ public class WebClientConfig {
 
   @Bean
   public WebClient webClient() {
-    return WebClient.builder()
-        .baseUrl(fastApiBaseUrl)
-        .build();
+    return WebClient.builder().baseUrl(fastApiBaseUrl).build();
   }
 }
-

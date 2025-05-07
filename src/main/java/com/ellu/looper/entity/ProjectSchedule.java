@@ -23,11 +23,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "project_schedule", indexes = {
-    @Index(name = "IDX_PROJECT_SCHEDULE_DELETED_AT", columnList = "deletedAt"),
-    @Index(name = "IDX_PROJECT_SCHEDULE_MEMBER_ID", columnList = "member_id"),
-    @Index(name = "IDX_PROJECT_SCHEDULE_IS_COMPLETED", columnList = "isCompleted")
-})
+@Table(
+    name = "project_schedule",
+    indexes = {
+      @Index(name = "IDX_PROJECT_SCHEDULE_DELETED_AT", columnList = "deletedAt"),
+      @Index(name = "IDX_PROJECT_SCHEDULE_MEMBER_ID", columnList = "member_id"),
+      @Index(name = "IDX_PROJECT_SCHEDULE_IS_COMPLETED", columnList = "isCompleted")
+    })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ProjectSchedule {
@@ -90,8 +92,15 @@ public class ProjectSchedule {
   }
 
   @Builder(toBuilder = true)
-  public ProjectSchedule(Project project, User user, String title, String description, String position,
-      LocalDateTime startTime, LocalDateTime endTime, boolean isCompleted) {
+  public ProjectSchedule(
+      Project project,
+      User user,
+      String title,
+      String description,
+      String position,
+      LocalDateTime startTime,
+      LocalDateTime endTime,
+      boolean isCompleted) {
     this.project = project;
     this.user = user;
     this.title = title;
@@ -102,8 +111,12 @@ public class ProjectSchedule {
     this.isCompleted = isCompleted;
   }
 
-  public void update(String title, String description, LocalDateTime startTime,
-      LocalDateTime endTime, Boolean isCompleted) {
+  public void update(
+      String title,
+      String description,
+      LocalDateTime startTime,
+      LocalDateTime endTime,
+      Boolean isCompleted) {
     if (title != null) this.title = title;
     if (description != null) this.description = description;
     if (startTime != null) this.startTime = startTime;

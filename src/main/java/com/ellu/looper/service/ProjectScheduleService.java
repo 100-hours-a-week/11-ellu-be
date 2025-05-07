@@ -3,7 +3,6 @@ package com.ellu.looper.service;
 import com.ellu.looper.dto.schedule.ProjectScheduleCreateRequest;
 import com.ellu.looper.dto.schedule.ProjectScheduleResponse;
 import com.ellu.looper.dto.schedule.ProjectScheduleUpdateRequest;
-import com.ellu.looper.dto.schedule.ScheduleResponse;
 import com.ellu.looper.entity.Project;
 import com.ellu.looper.entity.ProjectSchedule;
 import com.ellu.looper.entity.User;
@@ -43,14 +42,17 @@ public class ProjectScheduleService {
     }
   }
 
+  public List<ProjectScheduleResponse> createSchedules(
+      Long projectId, Long userId, ProjectScheduleCreateRequest request) {
+    Project project =
+        projectRepository
+            .findById(projectId)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid project ID"));
 
-  public List<ProjectScheduleResponse> createSchedules(Long projectId, Long userId,
-      ProjectScheduleCreateRequest request) {
-    Project project = projectRepository.findById(projectId)
-        .orElseThrow(() -> new IllegalArgumentException("Invalid project ID"));
-
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new IllegalArgumentException("Invalid user ID"));
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid user ID"));
 
     Map<String, String> errors = new HashMap<>();
 
@@ -70,8 +72,9 @@ public class ProjectScheduleService {
         errors.put(prefix + ".end_time", "End time is required");
       }
 
-      if (dto.getStartTime() != null && dto.getEndTime() != null &&
-          !dto.getStartTime().isBefore(dto.getEndTime())) {
+      if (dto.getStartTime() != null
+          && dto.getEndTime() != null
+          && !dto.getStartTime().isBefore(dto.getEndTime())) {
         errors.put(prefix + ".time", "End time must be after start time");
       }
       index++;
@@ -81,31 +84,43 @@ public class ProjectScheduleService {
       throw new ValidationException(errors);
     }
 
-    List<ProjectSchedule> saved = request.getProject_schedules().stream()
-//        .peek(dto -> validateTimeOrder(dto.getStartTime(), dto.getEndTime()))
-        .map(dto -> ProjectSchedule.builder()
-            .project(project)
-            .user(user)
-            .title(dto.getTitle())
-            .description(dto.getDescription())
-            .startTime(dto.getStartTime())
-            .endTime(dto.getEndTime())
-            .isCompleted(dto.getCompleted())
-            .build())
-        .map(scheduleRepository::save)
-        .toList();
+    List<ProjectSchedule> saved =
+        request.getProject_schedules().stream()
+            //        .peek(dto -> validateTimeOrder(dto.getStartTime(), dto.getEndTime()))
+            .map(
+                dto ->
+                    ProjectSchedule.builder()
+                        .project(project)
+                        .user(user)
+                        .title(dto.getTitle())
+                        .description(dto.getDescription())
+                        .startTime(dto.getStartTime())
+                        .endTime(dto.getEndTime())
+                        .isCompleted(dto.getCompleted())
+                        .build())
+            .map(scheduleRepository::save)
+            .toList();
 
     return saved.stream()
-        .map(s -> new ProjectScheduleResponse(
-            s.getId(), s.getTitle(), s.getDescription(), s.getStartTime(), s.getEndTime(),
-            s.isCompleted(), true))
+        .map(
+            s ->
+                new ProjectScheduleResponse(
+                    s.getId(),
+                    s.getTitle(),
+                    s.getDescription(),
+                    s.getStartTime(),
+                    s.getEndTime(),
+                    s.isCompleted(),
+                    true))
         .toList();
   }
 
-  public ProjectScheduleResponse updateSchedule(Long projectId, Long scheduleId, Long userId,
-      ProjectScheduleUpdateRequest request) {
-    ProjectSchedule schedule = scheduleRepository.findByIdAndDeletedAtIsNull(scheduleId)
-        .orElseThrow(() -> new IllegalArgumentException("Schedule not found"));
+  public ProjectScheduleResponse updateSchedule(
+      Long projectId, Long scheduleId, Long userId, ProjectScheduleUpdateRequest request) {
+    ProjectSchedule schedule =
+        scheduleRepository
+            .findByIdAndDeletedAtIsNull(scheduleId)
+            .orElseThrow(() -> new IllegalArgumentException("Schedule not found"));
 
     if (!schedule.getUser().getId().equals(userId)) {
       throw new AccessDeniedException("Unauthorized");
@@ -113,17 +128,23 @@ public class ProjectScheduleService {
 
     validateTimeOrder(request.start_time(), request.end_time());
 
-    schedule.update(request.title(), null, request.start_time(), request.end_time(),
-        request.completed());
-    return new ProjectScheduleResponse(schedule.getId(), schedule.getTitle(),
+    schedule.update(
+        request.title(), null, request.start_time(), request.end_time(), request.completed());
+    return new ProjectScheduleResponse(
+        schedule.getId(),
+        schedule.getTitle(),
         schedule.getDescription(),
         schedule.getStartTime(),
-        schedule.getEndTime(), schedule.isCompleted(), true);
+        schedule.getEndTime(),
+        schedule.isCompleted(),
+        true);
   }
 
   public void deleteSchedule(Long scheduleId, Long userId) {
-    ProjectSchedule schedule = scheduleRepository.findByIdAndDeletedAtIsNull(scheduleId)
-        .orElseThrow(() -> new IllegalArgumentException("Schedule not found"));
+    ProjectSchedule schedule =
+        scheduleRepository
+            .findByIdAndDeletedAtIsNull(scheduleId)
+            .orElseThrow(() -> new IllegalArgumentException("Schedule not found"));
 
     if (!schedule.getUser().getId().equals(userId)) {
       throw new AccessDeniedException("Unauthorized");
@@ -135,11 +156,10 @@ public class ProjectScheduleService {
   public List<ProjectScheduleResponse> getDailySchedules(Long projectId, LocalDate day) {
     LocalDateTime start = day.atStartOfDay();
     LocalDateTime end = day.plusDays(1).atStartOfDay().minusNanos(1);
-    List<ProjectSchedule> dailyProjectSchedules = scheduleRepository.findDailyProjectSchedules(
-        projectId, start, end);
-    List<ProjectScheduleResponse> responses = dailyProjectSchedules.stream()
-        .map(s -> toResponse(s, true))
-        .collect(Collectors.toList());
+    List<ProjectSchedule> dailyProjectSchedules =
+        scheduleRepository.findDailyProjectSchedules(projectId, start, end);
+    List<ProjectScheduleResponse> responses =
+        dailyProjectSchedules.stream().map(s -> toResponse(s, true)).collect(Collectors.toList());
     return responses;
   }
 
@@ -154,15 +174,15 @@ public class ProjectScheduleService {
         .build();
   }
 
-  public Map<String, List<ProjectScheduleResponse>> getWeeklySchedules(Long projectId,
-      LocalDate startDate) {
+  public Map<String, List<ProjectScheduleResponse>> getWeeklySchedules(
+      Long projectId, LocalDate startDate) {
     LocalDateTime start = startDate.atStartOfDay();
     LocalDateTime end = startDate.plusDays(7).atStartOfDay().minusNanos(1);
     return getSchedulesByRange(projectId, start, end);
   }
 
-  public Map<String, List<ProjectScheduleResponse>> getMonthlySchedules(Long projectId,
-      YearMonth month) {
+  public Map<String, List<ProjectScheduleResponse>> getMonthlySchedules(
+      Long projectId, YearMonth month) {
     LocalDateTime start = month.atDay(1).atStartOfDay();
     LocalDateTime end = month.atEndOfMonth().atTime(LocalTime.MAX);
     return getSchedulesByRange(projectId, start, end);
@@ -174,28 +194,33 @@ public class ProjectScheduleService {
     return getSchedulesByRange(projectId, start, end);
   }
 
-  public Map<String, List<ProjectScheduleResponse>> getSchedulesByRange(Long projectId,
-      LocalDateTime start, LocalDateTime end) {
-    Project project = projectRepository.findByIdAndDeletedAtIsNull(projectId)
-        .orElseThrow(() -> new IllegalArgumentException("Invalid project ID"));
+  public Map<String, List<ProjectScheduleResponse>> getSchedulesByRange(
+      Long projectId, LocalDateTime start, LocalDateTime end) {
+    Project project =
+        projectRepository
+            .findByIdAndDeletedAtIsNull(projectId)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid project ID"));
 
-    List<ProjectSchedule> schedules = scheduleRepository
-        .findSchedulesBetween(projectId, start, end);
+    List<ProjectSchedule> schedules =
+        scheduleRepository.findSchedulesBetween(projectId, start, end);
 
-    LinkedHashMap<String, List<ProjectScheduleResponse>> collect = schedules.stream()
-        .collect(Collectors.groupingBy(
-            s -> s.getStartTime().toLocalDate().toString(),
-            LinkedHashMap::new,
-            Collectors.mapping(s -> new ProjectScheduleResponse(
-                s.getId(),
-                s.getTitle(),
-                s.getDescription(),
-                s.getStartTime(),
-                s.getEndTime(),
-                s.isCompleted(),
-                true
-            ), Collectors.toList())
-        ));
+    LinkedHashMap<String, List<ProjectScheduleResponse>> collect =
+        schedules.stream()
+            .collect(
+                Collectors.groupingBy(
+                    s -> s.getStartTime().toLocalDate().toString(),
+                    LinkedHashMap::new,
+                    Collectors.mapping(
+                        s ->
+                            new ProjectScheduleResponse(
+                                s.getId(),
+                                s.getTitle(),
+                                s.getDescription(),
+                                s.getStartTime(),
+                                s.getEndTime(),
+                                s.isCompleted(),
+                                true),
+                        Collectors.toList())));
     return collect;
   }
 }

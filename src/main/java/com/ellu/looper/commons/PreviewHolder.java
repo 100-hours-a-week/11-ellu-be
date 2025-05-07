@@ -9,7 +9,8 @@ import org.springframework.web.context.request.async.DeferredResult;
 @Component
 public class PreviewHolder {
 
-  private final Map<Long, DeferredResult<ResponseEntity<?>>> waitingClients = new ConcurrentHashMap<>();
+  private final Map<Long, DeferredResult<ResponseEntity<?>>> waitingClients =
+      new ConcurrentHashMap<>();
 
   public void register(Long projectId, DeferredResult<ResponseEntity<?>> result) {
     waitingClients.put(projectId, result);
@@ -22,10 +23,10 @@ public class PreviewHolder {
   public void complete(Long projectId, Object aiResponse) {
     DeferredResult<ResponseEntity<?>> result = waitingClients.remove(projectId);
     if (result != null) {
-      result.setResult(ResponseEntity.ok(Map.of("message", "schedule_fetched", "data", aiResponse)));
+      result.setResult(
+          ResponseEntity.ok(Map.of("message", "schedule_fetched", "data", aiResponse)));
     }
   }
 
-  public void completeWithError(Long projectId, Throwable error) {
-  }
+  public void completeWithError(Long projectId, Throwable error) {}
 }

@@ -13,26 +13,26 @@ import org.springframework.context.annotation.Configuration;
 @RequiredArgsConstructor
 public class ProfileImageInitializer {
 
-    private final ProfileImageService profileImageService;
+  private final ProfileImageService profileImageService;
 
-    @Value("${cloud.aws.s3.initialize-profile-images:false}")
-    private boolean initializeProfileImages;
+  @Value("${cloud.aws.s3.initialize-profile-images:false}")
+  private boolean initializeProfileImages;
 
-    @Bean
-    public CommandLineRunner initializeProfileImages() {
-        return args -> {
-            if (!initializeProfileImages) {
-                log.info("Profile images initialization is disabled");
-                return;
-            }
+  @Bean
+  public CommandLineRunner initializeProfileImages() {
+    return args -> {
+      if (!initializeProfileImages) {
+        log.info("Profile images initialization is disabled");
+        return;
+      }
 
-            try {
-                log.info("Initializing profile images...");
-                profileImageService.uploadDefaultProfileImages();
-                log.info("Profile images initialized successfully");
-            } catch (Exception e) {
-                log.error("Failed to initialize profile images", e);
-            }
-        };
-    }
-} 
+      try {
+        log.info("Initializing profile images...");
+        profileImageService.uploadDefaultProfileImages();
+        log.info("Profile images initialized successfully");
+      } catch (Exception e) {
+        log.error("Failed to initialize profile images", e);
+      }
+    };
+  }
+}

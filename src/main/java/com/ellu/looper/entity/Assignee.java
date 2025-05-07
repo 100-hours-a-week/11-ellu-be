@@ -18,10 +18,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "assignee", indexes = {
-    @Index(name = "IDX_ASSIGNEE_MEMBER_ID", columnList = "member_id"),
-    @Index(name = "IDX_ASSIGNEE_PROJECT_SCHEDULE_ID", columnList = "project_schedule_id")
-})
+@Table(
+    name = "assignee",
+    indexes = {
+      @Index(name = "IDX_ASSIGNEE_MEMBER_ID", columnList = "member_id"),
+      @Index(name = "IDX_ASSIGNEE_PROJECT_SCHEDULE_ID", columnList = "project_schedule_id")
+    })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Assignee {

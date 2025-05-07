@@ -1,7 +1,6 @@
 package com.ellu.looper.commons;
 
 import com.ellu.looper.jwt.JwtAuthenticationToken;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.MethodParameter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;

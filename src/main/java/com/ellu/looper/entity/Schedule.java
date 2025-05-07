@@ -19,11 +19,13 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
-@Table(name = "schedule", indexes = {
-    @Index(name = "IDX_SCHEDULE_DELETED_AT", columnList = "deleted_at"),
-    @Index(name = "IDX_SCHEDULE_MEMBER_ID", columnList = "member_id"),
-    @Index(name = "IDX_SCHEDULE_IS_COMPLETED", columnList = "is_completed")
-})
+@Table(
+    name = "schedule",
+    indexes = {
+      @Index(name = "IDX_SCHEDULE_DELETED_AT", columnList = "deleted_at"),
+      @Index(name = "IDX_SCHEDULE_MEMBER_ID", columnList = "member_id"),
+      @Index(name = "IDX_SCHEDULE_IS_COMPLETED", columnList = "is_completed")
+    })
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -39,16 +41,15 @@ public class Schedule {
   @JoinColumn(name = "member_id", nullable = false)
   private User user;
 
-//  // Plan과의 연관관계 (nullable)
-//  @ManyToOne(fetch = FetchType.LAZY)
-//  @JoinColumn(name = "plan_id")
-//  private Plan plan;
+  //  // Plan과의 연관관계 (nullable)
+  //  @ManyToOne(fetch = FetchType.LAZY)
+  //  @JoinColumn(name = "plan_id")
+  //  private Plan plan;
 
   @Column(nullable = false, length = 50)
   private String title;
 
-  @Column
-  private String description;
+  @Column private String description;
 
   @Column(name = "is_completed", nullable = false)
   @Builder.Default

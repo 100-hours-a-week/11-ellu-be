@@ -33,15 +33,16 @@ public class ScheduleController {
   private final ScheduleService scheduleService;
 
   @PostMapping
-  public ResponseEntity<?> create(@CurrentUser Long userId,
-      @RequestBody ScheduleCreateRequest request) {
+  public ResponseEntity<?> create(
+      @CurrentUser Long userId, @RequestBody ScheduleCreateRequest request) {
     ScheduleResponse response = scheduleService.createSchedule(userId, request);
-    return ResponseEntity.status(HttpStatus.CREATED).body(
-        Map.of("message", "schedule_created", "data", response));
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(Map.of("message", "schedule_created", "data", response));
   }
 
   @PatchMapping("/{id}")
-  public ResponseEntity<?> update(@CurrentUser Long userId,
+  public ResponseEntity<?> update(
+      @CurrentUser Long userId,
       @PathVariable Long id,
       @Valid @RequestBody ScheduleUpdateRequest request) {
     ScheduleResponse response = scheduleService.updateSchedule(userId, id, request);
@@ -60,9 +61,17 @@ public class ScheduleController {
     try {
       localDate = LocalDate.parse(date);
     } catch (Exception e) {
-      return ResponseEntity.badRequest().body(Map.of("message", "validation_failed", "data",
-          Map.of("errors",
-              Map.of("date", "Missing or invalid date parameter. Format must be YYYY-MM-DD."))));
+      return ResponseEntity.badRequest()
+          .body(
+              Map.of(
+                  "message",
+                  "validation_failed",
+                  "data",
+                  Map.of(
+                      "errors",
+                      Map.of(
+                          "date",
+                          "Missing or invalid date parameter. Format must be YYYY-MM-DD."))));
     }
     List<ScheduleResponse> data = scheduleService.getDailySchedules(userId, localDate);
     return ResponseEntity.ok(Map.of("message", "daily_schedule", "data", data));
@@ -72,14 +81,21 @@ public class ScheduleController {
   public ResponseEntity<?> weekly(@CurrentUser Long userId, @RequestParam String startDate) {
     try {
       LocalDate start = LocalDate.parse(startDate);
-      Map<LocalDate, List<ScheduleResponse>> data = scheduleService.getSchedulesByRange(userId,
-          start, start.plusDays(6));
+      Map<LocalDate, List<ScheduleResponse>> data =
+          scheduleService.getSchedulesByRange(userId, start, start.plusDays(6));
       return ResponseEntity.ok(Map.of("message", "weekly_schedule", "data", data));
     } catch (Exception e) {
-      return ResponseEntity.badRequest().body(Map.of(
-          "message", "validation_failed",
-          "data", Map.of("errors",
-              Map.of("date", "Missing or invalid date parameter. Format must be YYYY-MM-DD."))));
+      return ResponseEntity.badRequest()
+          .body(
+              Map.of(
+                  "message",
+                  "validation_failed",
+                  "data",
+                  Map.of(
+                      "errors",
+                      Map.of(
+                          "date",
+                          "Missing or invalid date parameter. Format must be YYYY-MM-DD."))));
     }
   }
 
@@ -88,14 +104,21 @@ public class ScheduleController {
     try {
       YearMonth ym = YearMonth.parse(month);
 
-      Map<LocalDate, List<ScheduleResponse>> data = scheduleService.getSchedulesByRange(
-          userId, ym.atDay(1), ym.atEndOfMonth());
+      Map<LocalDate, List<ScheduleResponse>> data =
+          scheduleService.getSchedulesByRange(userId, ym.atDay(1), ym.atEndOfMonth());
       return ResponseEntity.ok(Map.of("message", "monthly_schedule", "data", data));
     } catch (Exception e) {
       System.out.println("e = " + e);
-      return ResponseEntity.badRequest().body(Map.of("message", "validation_failed", "data",
-          Map.of("errors",
-              Map.of("date", "Missing or invalid month parameter. Format must be YYYY-MM."))));
+      return ResponseEntity.badRequest()
+          .body(
+              Map.of(
+                  "message",
+                  "validation_failed",
+                  "data",
+                  Map.of(
+                      "errors",
+                      Map.of(
+                          "date", "Missing or invalid month parameter. Format must be YYYY-MM."))));
     }
   }
 
@@ -103,13 +126,20 @@ public class ScheduleController {
   public ResponseEntity<?> yearly(@CurrentUser Long userId, @RequestParam String year) {
     try {
       int y = Integer.parseInt(year);
-      Map<LocalDate, List<ScheduleResponse>> data = scheduleService.getSchedulesByRange(
-          userId, LocalDate.of(y, 1, 1), LocalDate.of(y, 12, 31));
+      Map<LocalDate, List<ScheduleResponse>> data =
+          scheduleService.getSchedulesByRange(
+              userId, LocalDate.of(y, 1, 1), LocalDate.of(y, 12, 31));
       return ResponseEntity.ok(Map.of("message", "yearly_schedule", "data", data));
     } catch (Exception e) {
-      return ResponseEntity.badRequest().body(Map.of("message", "validation_failed", "data",
-          Map.of("errors",
-              Map.of("date", "Missing or invalid year parameter. Format must be YYYY."))));
+      return ResponseEntity.badRequest()
+          .body(
+              Map.of(
+                  "message",
+                  "validation_failed",
+                  "data",
+                  Map.of(
+                      "errors",
+                      Map.of("date", "Missing or invalid year parameter. Format must be YYYY."))));
     }
   }
 }

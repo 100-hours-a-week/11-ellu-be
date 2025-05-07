@@ -5,15 +5,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class MeetingNoteRequest {
-    private String meeting_note;
-    private Long author_id;
-    private String nickname;
-    private String position;
-} 
+  private String meeting_note;
+  private Long author_id;
+  private String nickname;
+  private String position;
+}

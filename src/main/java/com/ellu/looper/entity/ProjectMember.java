@@ -17,48 +17,47 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ProjectMember {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", nullable = false)
-    private Project project;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "project_id", nullable = false)
+  private Project project;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
-    private User user;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "member_id", nullable = false)
+  private User user;
 
-    @Column(length = 15)
-    private String position; // frontend, backend, cloud 등
+  @Column(length = 15)
+  private String position; // frontend, backend, cloud 등
 
-    @Column(nullable = false, length = 15)
-    @Enumerated(EnumType.STRING)
-    private Role role;
+  @Column(nullable = false, length = 15)
+  @Enumerated(EnumType.STRING)
+  private Role role;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+  @Column(name = "updated_at", nullable = false)
+  private LocalDateTime updatedAt;
 
-    @Setter
-    @Column(name = "deleted_at")
-    private LocalDateTime deletedAt;
+  @Setter
+  @Column(name = "deleted_at")
+  private LocalDateTime deletedAt;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
+  @PrePersist
+  protected void onCreate() {
+    this.createdAt = LocalDateTime.now();
+    this.updatedAt = LocalDateTime.now();
+  }
 
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
+  @PreUpdate
+  protected void onUpdate() {
+    this.updatedAt = LocalDateTime.now();
+  }
 
-    public void softDelete() {
-        this.deletedAt = LocalDateTime.now();
-    }
-
+  public void softDelete() {
+    this.deletedAt = LocalDateTime.now();
+  }
 }

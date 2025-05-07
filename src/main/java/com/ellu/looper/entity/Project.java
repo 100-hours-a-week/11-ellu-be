@@ -2,7 +2,6 @@ package com.ellu.looper.entity;
 
 import com.ellu.looper.commons.enums.Color;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
