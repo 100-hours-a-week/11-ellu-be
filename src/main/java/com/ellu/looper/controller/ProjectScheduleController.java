@@ -9,10 +9,13 @@ import com.ellu.looper.dto.schedule.ProjectScheduleUpdateRequest;
 import com.ellu.looper.entity.User;
 import com.ellu.looper.service.ProjectScheduleService;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Year;
 import java.time.YearMonth;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -108,25 +111,66 @@ public class ProjectScheduleController {
     return ResponseEntity.ok(new ApiResponse<>("project_weekly_schedule", schedules));
   }
 
+//  @GetMapping("/schedules/monthly")
+//  public ResponseEntity<?> getMonthlySchedules(
+//      @PathVariable Long projectId,
+//      @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth month) {
+//    if (month == null) {
+//      return ResponseEntity.badRequest()
+//          .body(
+//              new ApiResponse<>(
+//                  "validation_failed",
+//                  Map.of(
+//                      "errors",
+//                      Map.of(
+//                          "month",
+//                          "Missing or invalid month parameter. Format must be YYYY-MM."))));
+//    }
+//
+//    Map<String, List<ProjectScheduleResponse>> schedules =
+//        scheduleService.getMonthlySchedules(projectId, month);
+//    return ResponseEntity.ok(new ApiResponse<>("project_monthly_schedule", schedules));
+//  }
+
   @GetMapping("/schedules/monthly")
-  public ResponseEntity<ApiResponse<Map<String, ?>>> getMonthlySchedules(
+  public ResponseEntity<ApiResponse<?>> getMonthlySchedules(
       @PathVariable Long projectId,
       @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth month) {
+
     if (month == null) {
       return ResponseEntity.badRequest()
-          .body(
-              new ApiResponse<>(
-                  "validation_failed",
-                  Map.of(
-                      "errors",
-                      Map.of(
-                          "month",
-                          "Missing or invalid month parameter. Format must be YYYY-MM."))));
+          .body(new ApiResponse<>(
+              "validation_failed",
+              Map.of("errors",
+                  Map.of("month", "Missing or invalid month parameter. Format must be YYYY-MM."))));
     }
 
-    Map<String, List<ProjectScheduleResponse>> schedules =
-        scheduleService.getMonthlySchedules(projectId, month);
-    return ResponseEntity.ok(new ApiResponse<>("project_monthly_schedule", schedules));
+    YearMonth prevMonth = month.minusMonths(1);
+    YearMonth nextMonth = month.plusMonths(1);
+
+    LocalDateTime startDate = prevMonth.atDay(1).atStartOfDay();
+    LocalDateTime endDate = nextMonth.atEndOfMonth().plusDays(1).atStartOfDay().minusNanos(1);
+
+    // 전체 범위 일정 가져오기
+    Map<String, List<ProjectScheduleResponse>> allSchedules =
+        scheduleService.getSchedulesByRange(projectId, startDate, endDate);
+
+    // 월별로 그룹화
+    Map<String, Map<LocalDate, List<ProjectScheduleResponse>>> groupedByMonth = new HashMap<>();
+    groupedByMonth.put(prevMonth.toString(), new HashMap<>());
+    groupedByMonth.put(month.toString(), new HashMap<>());
+    groupedByMonth.put(nextMonth.toString(), new HashMap<>());
+
+    for (Entry<String, List<ProjectScheduleResponse>> entry : allSchedules.entrySet()) {
+      LocalDate date = LocalDate.parse(entry.getKey());
+      String key = YearMonth.from(date).toString();
+      if (groupedByMonth.containsKey(key)) {
+        groupedByMonth.get(key).put(date, entry.getValue());
+      }
+    }
+
+    return ResponseEntity.ok(
+        new ApiResponse<>("project_monthly_schedule", groupedByMonth));
   }
 
   @GetMapping("/schedules/yearly")
