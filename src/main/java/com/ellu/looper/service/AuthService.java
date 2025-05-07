@@ -17,6 +17,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -139,17 +141,21 @@ public class AuthService {
   }
 
   public void setTokenCookies(HttpServletResponse response, String refreshToken) {
-    Cookie refreshCookie = new Cookie("refresh_token", refreshToken);
-    refreshCookie.setHttpOnly(true);
-    refreshCookie.setSecure(true);
-    refreshCookie.setPath("/");
-    refreshCookie.setMaxAge((int) JwtExpiration.REFRESH_TOKEN_EXPIRATION); // 2주
+    ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
+        .httpOnly(true)
+        .secure(true)
+        .sameSite("None")
+        .path("/")
+        .maxAge(JwtExpiration.REFRESH_TOKEN_EXPIRATION)
+        .build();
+    response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
-    response.addCookie(refreshCookie);
   }
 
   public String extractRefreshTokenFromCookies(HttpServletRequest request) {
-    if (request.getCookies() == null) return null;
+    if (request.getCookies() == null) {
+      return null;
+    }
 
     for (Cookie cookie : request.getCookies()) {
       if ("refresh_token".equals(cookie.getName())) {
