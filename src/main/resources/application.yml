@@ -32,7 +32,6 @@ kakao:
   client-id: ${KAKAO_REST_API_KEY}
   redirect-uri: ${KAKAO_REDIRECT_URI}
 
-
 jwt:
   secret: ${JWT_SECRET}
 

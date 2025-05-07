@@ -31,7 +31,10 @@ public class SecurityConfig {
                         "/auth/**", // 인증 없이 접근 가능한 경로
                         "/error", // 에러 페이지
                         "/actuator/**", // actuator도 열어둠,
-                        "/auth/kakao/callback")
+                        "/auth/kakao/callback",
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html")
                     .permitAll()
                     .requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll() // Preflight 요청 허용
