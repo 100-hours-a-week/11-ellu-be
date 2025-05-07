@@ -2,9 +2,11 @@ package com.ellu.looper.controller;
 
 import com.ellu.looper.commons.ApiResponse;
 import com.ellu.looper.commons.CurrentUser;
+import com.ellu.looper.commons.PreviewHolder;
 import com.ellu.looper.dto.schedule.ProjectScheduleCreateRequest;
 import com.ellu.looper.dto.schedule.ProjectScheduleResponse;
 import com.ellu.looper.dto.schedule.ProjectScheduleUpdateRequest;
+import com.ellu.looper.entity.User;
 import com.ellu.looper.service.ProjectScheduleService;
 import java.time.LocalDate;
 import java.time.Year;
@@ -13,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,13 +26,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.async.DeferredResult;
 
 @RestController
-@RequestMapping("/projects/{projectId}/schedules")
+@RequestMapping("/projects/{projectId}")
 @RequiredArgsConstructor
 public class ProjectScheduleController {
 
   private final ProjectScheduleService scheduleService;
+  private final PreviewHolder previewHolder;
 
   @PostMapping
   public ResponseEntity<ApiResponse<List<ProjectScheduleResponse>>> createSchedules(
@@ -41,7 +46,7 @@ public class ProjectScheduleController {
     return ResponseEntity.ok(new ApiResponse<>("project_daily_schedule", result));
   }
 
-  @PatchMapping("/{scheduleId}")
+  @PatchMapping("/schedules/{scheduleId}")
   public ResponseEntity<ApiResponse<ProjectScheduleResponse>> updateSchedule(
       @PathVariable Long projectId,
       @PathVariable Long scheduleId,
@@ -52,18 +57,18 @@ public class ProjectScheduleController {
     return ResponseEntity.ok(new ApiResponse<>("schedule_updated", result));
   }
 
-  @DeleteMapping("/{scheduleId}")
+  @DeleteMapping("/schedules/{scheduleId}")
   public ResponseEntity<Void> deleteSchedule(
       @PathVariable Long projectId, @PathVariable Long scheduleId, @CurrentUser Long userId) {
     scheduleService.deleteSchedule(scheduleId, userId);
     return ResponseEntity.noContent().build();
   }
 
-  @GetMapping("/daily")
+  @GetMapping("/schedules/daily")
   public ResponseEntity<ApiResponse<?>> getDailySchedules(
       @PathVariable Long projectId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-          LocalDate day) {
+      LocalDate day) {
     if (day == null) {
       return ResponseEntity.badRequest()
           .body(
@@ -80,12 +85,12 @@ public class ProjectScheduleController {
     return ResponseEntity.ok(new ApiResponse<>("project_daily_schedule", schedules));
   }
 
-  @GetMapping("/weekly")
+  @GetMapping("/schedules/weekly")
   public ResponseEntity<ApiResponse<Map<String, ?>>> getWeeklySchedules(
       @PathVariable Long projectId,
       @RequestParam(required = false, name = "startDate")
-          @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-          LocalDate startDate) {
+      @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+      LocalDate startDate) {
     if (startDate == null) {
       return ResponseEntity.badRequest()
           .body(
@@ -103,7 +108,7 @@ public class ProjectScheduleController {
     return ResponseEntity.ok(new ApiResponse<>("project_weekly_schedule", schedules));
   }
 
-  @GetMapping("/monthly")
+  @GetMapping("/schedules/monthly")
   public ResponseEntity<ApiResponse<Map<String, ?>>> getMonthlySchedules(
       @PathVariable Long projectId,
       @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth month) {
@@ -124,7 +129,7 @@ public class ProjectScheduleController {
     return ResponseEntity.ok(new ApiResponse<>("project_monthly_schedule", schedules));
   }
 
-  @GetMapping("/yearly")
+  @GetMapping("/schedules/yearly")
   public ResponseEntity<ApiResponse<Map<String, ?>>> getYearlySchedules(
       @PathVariable Long projectId,
       @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy") Year year) {
@@ -141,5 +146,31 @@ public class ProjectScheduleController {
     Map<String, List<ProjectScheduleResponse>> schedules =
         scheduleService.getYearlySchedules(projectId, year);
     return ResponseEntity.ok(new ApiResponse<>("project_yearly_schedule", schedules));
+  }
+
+  @GetMapping("/tasks/preview")
+  public DeferredResult<ResponseEntity<?>> getPreview(@PathVariable Long projectId,
+      @CurrentUser Long UserId) {
+    DeferredResult<ResponseEntity<?>> result = new DeferredResult<>(60000L); // 60초 타임아웃
+
+    // 응답 대기 등록
+    previewHolder.register(projectId, result);
+
+    // 타임아웃 처리
+    result.onTimeout(() -> {
+      previewHolder.remove(projectId);
+      result.setResult(ResponseEntity.status(HttpStatus.OK).body(
+          ApiResponse.success("no_content_yet", null)
+      ));
+    });
+
+    // 에러 처리 (네트워크 오류 등)
+    result.onError(error -> {
+      previewHolder.remove(projectId);
+      result.setResult(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(ApiResponse.error("internal_server_error")));
+    });
+
+    return result;
   }
 }

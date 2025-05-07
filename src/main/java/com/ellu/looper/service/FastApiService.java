@@ -48,27 +48,6 @@ public class FastApiService {
         .subscribe(onSuccess, onError);
   }
 
-  public Mono<String> getTaskPreview(Long projectId) {
-    log.info("Getting task preview from AI server for project: {}", projectId);
-    return webClient
-        .get()
-        .uri("/projects/{projectId}/tasks/preview", projectId)
-        .retrieve()
-        .bodyToMono(String.class)
-        .timeout(Duration.ofSeconds(10))
-        .doOnSuccess(
-            response -> {
-              log.info("Successfully got task preview from AI server for project: {}", projectId);
-            })
-        .doOnError(
-            error -> {
-              log.error(
-                  "Failed to get task preview from AI server for project: {}, error: {}",
-                  projectId,
-                  error.getMessage());
-            });
-  }
-
   public void createWiki(Long projectId, WikiRequest request) {
     log.info("Creating wiki for project: {}", projectId);
     webClient
@@ -92,30 +71,12 @@ public class FastApiService {
         .subscribe();
   }
 
-  public Mono<String> getWiki(Long projectId) {
-    log.info("Getting wiki for project: {}", projectId);
-    return webClient
-        .get()
-        .uri("/ai/wiki/{projectId}", projectId)
-        .retrieve()
-        .bodyToMono(String.class)
-        .timeout(Duration.ofSeconds(10))
-        .doOnSuccess(
-            response -> {
-              log.info("Successfully got wiki for project: {}", projectId);
-            })
-        .doOnError(
-            error -> {
-              log.error(
-                  "Failed to get wiki for project: {}, error: {}", projectId, error.getMessage());
-            });
-  }
 
   public void updateWiki(Long projectId, WikiRequest request) {
     log.info("Updating wiki for project: {}", projectId);
     webClient
         .patch()
-        .uri("/ai/wiki/{projectId}", projectId)
+        .uri("/ai/wiki")
         .bodyValue(request)
         .retrieve()
         .bodyToMono(Void.class)

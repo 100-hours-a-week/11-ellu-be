@@ -22,11 +22,20 @@ public class PreviewHolder {
 
   public void complete(Long projectId, Object aiResponse) {
     DeferredResult<ResponseEntity<?>> result = waitingClients.remove(projectId);
-    if (result != null) {
+    if (result != null && !result.isSetOrExpired()) {
       result.setResult(
           ResponseEntity.ok(Map.of("message", "schedule_fetched", "data", aiResponse)));
     }
   }
 
-  public void completeWithError(Long projectId, Throwable error) {}
+  public void completeWithError(Long projectId, Throwable error) {
+    DeferredResult<ResponseEntity<?>> result = waitingClients.remove(projectId);
+    if (result != null) {
+      result.setResult(
+          ResponseEntity.status(500).body(
+              Map.of("message", "internal_server_error", "data", null)
+          ));
+    }
+  }
+
 }
