@@ -20,11 +20,7 @@ public class UserService {
 
     String profileImageUrl = profileImageService.getProfileImageUrl(user.getFileName());
 
-    return new UserResponse(
-        user.getId(),
-        user.getNickname(),
-        profileImageUrl
-    );
+    return new UserResponse(user.getId(), user.getNickname(), profileImageUrl);
   }
 
   @Transactional

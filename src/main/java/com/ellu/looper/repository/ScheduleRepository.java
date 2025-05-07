@@ -1,7 +1,6 @@
 package com.ellu.looper.repository;
 
 import com.ellu.looper.entity.Schedule;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -13,18 +12,20 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
-  @Query("SELECT s FROM Schedule s WHERE s.user.id = :userId AND s.deletedAt IS NULL " +
-      "AND s.startTime < :end AND s.endTime >= :start")
+  @Query(
+      "SELECT s FROM Schedule s WHERE s.user.id = :userId AND s.deletedAt IS NULL "
+          + "AND s.startTime < :end AND s.endTime >= :start")
   List<Schedule> findDailySchedules(
       @Param("userId") Long userId,
       @Param("start") LocalDateTime start,
-      @Param("end") LocalDateTime end
-  );
+      @Param("end") LocalDateTime end);
 
-
-
-  @Query("SELECT s FROM Schedule s WHERE s.user.id = :userId AND s.deletedAt IS NULL AND s.startTime <=:end AND s.endTime>= :start")
-  List<Schedule> findSchedulesBetween(@Param("userId") Long userId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+  @Query(
+      "SELECT s FROM Schedule s WHERE s.user.id = :userId AND s.deletedAt IS NULL AND s.startTime <=:end AND s.endTime>= :start")
+  List<Schedule> findSchedulesBetween(
+      @Param("userId") Long userId,
+      @Param("start") LocalDateTime start,
+      @Param("end") LocalDateTime end);
 
   Optional<Schedule> findByIdAndUserIdAndDeletedAtIsNull(Long id, Long userId);
 }

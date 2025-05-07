@@ -6,5 +6,5 @@ public class UserNotFoundException extends RuntimeException {
   }
 }
 
-//User user = userRepository.findById(userId)
+// User user = userRepository.findById(userId)
 //    .orElseThrow(() -> new UserNotFoundException("User not found or unauthorized"));

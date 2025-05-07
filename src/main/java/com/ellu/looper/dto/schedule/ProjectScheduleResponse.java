@@ -1,6 +1,5 @@
 package com.ellu.looper.dto.schedule;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 import lombok.Builder;
 
@@ -12,5 +11,4 @@ public record ProjectScheduleResponse(
     LocalDateTime start_time,
     LocalDateTime end_time,
     boolean is_completed,
-    boolean is_project_schedule
-) {}
+    boolean is_project_schedule) {}

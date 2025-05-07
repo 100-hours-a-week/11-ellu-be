@@ -66,11 +66,12 @@ public class AuthService {
 
     refreshTokenRepository
         .findByUserId(user.getId())
-        .ifPresent(existingToken -> {
-          log.info("Deleting existing token: {}", existingToken);
-          refreshTokenRepository.delete(existingToken);
-          refreshTokenRepository.flush();
-        });
+        .ifPresent(
+            existingToken -> {
+              log.info("Deleting existing token: {}", existingToken);
+              refreshTokenRepository.delete(existingToken);
+              refreshTokenRepository.flush();
+            });
 
     RefreshToken refreshTokenEntity =
         RefreshToken.builder()
@@ -128,14 +129,11 @@ public class AuthService {
 
     savedToken.updateToken(newRefreshToken);
 
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new RuntimeException("User not found"));
+    User user =
+        userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
-    TokenRefreshResponse.UserInfo userInfo = new TokenRefreshResponse.UserInfo(
-        user.getId(),
-        user.getNickname(),
-        user.getFileName()
-    );
+    TokenRefreshResponse.UserInfo userInfo =
+        new TokenRefreshResponse.UserInfo(user.getId(), user.getNickname(), user.getFileName());
 
     return new TokenRefreshResponse(newAccessToken, userInfo);
   }

@@ -39,8 +39,10 @@ public class ScheduleService {
   }
 
   public ScheduleResponse createSchedule(Long memberId, ScheduleCreateRequest request) {
-    User user = memberRepository.findById(memberId)
-        .orElseThrow(() -> new AccessDeniedException("unauthorized"));
+    User user =
+        memberRepository
+            .findById(memberId)
+            .orElseThrow(() -> new AccessDeniedException("unauthorized"));
 
     Map<String, String> errors = new HashMap<>();
 
@@ -56,45 +58,50 @@ public class ScheduleService {
       throw new ValidationException(errors);
     }
 
-    Schedule schedule = Schedule.builder()
-        .user(user)
-        .title(request.title())
-        .description(request.description())
-        .isAiRecommended(request.aiRecommended())
-        .isCompleted(false)
-        .startTime(request.startTime())
-        .endTime(request.endTime())
-        .build();
+    Schedule schedule =
+        Schedule.builder()
+            .user(user)
+            .title(request.title())
+            .description(request.description())
+            .isAiRecommended(request.aiRecommended())
+            .isCompleted(false)
+            .startTime(request.startTime())
+            .endTime(request.endTime())
+            .build();
     Schedule saved = scheduleRepository.save(schedule);
     return toResponse(saved, false);
   }
 
-
   public ScheduleResponse updateSchedule(Long memberId, Long id, ScheduleUpdateRequest request) {
-    Schedule existing = scheduleRepository.findByIdAndUserIdAndDeletedAtIsNull(id, memberId)
-        .orElseThrow(() -> new IllegalArgumentException("Invalid or already deleted schedule"));
+    Schedule existing =
+        scheduleRepository
+            .findByIdAndUserIdAndDeletedAtIsNull(id, memberId)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid or already deleted schedule"));
 
-    LocalDateTime newStart = request.startTime() != null ? request.startTime() : existing.getStartTime();
+    LocalDateTime newStart =
+        request.startTime() != null ? request.startTime() : existing.getStartTime();
     LocalDateTime newEnd = request.endTime() != null ? request.endTime() : existing.getEndTime();
 
     validateTimeOrder(newStart, newEnd);
 
-    Schedule updated = existing.toBuilder()
-        .title(request.title() != null ? request.title() : existing.getTitle())
-        .description(
-            request.description() != null ? request.description() : existing.getDescription())
-        .isCompleted(request.completed() != null ? request.completed() : existing.isCompleted())
-        .startTime(request.startTime()!=null?request.startTime():existing.getStartTime())
-        .endTime(request.endTime() != null ? request.endTime() : existing.getEndTime())
-        .build();
+    Schedule updated =
+        existing.toBuilder()
+            .title(request.title() != null ? request.title() : existing.getTitle())
+            .description(
+                request.description() != null ? request.description() : existing.getDescription())
+            .isCompleted(request.completed() != null ? request.completed() : existing.isCompleted())
+            .startTime(request.startTime() != null ? request.startTime() : existing.getStartTime())
+            .endTime(request.endTime() != null ? request.endTime() : existing.getEndTime())
+            .build();
 
     return toResponse(scheduleRepository.save(updated), false);
   }
 
-
   public void deleteSchedule(Long memberId, Long id) {
-    Schedule schedule = scheduleRepository.findByIdAndUserIdAndDeletedAtIsNull(id, memberId)
-        .orElseThrow(() -> new IllegalArgumentException("Invalid or already deleted schedule"));
+    Schedule schedule =
+        scheduleRepository
+            .findByIdAndUserIdAndDeletedAtIsNull(id, memberId)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid or already deleted schedule"));
     schedule.toBuilder().deletedAt(LocalDateTime.now()).build();
     scheduleRepository.delete(schedule);
   }
@@ -105,9 +112,8 @@ public class ScheduleService {
 
     List<Schedule> personalSchedules = scheduleRepository.findDailySchedules(memberId, start, end);
 
-    List<ScheduleResponse> responses = personalSchedules.stream()
-        .map(s -> toResponse(s, false))
-        .collect(Collectors.toList());
+    List<ScheduleResponse> responses =
+        personalSchedules.stream().map(s -> toResponse(s, false)).collect(Collectors.toList());
 
     List<ScheduleResponse> projectSchedules = getProjectDailySchedules(memberId, start, end);
 
@@ -115,71 +121,79 @@ public class ScheduleService {
     return responses;
   }
 
-
-  public Map<LocalDate, List<ScheduleResponse>> getSchedulesByRange(Long memberId,
-      LocalDate startDate, LocalDate endDate) {
+  public Map<LocalDate, List<ScheduleResponse>> getSchedulesByRange(
+      Long memberId, LocalDate startDate, LocalDate endDate) {
     LocalDateTime start = startDate.atStartOfDay();
     LocalDateTime end = endDate.plusDays(1).atStartOfDay().minusNanos(1); // 범위 끝을 포함시키기 위해
 
     List<Schedule> personal = scheduleRepository.findSchedulesBetween(memberId, start, end);
-    List<ScheduleResponse> responses = personal.stream()
-        .map(s -> toResponse(s, false)).toList();
+    List<ScheduleResponse> responses = personal.stream().map(s -> toResponse(s, false)).toList();
 
-    List<ScheduleResponse> project = getProjectSchedules(memberId, startDate.atStartOfDay(),
-        endDate.plusDays(1).atStartOfDay());
+    List<ScheduleResponse> project =
+        getProjectSchedules(memberId, startDate.atStartOfDay(), endDate.plusDays(1).atStartOfDay());
     List<ScheduleResponse> all = new ArrayList<>();
     all.addAll(responses);
     all.addAll(project);
     return all.stream().collect(Collectors.groupingBy(r -> r.startTime().toLocalDate()));
   }
 
-  public List<ScheduleResponse> getProjectSchedules(Long memberId, LocalDateTime start, LocalDateTime end) {
+  public List<ScheduleResponse> getProjectSchedules(
+      Long memberId, LocalDateTime start, LocalDateTime end) {
 
-    List<ProjectScheduleResponse> projectSchedules = projectRepository.findAllByMemberId(memberId).stream()
-        .flatMap(project -> projectScheduleService
-            .getSchedulesByRange(project.getId(), start, end)
-            .values().stream()
-            .flatMap(List::stream))
-        .toList();
+    List<ProjectScheduleResponse> projectSchedules =
+        projectRepository.findAllByMemberId(memberId).stream()
+            .flatMap(
+                project ->
+                    projectScheduleService
+                        .getSchedulesByRange(project.getId(), start, end)
+                        .values()
+                        .stream()
+                        .flatMap(List::stream))
+            .toList();
     return projectSchedules.stream()
-        .map(ps -> new ScheduleResponse(
-            ps.id(),
-            ps.title(),
-            ps.description(),
-            ps.is_completed(),
-            false,
-            ps.is_project_schedule(),
-            ps.start_time(),
-            ps.end_time()
-        ))
+        .map(
+            ps ->
+                new ScheduleResponse(
+                    ps.id(),
+                    ps.title(),
+                    ps.description(),
+                    ps.is_completed(),
+                    false,
+                    ps.is_project_schedule(),
+                    ps.start_time(),
+                    ps.end_time()))
         .toList();
   }
 
-  public List<ScheduleResponse> getProjectDailySchedules(Long memberId, LocalDateTime start, LocalDateTime end) {
+  public List<ScheduleResponse> getProjectDailySchedules(
+      Long memberId, LocalDateTime start, LocalDateTime end) {
     if (!start.toLocalDate().equals(end.minusNanos(1).toLocalDate())) {
       throw new IllegalArgumentException("일일 조회가 아닙니다. 일일 범위만 getDailySchedules에서 지원됩니다.");
     }
 
-    List<ProjectScheduleResponse> projectSchedules = projectRepository.findAllByMemberId(memberId).stream()
-        .flatMap(project -> projectScheduleService
-            .getDailySchedules(project.getId(), start.toLocalDate())
-            .stream())
-        .toList();
+    List<ProjectScheduleResponse> projectSchedules =
+        projectRepository.findAllByMemberId(memberId).stream()
+            .flatMap(
+                project ->
+                    projectScheduleService
+                        .getDailySchedules(project.getId(), start.toLocalDate())
+                        .stream())
+            .toList();
 
     return projectSchedules.stream()
-        .map(ps -> new ScheduleResponse(
-            ps.id(),
-            ps.title(),
-            ps.description(),
-            ps.is_completed(),
-            false,
-            ps.is_project_schedule(),
-            ps.start_time(),
-            ps.end_time()
-        ))
+        .map(
+            ps ->
+                new ScheduleResponse(
+                    ps.id(),
+                    ps.title(),
+                    ps.description(),
+                    ps.is_completed(),
+                    false,
+                    ps.is_project_schedule(),
+                    ps.start_time(),
+                    ps.end_time()))
         .toList();
   }
-
 
   private ScheduleResponse toResponse(Schedule s, boolean isProject) {
     return ScheduleResponse.builder()

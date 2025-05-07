@@ -8,6 +8,6 @@ import lombok.Getter;
 @AllArgsConstructor
 @Builder
 public class ProjectMemberResponse {
-    private String nickname;
-    private String profileImageUrl;
+  private String nickname;
+  private String profileImageUrl;
 }

@@ -2,7 +2,6 @@ package com.ellu.looper.repository;
 
 import com.ellu.looper.entity.Project;
 import com.ellu.looper.entity.ProjectSchedule;
-import com.ellu.looper.entity.Schedule;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -16,19 +15,20 @@ public interface ProjectScheduleRepository extends JpaRepository<ProjectSchedule
 
   Optional<ProjectSchedule> findByIdAndDeletedAtIsNull(Long id);
 
-  @Query("SELECT s FROM ProjectSchedule s WHERE s.project.id = :projectId AND s.deletedAt IS NULL " +
-      "AND s.startTime < :end AND s.endTime >= :start")
+  @Query(
+      "SELECT s FROM ProjectSchedule s WHERE s.project.id = :projectId AND s.deletedAt IS NULL "
+          + "AND s.startTime < :end AND s.endTime >= :start")
   List<ProjectSchedule> findDailyProjectSchedules(
       @Param("projectId") Long projectId,
       @Param("start") LocalDateTime start,
-      @Param("end") LocalDateTime end
-  );
+      @Param("end") LocalDateTime end);
 
-
-  @Query("SELECT s FROM ProjectSchedule s WHERE s.project.id = :projectId AND s.deletedAt IS NULL AND s.startTime <=:end AND s.endTime>= :start")
-  List<ProjectSchedule> findSchedulesBetween(@Param("projectId") Long projectId,
-      @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+  @Query(
+      "SELECT s FROM ProjectSchedule s WHERE s.project.id = :projectId AND s.deletedAt IS NULL AND s.startTime <=:end AND s.endTime>= :start")
+  List<ProjectSchedule> findSchedulesBetween(
+      @Param("projectId") Long projectId,
+      @Param("start") LocalDateTime start,
+      @Param("end") LocalDateTime end);
 
   List<ProjectSchedule> findByProjectAndDeletedAtIsNull(Project project);
 }
-

@@ -1,6 +1,5 @@
 package com.ellu.external;
 
-
 import com.ellu.looper.dto.TestResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -14,10 +13,6 @@ public class FastApiClient {
   private final WebClient fastApiWebClient;
 
   public Mono<TestResponse[]> getPosts() {
-    return fastApiWebClient
-        .get()
-        .uri("/posts")
-        .retrieve()
-        .bodyToMono(TestResponse[].class);
+    return fastApiWebClient.get().uri("/posts").retrieve().bodyToMono(TestResponse[].class);
   }
 }

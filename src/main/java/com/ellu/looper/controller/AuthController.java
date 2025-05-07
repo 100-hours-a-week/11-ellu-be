@@ -35,8 +35,8 @@ public class AuthController {
   private String redirectUri;
 
   @GetMapping("/auth/kakao/callback")
-  public ResponseEntity<?> kakaoCallback(@RequestParam("code") String code,
-      HttpServletResponse response) {
+  public ResponseEntity<?> kakaoCallback(
+      @RequestParam("code") String code, HttpServletResponse response) {
     String accessToken = requestAccessToken(code);
 
     // 로그인/회원가입 처리
@@ -47,7 +47,6 @@ public class AuthController {
 
     return ResponseEntity.ok(new ApiResponse("로그인 성공", null));
   }
-
 
   private String requestAccessToken(String code) {
     RestTemplate restTemplate = new RestTemplate();
@@ -103,8 +102,8 @@ public class AuthController {
     // RefreshToken을 쿠키로 설정
     authService.setTokenCookies(response, authResponse.getRefreshToken());
 
-    ResponseEntity<ApiResponse<AuthResponse>> responseEntity = ResponseEntity.ok(
-        ApiResponse.success("로그인 성공", authResponse));
+    ResponseEntity<ApiResponse<AuthResponse>> responseEntity =
+        ResponseEntity.ok(ApiResponse.success("로그인 성공", authResponse));
 
     // ObjectMapper는 보통 Bean으로 등록되어 있으니 주입받거나 새로 생성할 수 있음
     ObjectMapper objectMapper = new ObjectMapper();
@@ -119,10 +118,9 @@ public class AuthController {
     return responseEntity;
   }
 
-
   @DeleteMapping("/auth/token")
-  public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest request,
-      HttpServletResponse response) {
+  public ResponseEntity<ApiResponse<Void>> logout(
+      HttpServletRequest request, HttpServletResponse response) {
     // 쿠키에서 refresh_token 가져오기
     String refreshToken = authService.extractRefreshTokenFromCookies(request);
     if (refreshToken == null) {
@@ -139,7 +137,6 @@ public class AuthController {
     return ResponseEntity.ok(new ApiResponse("로그아웃 성공", null));
   }
 
-
   @PostMapping("/auth/users/nickname")
   public ResponseEntity<?> registerNickname(
       @CurrentUser Long userId, @RequestBody NicknameRequest request) {
@@ -151,8 +148,6 @@ public class AuthController {
   public ResponseEntity<?> refreshToken(@RequestHeader("Authorization") String refreshTokenHeader) {
     String refreshToken = refreshTokenHeader.replace("Bearer ", "");
     TokenRefreshResponse response = authService.refreshAccessToken(refreshToken);
-    return ResponseEntity.ok(
-        Map.of("message", "token_refreshed", "data", response)
-    );
+    return ResponseEntity.ok(Map.of("message", "token_refreshed", "data", response));
   }
 }
