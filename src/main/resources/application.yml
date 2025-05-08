@@ -17,6 +17,13 @@ spring:
 server:
   forward-headers-strategy: framework
 
+springdoc:
+  api-docs:
+    path: /api/v3/api-docs
+  swagger-ui:
+    path: /api/swagger-ui.html
+    config-url: /api/v3/api-docs/swagger-config
+
 cloud:
   aws:
     credentials:
