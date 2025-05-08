@@ -28,14 +28,12 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(
-                        "/auth/**", // 인증 없이 접근 가능한 경로
-                        "/error", // 에러 페이지
-                        "/actuator/**", // actuator도 열어둠,
+                        "/auth/**",
+                        "/error",
+                        "/actuator/**",
                         "/auth/kakao/callback",
                         "/swagger-ui/**",
-                        "/v3/api-docs/**",
-                        "/api/swagger-ui/**",
-                        "/api/v3/api-docs/**")
+                        "/v3/api-docs/**")
                     .permitAll()
                     .requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll() // Preflight 요청 허용
