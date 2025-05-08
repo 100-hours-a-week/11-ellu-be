@@ -6,22 +6,18 @@ import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.servers.Server;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class SwaggerConfig {
 
-    @Value("${swagger.server-url}")
-    private String serverUrl;
-    
     @Bean
     public OpenAPI openAPI() {
         final String jwtSchemeName = "JWT TOKEN";
 
         return new OpenAPI()
-                .addServersItem(new Server().url(serverUrl))
+                .addServersItem(new Server().url("/api"))
                 .info(new Info()
                         .title("Looper API")
                         .description("Looper 서비스의 API 명세서입니다.")
