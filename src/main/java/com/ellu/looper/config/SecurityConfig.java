@@ -32,9 +32,10 @@ public class SecurityConfig {
                         "/error", // 에러 페이지
                         "/actuator/**", // actuator도 열어둠,
                         "/auth/kakao/callback",
-                        "/v3/api-docs/**",
                         "/swagger-ui/**",
-                        "/swagger-ui.html")
+                        "/v3/api-docs/**",
+                        "/api/swagger-ui/**",
+                        "/api/v3/api-docs/**")
                     .permitAll()
                     .requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll() // Preflight 요청 허용
