@@ -17,7 +17,7 @@ public class SwaggerConfig {
         final String jwtSchemeName = "JWT TOKEN";
 
         return new OpenAPI()
-                .addServersItem(new Server().url(""))
+                .addServersItem(new Server().url("/api"))
                 .info(new Info()
                         .title("Looper API")
                         .description("Looper 서비스의 API 명세서입니다.")
