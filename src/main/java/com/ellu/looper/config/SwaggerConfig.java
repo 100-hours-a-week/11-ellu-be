@@ -12,12 +12,15 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class SwaggerConfig {
 
+    @Value("${swagger.server-url}")
+    private String serverUrl;
+    
     @Bean
     public OpenAPI openAPI() {
         final String jwtSchemeName = "JWT TOKEN";
 
         return new OpenAPI()
-                .addServersItem(new Server().url("/"))
+                .addServersItem(new Server().url(serverUrl))
                 .info(new Info()
                         .title("Looper API")
                         .description("Looper 서비스의 API 명세서입니다.")
