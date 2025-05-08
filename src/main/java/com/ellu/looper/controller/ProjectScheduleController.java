@@ -39,7 +39,7 @@ public class ProjectScheduleController {
   private final ProjectScheduleService scheduleService;
   private final PreviewHolder previewHolder;
 
-  @PostMapping
+  @PostMapping("/schedules")
   public ResponseEntity<ApiResponse<List<ProjectScheduleResponse>>> createSchedules(
       @PathVariable Long projectId,
       @RequestBody ProjectScheduleCreateRequest request,
