@@ -9,5 +9,5 @@ public class LoginResponse {
 
   private String accessToken;
 
-  private boolean is_new_user;
+  private boolean new_user;
 }
