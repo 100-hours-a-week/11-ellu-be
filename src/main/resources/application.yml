@@ -27,7 +27,10 @@ cloud:
       bucket: ${S3_BUCKET:looper-dev-image-s3}
       profile-image-prefix: ${IMAGE_PREFIX:profile-images}
       initialize-profile-images: false
-
+      
+swagger:
+  server-url: ${SWAGGER_SERVER_URL:/} 
+  
 kakao:
   client-id: ${KAKAO_REST_API_KEY}
 
@@ -54,3 +57,4 @@ info:
     name: ${spring.application.name}
     version: 1.0.1
     description: Looper API 서버
+    
