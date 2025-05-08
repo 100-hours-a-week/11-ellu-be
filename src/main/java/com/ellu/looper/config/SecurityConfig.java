@@ -51,7 +51,10 @@ public class SecurityConfig {
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
     configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-    configuration.setAllowedOriginPatterns(List.of("http://localhost:3000"));
+    configuration.setAllowedOriginPatterns(List.of(
+        "http://localhost:3000",
+        "https://looper.my"
+    ));
     configuration.setAllowedHeaders(List.of("*"));
     configuration.setAllowCredentials(true); // 쿠키 인증 허용 시 true
 
