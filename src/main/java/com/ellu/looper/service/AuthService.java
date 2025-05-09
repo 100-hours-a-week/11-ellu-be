@@ -5,6 +5,7 @@ import com.ellu.looper.dto.TokenRefreshResponse;
 import com.ellu.looper.dto.oauth.KakaoUserInfo;
 import com.ellu.looper.entity.RefreshToken;
 import com.ellu.looper.entity.User;
+import com.ellu.looper.exception.JwtException;
 import com.ellu.looper.exception.NicknameAlreadyExistsException;
 import com.ellu.looper.jwt.JwtExpiration;
 import com.ellu.looper.jwt.JwtProvider;
@@ -116,29 +117,46 @@ public class AuthService {
   }
 
   @Transactional
-  public TokenRefreshResponse refreshAccessToken(String oldRefreshToken) {
-    RefreshToken savedToken =
-        refreshTokenRepository
-            .findByRefreshToken(oldRefreshToken)
-            .orElseThrow(() -> new RuntimeException("invalid_refresh_token"));
+  public TokenRefreshResponse refreshAccessToken(String oldRefreshToken, HttpServletResponse response) {
+    RefreshToken savedToken = refreshTokenRepository.findByRefreshToken(oldRefreshToken)
+        .orElseThrow(() -> new RuntimeException("invalid_refresh_token"));
 
-    Long userId = jwtProvider.extractUserId(oldRefreshToken);
+    Long userId;
+    boolean refreshTokenExpired = false;
 
-    String newAccessToken =
-        jwtProvider.generateToken(userId, JwtExpiration.ACCESS_TOKEN_EXPIRATION);
-    String newRefreshToken =
-        jwtProvider.generateToken(userId, JwtExpiration.REFRESH_TOKEN_EXPIRATION);
+    try {
+      userId = jwtProvider.extractUserId(oldRefreshToken); // 내부적으로 parseClaims 호출됨
+      jwtProvider.validateToken(oldRefreshToken); // 만료되었으면 예외 발생
+    } catch (JwtException e) {
+      refreshTokenExpired = true;
+      userId = jwtProvider.extractUserId(oldRefreshToken); // 만료된 토큰이라도 userId는 뽑을 수 있음
+    }
 
-    savedToken.updateToken(newRefreshToken);
+    String newAccessToken = jwtProvider.createAccessToken(userId);
 
-    User user =
-        userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+    if (refreshTokenExpired) {
+      String newRefreshToken = jwtProvider.createRefreshToken(userId);
+      savedToken.updateToken(newRefreshToken);
 
-    TokenRefreshResponse.UserInfo userInfo =
-        new TokenRefreshResponse.UserInfo(user.getId(), user.getNickname(), user.getFileName());
+      // HttpOnly 쿠키로 새 refresh token 전달
+      Cookie refreshTokenCookie = new Cookie("refresh_token", newRefreshToken);
+      refreshTokenCookie.setHttpOnly(true);
+      refreshTokenCookie.setSecure(true); // HTTPS 환경에서만 true
+      refreshTokenCookie.setPath("/");
+      refreshTokenCookie.setMaxAge((int)(JwtExpiration.REFRESH_TOKEN_EXPIRATION / 1000));
+      response.addCookie(refreshTokenCookie);
+    }
+
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new RuntimeException("User not found"));
+
+    TokenRefreshResponse.UserInfo userInfo = new TokenRefreshResponse.UserInfo(
+        user.getId(), user.getNickname(), user.getFileName()
+    );
 
     return new TokenRefreshResponse(newAccessToken, userInfo);
   }
+
 
   public void setTokenCookies(HttpServletResponse response, String refreshToken) {
     ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
