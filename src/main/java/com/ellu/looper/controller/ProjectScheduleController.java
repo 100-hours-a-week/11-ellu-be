@@ -28,6 +28,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.DeferredResult;
+import org.springframework.security.access.AccessDeniedException;
+import com.ellu.looper.repository.ProjectMemberRepository;
 
 @RestController
 @RequestMapping("/projects/{projectId}")
@@ -36,6 +38,7 @@ public class ProjectScheduleController {
 
   private final ProjectScheduleService scheduleService;
   private final PreviewHolder previewHolder;
+  private final ProjectMemberRepository projectMemberRepository;
 
   @PostMapping("/schedules")
   public ResponseEntity<ApiResponse<List<ProjectScheduleResponse>>> createSchedules(
@@ -168,7 +171,11 @@ public class ProjectScheduleController {
   @GetMapping("/tasks/preview")
   public DeferredResult<ResponseEntity<?>> getPreview(@PathVariable Long projectId,
       @CurrentUser Long userId) {
-    DeferredResult<ResponseEntity<?>> result = new DeferredResult<>(60000L); // 60초 타임아웃
+    // 프로젝트 멤버십 확인
+    projectMemberRepository.findByProjectIdAndUserId(projectId, userId)
+        .orElseThrow(() -> new AccessDeniedException("Not a member of this project"));
+
+    DeferredResult<ResponseEntity<?>> result = new DeferredResult<>(300000L); // 300초 타임아웃
 
     // 응답 대기 등록
     previewHolder.register(projectId, result);
@@ -176,8 +183,11 @@ public class ProjectScheduleController {
     // 타임아웃 처리
     result.onTimeout(() -> {
       previewHolder.remove(projectId);
-      result.setResult(ResponseEntity.status(HttpStatus.OK).body(
-          ApiResponse.success("no_content_yet", null)
+      result.setResult(ResponseEntity.ok().body(
+          ApiResponse.success("no_content_yet", Map.of(
+              "message", "processing",
+              "data", List.of()
+          ))
       ));
     });
 

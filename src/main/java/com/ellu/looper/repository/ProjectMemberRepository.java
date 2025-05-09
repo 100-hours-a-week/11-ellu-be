@@ -22,4 +22,6 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
 
   // 특정 닉네임을 가진 유저의 멤버십 조회 (User.nickname 기준으로)
   List<ProjectMember> findByUser_NicknameAndDeletedAtIsNull(String nickname);
+
+  Optional<ProjectMember> findByProjectIdAndUserId(Long projectId, Long userId);
 }
