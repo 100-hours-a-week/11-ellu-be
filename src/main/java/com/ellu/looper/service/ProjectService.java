@@ -123,32 +123,36 @@ public class ProjectService {
     List<ProjectMember> memberships =
         projectMemberRepository.findByUserIdAndDeletedAtIsNull(userId);
 
-    List<ProjectResponse> responses =
-        memberships.stream()
-            .map(ProjectMember::getProject)
-            .filter(project -> project.getDeletedAt() == null)
-            .map(
-                project -> {
-                  List<ProjectMember> members =
-                      projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
-                  List<MemberDto> memberDtos =
-                      members.stream()
-                          .map(
-                              pm ->
-                                  new MemberDto(
-                                      pm.getUser().getId(),
-                                      pm.getUser().getNickname(),
-                                      pm.getUser().getFileName()))
-                          .collect(Collectors.toList());
+    // 중복 제거된 프로젝트만 추출
+    List<Project> distinctProjects = memberships.stream()
+        .map(ProjectMember::getProject)
+        .filter(project -> project.getDeletedAt() == null)
+        .distinct() // 중복 제거
+        .collect(Collectors.toList());
 
-                  return new ProjectResponse(
-                      project.getId(),
-                      project.getTitle(),
-                      project.getColor() != null ? project.getColor().name() : "E3EEFC", // version 1 default color
-                      memberDtos,
-                      project.getWiki()
-                      );
-                })
+    List<ProjectResponse> responses =
+        distinctProjects.stream()
+            .map(project -> {
+              List<ProjectMember> members =
+                  projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
+              List<MemberDto> memberDtos =
+                  members.stream()
+                      .map(pm ->
+                          new MemberDto(
+                              pm.getUser().getId(),
+                              pm.getUser().getNickname(),
+                              pm.getUser().getFileName(),
+                              pm.getPosition()))
+                      .collect(Collectors.toList());
+
+              return new ProjectResponse(
+                  project.getId(),
+                  project.getTitle(),
+                  project.getColor() != null ? project.getColor().name() : "E3EEFC",
+                  memberDtos,
+                  project.getWiki()
+              );
+            })
             .collect(Collectors.toList());
 
     log.info("Found {} projects for user: {}", responses.size(), userId);
@@ -175,13 +179,15 @@ public class ProjectService {
                     new MemberDto(
                         pm.getUser().getId(),
                         pm.getUser().getNickname(),
-                        pm.getUser().getFileName()))
+                        pm.getUser().getFileName(),
+                        pm.getPosition()))
             .collect(Collectors.toList());
 
     return new ProjectResponse(
         project.getId(),
         project.getTitle(),
-        project.getColor() != null ? project.getColor().name() : "E3EEFC", // version 1 default color
+        project.getColor() != null ? project.getColor().name() : "E3EEFC",
+        // version 1 default color
         memberDtos,
         project.getWiki());
   }
