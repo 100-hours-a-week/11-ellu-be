@@ -38,6 +38,7 @@ public class Project {
   private LocalDateTime deletedAt;
 
   @Lob
+  @Basic(fetch = FetchType.EAGER)
   @Column(columnDefinition = "TEXT")
   private String wiki;
 

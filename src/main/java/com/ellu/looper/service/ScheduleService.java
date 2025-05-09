@@ -10,6 +10,7 @@ import com.ellu.looper.exception.ValidationException;
 import com.ellu.looper.repository.ProjectRepository;
 import com.ellu.looper.repository.ScheduleRepository;
 import com.ellu.looper.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ public class ScheduleService {
     }
   }
 
+  @Transactional
   public ScheduleResponse createSchedule(Long memberId, ScheduleCreateRequest request) {
     User user =
         memberRepository
@@ -72,6 +74,7 @@ public class ScheduleService {
     return toResponse(saved, false);
   }
 
+  @Transactional
   public ScheduleResponse updateSchedule(Long memberId, Long id, ScheduleUpdateRequest request) {
     Schedule existing =
         scheduleRepository
@@ -97,6 +100,7 @@ public class ScheduleService {
     return toResponse(scheduleRepository.save(updated), false);
   }
 
+  @Transactional
   public void deleteSchedule(Long memberId, Long id) {
     Schedule schedule =
         scheduleRepository
