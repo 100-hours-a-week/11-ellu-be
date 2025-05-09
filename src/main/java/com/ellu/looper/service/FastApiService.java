@@ -23,8 +23,22 @@ public class FastApiService {
 
   // AI 서버로부터 응답을 전달받아 처리
   public void handleAiPreviewResponse(Long projectId, MeetingNoteResponse aiResponse) {
+    log.info("[FastApiService] Handling AI preview response for project: {}", projectId);
+    log.info("[FastApiService] Response message: {}", aiResponse.getMessage());
+    
+    if (aiResponse.getDetail() != null) {
+      aiResponse.getDetail().forEach(preview -> {
+        log.info("[FastApiService] Keyword: {}", preview.getKeyword());
+        log.info("[FastApiService] Subtasks: {}", preview.getSubtasks());
+      });
+    } else {
+      log.warn("[FastApiService] No data received in the response");
+    }
+    
     // aiResponse는 AI 서버가 반환한 task preview 결과
     previewHolder.complete(projectId, aiResponse);
+    
+    log.info("[FastApiService] Successfully handled AI preview response for project: {}", projectId);
   }
 
   // 예외 상황 처리
@@ -36,26 +50,28 @@ public class FastApiService {
       MeetingNoteRequest noteRequest,
       Consumer<MeetingNoteResponse> onSuccess,
       Consumer<Throwable> onError) {
-    log.info("Sending note to AI server for project: {}", noteRequest.getAuthor_id());
+    log.info("Sending note to AI server for project: {}", noteRequest.getProject_id());
     webClient
         .post()
-        .uri("/ai/notes")
+        .uri(uriBuilder -> uriBuilder
+            .path("/projects/{projectId}/notes")
+            .build(noteRequest.getProject_id()))
         .contentType(MediaType.APPLICATION_JSON)
         .bodyValue(noteRequest)
         .retrieve()
         .bodyToMono(MeetingNoteResponse.class)
-        .timeout(Duration.ofMinutes(2)) // AI 서버와 통신 timeout
+        .timeout(Duration.ofMinutes(10)) // AI 서버와 통신 timeout
         .doOnSuccess(
             response -> {
               log.info(
                   "Successfully sent note to AI server for project: {}",
-                  noteRequest.getAuthor_id());
+                  noteRequest.getProject_id());
             })
         .doOnError(
             error -> {
               log.error(
                   "Failed to send note to AI server for project: {}, error: {}",
-                  noteRequest.getAuthor_id(),
+                  noteRequest.getProject_id(),
                   error.getMessage());
             })
         .subscribe(onSuccess, onError);
@@ -69,7 +85,7 @@ public class FastApiService {
         .bodyValue(request)
         .retrieve()
         .bodyToMono(Void.class)
-        .timeout(Duration.ofSeconds(10))
+        .timeout(Duration.ofMinutes(10))
         .doOnSuccess(
             response -> {
               log.info("Successfully created wiki for project: {}", projectId);

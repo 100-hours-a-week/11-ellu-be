@@ -109,7 +109,7 @@ public class ProjectService {
     if (request.getWiki() != null && !request.getWiki().trim().isEmpty()) {
       log.info("Saving wiki in vectorDB for project: {}", project.getId());
       WikiRequest wikiRequest =
-          WikiRequest.builder().content(request.getWiki()).projectId(project.getId()).build();
+          WikiRequest.builder().content(request.getWiki()).project_id(project.getId()).updated_at(LocalDateTime.now()).build();
       fastApiService.createWiki(project.getId(), wikiRequest);
     }
 
@@ -123,32 +123,36 @@ public class ProjectService {
     List<ProjectMember> memberships =
         projectMemberRepository.findByUserIdAndDeletedAtIsNull(userId);
 
-    List<ProjectResponse> responses =
-        memberships.stream()
-            .map(ProjectMember::getProject)
-            .filter(project -> project.getDeletedAt() == null)
-            .map(
-                project -> {
-                  List<ProjectMember> members =
-                      projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
-                  List<MemberDto> memberDtos =
-                      members.stream()
-                          .map(
-                              pm ->
-                                  new MemberDto(
-                                      pm.getUser().getId(),
-                                      pm.getUser().getNickname(),
-                                      pm.getUser().getFileName()))
-                          .collect(Collectors.toList());
+    // 중복 제거된 프로젝트만 추출
+    List<Project> distinctProjects = memberships.stream()
+        .map(ProjectMember::getProject)
+        .filter(project -> project.getDeletedAt() == null)
+        .distinct() // 중복 제거
+        .collect(Collectors.toList());
 
-                  return new ProjectResponse(
-                      project.getId(),
-                      project.getTitle(),
-                      project.getColor() != null ? project.getColor().name() : "E3EEFC", // version 1 default color
-                      memberDtos,
-                      project.getWiki()
-                      );
-                })
+    List<ProjectResponse> responses =
+        distinctProjects.stream()
+            .map(project -> {
+              List<ProjectMember> members =
+                  projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
+              List<MemberDto> memberDtos =
+                  members.stream()
+                      .map(pm ->
+                          new MemberDto(
+                              pm.getUser().getId(),
+                              pm.getUser().getNickname(),
+                              pm.getUser().getFileName(),
+                              pm.getPosition()))
+                      .collect(Collectors.toList());
+
+              return new ProjectResponse(
+                  project.getId(),
+                  project.getTitle(),
+                  project.getColor() != null ? project.getColor().name() : "E3EEFC",
+                  memberDtos,
+                  project.getWiki()
+              );
+            })
             .collect(Collectors.toList());
 
     log.info("Found {} projects for user: {}", responses.size(), userId);
@@ -175,13 +179,15 @@ public class ProjectService {
                     new MemberDto(
                         pm.getUser().getId(),
                         pm.getUser().getNickname(),
-                        pm.getUser().getFileName()))
+                        pm.getUser().getFileName(),
+                        pm.getPosition()))
             .collect(Collectors.toList());
 
     return new ProjectResponse(
         project.getId(),
         project.getTitle(),
-        project.getColor() != null ? project.getColor().name() : "E3EEFC", // version 1 default color
+        project.getColor() != null ? project.getColor().name() : "E3EEFC",
+        // version 1 default color
         memberDtos,
         project.getWiki());
   }
@@ -303,8 +309,8 @@ public class ProjectService {
     if (request.getWiki() != null && !request.getWiki().trim().isEmpty()) {
       log.info("Updating wiki for project: {}", projectId);
       WikiRequest wikiRequest =
-          WikiRequest.builder().content(request.getWiki()).projectId(projectId).build();
-      fastApiService.updateWiki(projectId, wikiRequest);
+          WikiRequest.builder().content(request.getWiki()).project_id(projectId).updated_at(LocalDateTime.now()).build();
+      fastApiService.createWiki(projectId, wikiRequest);
     }
 
     log.info("Project updated successfully: {}", projectId);

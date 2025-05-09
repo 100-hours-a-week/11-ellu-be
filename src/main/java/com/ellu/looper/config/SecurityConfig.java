@@ -38,6 +38,7 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll() // Preflight 요청 허용
+                    .requestMatchers(HttpMethod.GET, "/projects/*/tasks/preview").permitAll()
                     .anyRequest()
                     .authenticated() // 나머지는 인증 필요
             )

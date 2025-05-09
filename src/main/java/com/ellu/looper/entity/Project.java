@@ -37,7 +37,7 @@ public class Project {
   @Column(name = "deleted_at")
   private LocalDateTime deletedAt;
 
-  @Lob
+  @Basic(fetch = FetchType.LAZY)
   @Column(columnDefinition = "TEXT")
   private String wiki;
 

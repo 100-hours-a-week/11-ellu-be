@@ -6,16 +6,14 @@ import com.ellu.looper.commons.PreviewHolder;
 import com.ellu.looper.dto.schedule.ProjectScheduleCreateRequest;
 import com.ellu.looper.dto.schedule.ProjectScheduleResponse;
 import com.ellu.looper.dto.schedule.ProjectScheduleUpdateRequest;
-import com.ellu.looper.entity.User;
 import com.ellu.looper.service.ProjectScheduleService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.time.YearMonth;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -30,6 +28,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.DeferredResult;
+import org.springframework.security.access.AccessDeniedException;
+import com.ellu.looper.repository.ProjectMemberRepository;
 
 @RestController
 @RequestMapping("/projects/{projectId}")
@@ -38,6 +38,7 @@ public class ProjectScheduleController {
 
   private final ProjectScheduleService scheduleService;
   private final PreviewHolder previewHolder;
+  private final ProjectMemberRepository projectMemberRepository;
 
   @PostMapping("/schedules")
   public ResponseEntity<ApiResponse<List<ProjectScheduleResponse>>> createSchedules(
@@ -111,26 +112,6 @@ public class ProjectScheduleController {
     return ResponseEntity.ok(new ApiResponse<>("project_weekly_schedule", schedules));
   }
 
-//  @GetMapping("/schedules/monthly")
-//  public ResponseEntity<?> getMonthlySchedules(
-//      @PathVariable Long projectId,
-//      @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth month) {
-//    if (month == null) {
-//      return ResponseEntity.badRequest()
-//          .body(
-//              new ApiResponse<>(
-//                  "validation_failed",
-//                  Map.of(
-//                      "errors",
-//                      Map.of(
-//                          "month",
-//                          "Missing or invalid month parameter. Format must be YYYY-MM."))));
-//    }
-//
-//    Map<String, List<ProjectScheduleResponse>> schedules =
-//        scheduleService.getMonthlySchedules(projectId, month);
-//    return ResponseEntity.ok(new ApiResponse<>("project_monthly_schedule", schedules));
-//  }
 
   @GetMapping("/schedules/monthly")
   public ResponseEntity<ApiResponse<?>> getMonthlySchedules(
@@ -155,26 +136,16 @@ public class ProjectScheduleController {
     Map<String, List<ProjectScheduleResponse>> allSchedules =
         scheduleService.getSchedulesByRange(projectId, startDate, endDate);
 
-    // 월별로 그룹화
-    Map<String, Map<LocalDate, List<ProjectScheduleResponse>>> groupedByMonth = new HashMap<>();
-    groupedByMonth.put(prevMonth.toString(), new HashMap<>());
-    groupedByMonth.put(month.toString(), new HashMap<>());
-    groupedByMonth.put(nextMonth.toString(), new HashMap<>());
-
-    for (Entry<String, List<ProjectScheduleResponse>> entry : allSchedules.entrySet()) {
-      LocalDate date = LocalDate.parse(entry.getKey());
-      String key = YearMonth.from(date).toString();
-      if (groupedByMonth.containsKey(key)) {
-        groupedByMonth.get(key).put(date, entry.getValue());
-      }
-    }
+    List<ProjectScheduleResponse> flattenedSchedules = allSchedules.values().stream()
+        .flatMap(List::stream)
+        .collect(Collectors.toList());
 
     return ResponseEntity.ok(
-        new ApiResponse<>("project_monthly_schedule", groupedByMonth));
+        new ApiResponse<>("project_monthly_schedule", flattenedSchedules));
   }
 
   @GetMapping("/schedules/yearly")
-  public ResponseEntity<ApiResponse<Map<String, ?>>> getYearlySchedules(
+  public ResponseEntity<ApiResponse<?>> getYearlySchedules(
       @PathVariable Long projectId,
       @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy") Year year) {
     if (year == null) {
@@ -189,13 +160,22 @@ public class ProjectScheduleController {
 
     Map<String, List<ProjectScheduleResponse>> schedules =
         scheduleService.getYearlySchedules(projectId, year);
-    return ResponseEntity.ok(new ApiResponse<>("project_yearly_schedule", schedules));
+    // 모든 일정 변환
+    List<ProjectScheduleResponse> flattenedSchedules = schedules.values().stream()
+        .flatMap(List::stream)
+        .collect(Collectors.toList());
+    
+    return ResponseEntity.ok(new ApiResponse<>("project_yearly_schedule", flattenedSchedules));
   }
 
   @GetMapping("/tasks/preview")
   public DeferredResult<ResponseEntity<?>> getPreview(@PathVariable Long projectId,
-      @CurrentUser Long UserId) {
-    DeferredResult<ResponseEntity<?>> result = new DeferredResult<>(60000L); // 60초 타임아웃
+      @CurrentUser Long userId) {
+    // 프로젝트 멤버십 확인
+    projectMemberRepository.findByProjectIdAndUserId(projectId, userId)
+        .orElseThrow(() -> new AccessDeniedException("Not a member of this project"));
+
+    DeferredResult<ResponseEntity<?>> result = new DeferredResult<>(300000L); // 300초 타임아웃
 
     // 응답 대기 등록
     previewHolder.register(projectId, result);
@@ -203,8 +183,11 @@ public class ProjectScheduleController {
     // 타임아웃 처리
     result.onTimeout(() -> {
       previewHolder.remove(projectId);
-      result.setResult(ResponseEntity.status(HttpStatus.OK).body(
-          ApiResponse.success("no_content_yet", null)
+      result.setResult(ResponseEntity.ok().body(
+          ApiResponse.success("no_content_yet", Map.of(
+              "message", "processing",
+              "data", List.of()
+          ))
       ));
     });
 

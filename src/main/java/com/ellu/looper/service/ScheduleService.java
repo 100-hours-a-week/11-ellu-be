@@ -18,11 +18,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ScheduleService {
@@ -38,6 +37,7 @@ public class ScheduleService {
     }
   }
 
+  @Transactional
   public ScheduleResponse createSchedule(Long memberId, ScheduleCreateRequest request) {
     User user =
         memberRepository
@@ -72,6 +72,7 @@ public class ScheduleService {
     return toResponse(saved, false);
   }
 
+  @Transactional
   public ScheduleResponse updateSchedule(Long memberId, Long id, ScheduleUpdateRequest request) {
     Schedule existing =
         scheduleRepository
@@ -97,6 +98,7 @@ public class ScheduleService {
     return toResponse(scheduleRepository.save(updated), false);
   }
 
+  @Transactional
   public void deleteSchedule(Long memberId, Long id) {
     Schedule schedule =
         scheduleRepository
@@ -137,6 +139,7 @@ public class ScheduleService {
     return all.stream().collect(Collectors.groupingBy(r -> r.startTime().toLocalDate()));
   }
 
+ @Transactional(readOnly = true)
   public List<ScheduleResponse> getProjectSchedules(
       Long memberId, LocalDateTime start, LocalDateTime end) {
 
@@ -165,6 +168,7 @@ public class ScheduleService {
         .toList();
   }
 
+  @Transactional(readOnly = true)
   public List<ScheduleResponse> getProjectDailySchedules(
       Long memberId, LocalDateTime start, LocalDateTime end) {
     if (!start.toLocalDate().equals(end.minusNanos(1).toLocalDate())) {

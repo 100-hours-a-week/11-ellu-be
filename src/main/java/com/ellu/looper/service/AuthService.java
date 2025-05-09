@@ -151,7 +151,7 @@ public class AuthService {
         .orElseThrow(() -> new RuntimeException("User not found"));
 
     TokenRefreshResponse.UserInfo userInfo = new TokenRefreshResponse.UserInfo(
-        user.getId(), user.getNickname(), user.getFileName()
+        user.getId(), user.getNickname(), profileImageService.getProfileImageUrl(user.getFileName())
     );
 
     return new TokenRefreshResponse(newAccessToken, userInfo);
