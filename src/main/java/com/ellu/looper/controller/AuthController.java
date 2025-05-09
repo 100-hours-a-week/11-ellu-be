@@ -27,6 +27,7 @@ import org.springframework.web.client.RestTemplate;
 public class AuthController {
 
   private final AuthService authService;
+  private final HttpServletResponse httpServletResponse;
 
   @Value("${kakao.client-id}")
   private String clientId;
@@ -151,9 +152,9 @@ public class AuthController {
   }
 
   @PostMapping("/auth/token/refresh")
-  public ResponseEntity<?> refreshToken(@RequestHeader("Authorization") String refreshTokenHeader) {
-    String refreshToken = refreshTokenHeader.replace("Bearer ", "");
-    TokenRefreshResponse response = authService.refreshAccessToken(refreshToken);
+  public ResponseEntity<?> refresh(@CookieValue("refresh_token") String refreshToken,
+      @RequestHeader(value = "Authorization", required = false) String accessToken) {
+    TokenRefreshResponse response = authService.refreshAccessToken(refreshToken, httpServletResponse);
     return ResponseEntity.ok(new ApiResponse("token_refreshed", response));
   }
 }

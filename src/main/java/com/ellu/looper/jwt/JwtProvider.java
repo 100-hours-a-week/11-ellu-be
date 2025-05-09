@@ -57,18 +57,17 @@ public class JwtProvider {
 
   private Claims parseClaims(String token) {
     try {
-      return (Claims)
-          Jwts.parser()
-              .verifyWith((SecretKey) secretKey)
-              .build()
-              .parseSignedClaims(token)
-              .getPayload();
+      return Jwts.parser()
+          .verifyWith((SecretKey) secretKey)
+          .build()
+          .parseSignedClaims(token)
+          .getPayload();
     } catch (ExpiredJwtException e) {
       throw new JwtException("Token expired", HttpStatus.UNAUTHORIZED);
-    } catch (UnsupportedJwtException | MalformedJwtException | IllegalArgumentException e) {
+    } catch (JwtException e) {
       throw new JwtException("Invalid token", HttpStatus.UNAUTHORIZED);
-    } catch (io.jsonwebtoken.security.SignatureException e) {
-      throw new JwtException("Invalid signature", HttpStatus.UNAUTHORIZED);
     }
   }
+
+
 }

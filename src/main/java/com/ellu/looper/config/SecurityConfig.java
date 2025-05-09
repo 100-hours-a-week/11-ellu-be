@@ -33,7 +33,8 @@ public class SecurityConfig {
                         "/actuator/**",
                         "/auth/kakao/callback",
                         "/swagger-ui/**",
-                        "/v3/api-docs/**")
+                        "/v3/api-docs/**",
+                        "/ai-callback/**")
                     .permitAll()
                     .requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll() // Preflight 요청 허용

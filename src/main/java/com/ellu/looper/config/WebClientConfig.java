@@ -11,8 +11,8 @@ public class WebClientConfig {
   @Value("${fastapi.base-url}")
   private String fastApiBaseUrl;
 
-  @Bean
-  public WebClient webClient() {
+  @Bean(name = "fastApiWebClient")
+  public WebClient fastApiWebClient() {
     return WebClient.builder().baseUrl(fastApiBaseUrl).build();
   }
 }
