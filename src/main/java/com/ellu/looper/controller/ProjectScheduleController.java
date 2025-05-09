@@ -6,7 +6,6 @@ import com.ellu.looper.commons.PreviewHolder;
 import com.ellu.looper.dto.schedule.ProjectScheduleCreateRequest;
 import com.ellu.looper.dto.schedule.ProjectScheduleResponse;
 import com.ellu.looper.dto.schedule.ProjectScheduleUpdateRequest;
-import com.ellu.looper.entity.User;
 import com.ellu.looper.service.ProjectScheduleService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -168,7 +167,7 @@ public class ProjectScheduleController {
 
   @GetMapping("/tasks/preview")
   public DeferredResult<ResponseEntity<?>> getPreview(@PathVariable Long projectId,
-      @CurrentUser Long UserId) {
+      @CurrentUser Long userId) {
     DeferredResult<ResponseEntity<?>> result = new DeferredResult<>(60000L); // 60초 타임아웃
 
     // 응답 대기 등록

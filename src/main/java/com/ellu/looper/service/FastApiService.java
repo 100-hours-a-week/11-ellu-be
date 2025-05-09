@@ -36,7 +36,7 @@ public class FastApiService {
       MeetingNoteRequest noteRequest,
       Consumer<MeetingNoteResponse> onSuccess,
       Consumer<Throwable> onError) {
-    log.info("Sending note to AI server for project: {}", noteRequest.getAuthor_id());
+    log.info("Sending note to AI server for project: {}", noteRequest.getProject_id());
     webClient
         .post()
         .uri("/ai/notes")
@@ -44,18 +44,18 @@ public class FastApiService {
         .bodyValue(noteRequest)
         .retrieve()
         .bodyToMono(MeetingNoteResponse.class)
-        .timeout(Duration.ofMinutes(2)) // AI 서버와 통신 timeout
+        .timeout(Duration.ofMinutes(10)) // AI 서버와 통신 timeout
         .doOnSuccess(
             response -> {
               log.info(
                   "Successfully sent note to AI server for project: {}",
-                  noteRequest.getAuthor_id());
+                  noteRequest.getProject_id());
             })
         .doOnError(
             error -> {
               log.error(
                   "Failed to send note to AI server for project: {}, error: {}",
-                  noteRequest.getAuthor_id(),
+                  noteRequest.getProject_id(),
                   error.getMessage());
             })
         .subscribe(onSuccess, onError);
@@ -69,7 +69,7 @@ public class FastApiService {
         .bodyValue(request)
         .retrieve()
         .bodyToMono(Void.class)
-        .timeout(Duration.ofSeconds(10))
+        .timeout(Duration.ofMinutes(10))
         .doOnSuccess(
             response -> {
               log.info("Successfully created wiki for project: {}", projectId);

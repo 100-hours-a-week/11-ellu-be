@@ -26,7 +26,7 @@ public class MeetingNoteController {
       @PathVariable Long projectId,
       @RequestBody MeetingNoteRequest request) {
 
-    if (request.getMeeting_note() == null || request.getMeeting_note().trim().isEmpty()) {
+    if (request.getContent() == null || request.getContent().trim().isEmpty()) {
       return ResponseEntity.badRequest().body(ApiResponse.error("Content must not be empty"));
     }
 

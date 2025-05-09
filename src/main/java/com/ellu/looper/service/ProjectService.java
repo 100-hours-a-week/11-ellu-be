@@ -109,7 +109,7 @@ public class ProjectService {
     if (request.getWiki() != null && !request.getWiki().trim().isEmpty()) {
       log.info("Saving wiki in vectorDB for project: {}", project.getId());
       WikiRequest wikiRequest =
-          WikiRequest.builder().content(request.getWiki()).projectId(project.getId()).build();
+          WikiRequest.builder().content(request.getWiki()).project_id(project.getId()).updated_at(LocalDateTime.now()).build();
       fastApiService.createWiki(project.getId(), wikiRequest);
     }
 
@@ -309,8 +309,8 @@ public class ProjectService {
     if (request.getWiki() != null && !request.getWiki().trim().isEmpty()) {
       log.info("Updating wiki for project: {}", projectId);
       WikiRequest wikiRequest =
-          WikiRequest.builder().content(request.getWiki()).projectId(projectId).build();
-      fastApiService.updateWiki(projectId, wikiRequest);
+          WikiRequest.builder().content(request.getWiki()).project_id(projectId).updated_at(LocalDateTime.now()).build();
+      fastApiService.createWiki(projectId, wikiRequest);
     }
 
     log.info("Project updated successfully: {}", projectId);

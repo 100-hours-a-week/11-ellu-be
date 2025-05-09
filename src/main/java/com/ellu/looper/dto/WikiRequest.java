@@ -1,5 +1,6 @@
 package com.ellu.looper.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
@@ -15,5 +16,8 @@ public class WikiRequest {
   @NotBlank(message = "Content must not be empty")
   private String content;
 
-  private Long projectId;
+  private Long project_id;
+
+  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+  private LocalDateTime updated_at;
 }
