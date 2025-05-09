@@ -27,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class ProjectScheduleService {
 
   private final ProjectScheduleRepository scheduleRepository;
@@ -42,6 +41,7 @@ public class ProjectScheduleService {
     }
   }
 
+  @Transactional
   public List<ProjectScheduleResponse> createSchedules(
       Long projectId, Long userId, ProjectScheduleCreateRequest request) {
     Project project =
@@ -115,6 +115,7 @@ public class ProjectScheduleService {
         .toList();
   }
 
+  @Transactional
   public ProjectScheduleResponse updateSchedule(
       Long projectId, Long scheduleId, Long userId, ProjectScheduleUpdateRequest request) {
     ProjectSchedule schedule =
@@ -140,6 +141,7 @@ public class ProjectScheduleService {
         true);
   }
 
+  @Transactional
   public void deleteSchedule(Long scheduleId, Long userId) {
     ProjectSchedule schedule =
         scheduleRepository
@@ -153,6 +155,7 @@ public class ProjectScheduleService {
     schedule.softDelete();
   }
 
+  @Transactional(readOnly = true)
   public List<ProjectScheduleResponse> getDailySchedules(Long projectId, LocalDate day) {
     LocalDateTime start = day.atStartOfDay();
     LocalDateTime end = day.plusDays(1).atStartOfDay().minusNanos(1);
@@ -174,6 +177,7 @@ public class ProjectScheduleService {
         .build();
   }
 
+  @Transactional(readOnly = true)
   public Map<String, List<ProjectScheduleResponse>> getWeeklySchedules(
       Long projectId, LocalDate startDate) {
     LocalDateTime start = startDate.atStartOfDay();
@@ -181,6 +185,7 @@ public class ProjectScheduleService {
     return getSchedulesByRange(projectId, start, end);
   }
 
+  @Transactional(readOnly = true)
   public Map<String, List<ProjectScheduleResponse>> getMonthlySchedules(
       Long projectId, YearMonth month) {
     LocalDateTime start = month.atDay(1).atStartOfDay();
@@ -188,12 +193,14 @@ public class ProjectScheduleService {
     return getSchedulesByRange(projectId, start, end);
   }
 
+  @Transactional(readOnly = true)
   public Map<String, List<ProjectScheduleResponse>> getYearlySchedules(Long projectId, Year year) {
     LocalDateTime start = year.atDay(1).atStartOfDay();
     LocalDateTime end = year.atMonth(12).atEndOfMonth().atTime(LocalTime.MAX);
     return getSchedulesByRange(projectId, start, end);
   }
 
+  @Transactional(readOnly = true)
   public Map<String, List<ProjectScheduleResponse>> getSchedulesByRange(
       Long projectId, LocalDateTime start, LocalDateTime end) {
     Project project =

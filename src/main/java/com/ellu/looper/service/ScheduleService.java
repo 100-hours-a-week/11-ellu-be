@@ -10,7 +10,6 @@ import com.ellu.looper.exception.ValidationException;
 import com.ellu.looper.repository.ProjectRepository;
 import com.ellu.looper.repository.ScheduleRepository;
 import com.ellu.looper.repository.UserRepository;
-import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -19,11 +18,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ScheduleService {
@@ -141,6 +139,7 @@ public class ScheduleService {
     return all.stream().collect(Collectors.groupingBy(r -> r.startTime().toLocalDate()));
   }
 
+ @Transactional(readOnly = true)
   public List<ScheduleResponse> getProjectSchedules(
       Long memberId, LocalDateTime start, LocalDateTime end) {
 
@@ -169,6 +168,7 @@ public class ScheduleService {
         .toList();
   }
 
+  @Transactional(readOnly = true)
   public List<ScheduleResponse> getProjectDailySchedules(
       Long memberId, LocalDateTime start, LocalDateTime end) {
     if (!start.toLocalDate().equals(end.minusNanos(1).toLocalDate())) {

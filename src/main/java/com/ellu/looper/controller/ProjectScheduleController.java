@@ -12,10 +12,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.time.YearMonth;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -111,26 +110,6 @@ public class ProjectScheduleController {
     return ResponseEntity.ok(new ApiResponse<>("project_weekly_schedule", schedules));
   }
 
-//  @GetMapping("/schedules/monthly")
-//  public ResponseEntity<?> getMonthlySchedules(
-//      @PathVariable Long projectId,
-//      @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth month) {
-//    if (month == null) {
-//      return ResponseEntity.badRequest()
-//          .body(
-//              new ApiResponse<>(
-//                  "validation_failed",
-//                  Map.of(
-//                      "errors",
-//                      Map.of(
-//                          "month",
-//                          "Missing or invalid month parameter. Format must be YYYY-MM."))));
-//    }
-//
-//    Map<String, List<ProjectScheduleResponse>> schedules =
-//        scheduleService.getMonthlySchedules(projectId, month);
-//    return ResponseEntity.ok(new ApiResponse<>("project_monthly_schedule", schedules));
-//  }
 
   @GetMapping("/schedules/monthly")
   public ResponseEntity<ApiResponse<?>> getMonthlySchedules(
@@ -155,26 +134,16 @@ public class ProjectScheduleController {
     Map<String, List<ProjectScheduleResponse>> allSchedules =
         scheduleService.getSchedulesByRange(projectId, startDate, endDate);
 
-    // 월별로 그룹화
-    Map<String, Map<LocalDate, List<ProjectScheduleResponse>>> groupedByMonth = new HashMap<>();
-    groupedByMonth.put(prevMonth.toString(), new HashMap<>());
-    groupedByMonth.put(month.toString(), new HashMap<>());
-    groupedByMonth.put(nextMonth.toString(), new HashMap<>());
-
-    for (Entry<String, List<ProjectScheduleResponse>> entry : allSchedules.entrySet()) {
-      LocalDate date = LocalDate.parse(entry.getKey());
-      String key = YearMonth.from(date).toString();
-      if (groupedByMonth.containsKey(key)) {
-        groupedByMonth.get(key).put(date, entry.getValue());
-      }
-    }
+    List<ProjectScheduleResponse> flattenedSchedules = allSchedules.values().stream()
+        .flatMap(List::stream)
+        .collect(Collectors.toList());
 
     return ResponseEntity.ok(
-        new ApiResponse<>("project_monthly_schedule", groupedByMonth));
+        new ApiResponse<>("project_monthly_schedule", flattenedSchedules));
   }
 
   @GetMapping("/schedules/yearly")
-  public ResponseEntity<ApiResponse<Map<String, ?>>> getYearlySchedules(
+  public ResponseEntity<ApiResponse<?>> getYearlySchedules(
       @PathVariable Long projectId,
       @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy") Year year) {
     if (year == null) {
@@ -189,7 +158,12 @@ public class ProjectScheduleController {
 
     Map<String, List<ProjectScheduleResponse>> schedules =
         scheduleService.getYearlySchedules(projectId, year);
-    return ResponseEntity.ok(new ApiResponse<>("project_yearly_schedule", schedules));
+    // 모든 일정 변환
+    List<ProjectScheduleResponse> flattenedSchedules = schedules.values().stream()
+        .flatMap(List::stream)
+        .collect(Collectors.toList());
+    
+    return ResponseEntity.ok(new ApiResponse<>("project_yearly_schedule", flattenedSchedules));
   }
 
   @GetMapping("/tasks/preview")

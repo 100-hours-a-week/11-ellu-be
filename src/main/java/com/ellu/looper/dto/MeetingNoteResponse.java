@@ -13,7 +13,7 @@ public class MeetingNoteResponse {
 
   private String message;
 
-  private List<SchedulePreview> detail; // 키워드 + 서브태스크
+  private List<SchedulePreview> data;
 
   @AllArgsConstructor
   @NoArgsConstructor

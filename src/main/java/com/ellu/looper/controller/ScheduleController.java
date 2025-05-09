@@ -12,6 +12,7 @@ import java.time.YearMonth;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -115,23 +116,12 @@ public class ScheduleController {
       Map<LocalDate, List<ScheduleResponse>> allSchedules =
           scheduleService.getSchedulesByRange(userId, startDate, endDate);
 
-      // 월별로 일정 나누기
-      Map<String, Map<LocalDate, List<ScheduleResponse>>> groupedByMonth = new HashMap<>();
-      groupedByMonth.put(prevMonth.toString(), new HashMap<>());
-      groupedByMonth.put(ym.toString(), new HashMap<>());
-      groupedByMonth.put(nextMonth.toString(), new HashMap<>());
+      // 모든 일정 평탄화
+      List<ScheduleResponse> flattenedSchedules = allSchedules.values().stream()
+          .flatMap(List::stream)
+          .collect(Collectors.toList());
 
-      for (Map.Entry<LocalDate, List<ScheduleResponse>> entry : allSchedules.entrySet()) {
-        LocalDate date = entry.getKey();
-        YearMonth dateMonth = YearMonth.from(date);
-        String key = dateMonth.toString();
-
-        // key가 포함된 월일 경우만 넣음 (혹시 모를 범위 외 날짜 대비)
-        if (groupedByMonth.containsKey(key)) {
-          groupedByMonth.get(key).put(date, entry.getValue());
-        }
-      }
-      return ResponseEntity.ok(ApiResponse.success("monthly_schedule", groupedByMonth));
+      return ResponseEntity.ok(ApiResponse.success("monthly_schedule", flattenedSchedules));
     } catch (Exception e) {
       System.out.println("e = " + e);
       return ResponseEntity.badRequest()
@@ -151,10 +141,18 @@ public class ScheduleController {
   public ResponseEntity<?> yearly(@CurrentUser Long userId, @RequestParam String year) {
     try {
       int y = Integer.parseInt(year);
-      Map<LocalDate, List<ScheduleResponse>> data =
+
+      Map<LocalDate, List<ScheduleResponse>> allSchedules =
           scheduleService.getSchedulesByRange(
-              userId, LocalDate.of(y, 1, 1), LocalDate.of(y, 12, 31));
-      return ResponseEntity.ok(Map.of("message", "yearly_schedule", "data", data));
+              userId,
+              LocalDate.of(y, 1, 1),
+              LocalDate.of(y, 12, 31)
+          );
+
+      List<ScheduleResponse> flattenedSchedules = allSchedules.values().stream()
+          .flatMap(List::stream)
+          .collect(Collectors.toList());
+      return ResponseEntity.ok(ApiResponse.success("yearly_schedule", flattenedSchedules));
     } catch (Exception e) {
       return ResponseEntity.badRequest()
           .body(
