@@ -1,9 +1,11 @@
 package com.ellu.looper.service;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +29,25 @@ public class S3Service {
     metadata.setContentLength(file.getSize());
 
     amazonS3Client.putObject(bucket, fileName, file.getInputStream(), metadata);
-    return amazonS3Client.getUrl(bucket, fileName).toString();
+    return generatePresignedUrl(fileName);
+  }
+
+  private String generatePresignedUrl(String fileName) {
+    Date expiration = new Date();
+    long expTimeMillis = expiration.getTime();
+    expTimeMillis += 1000 * 60 * 60;
+    expiration.setTime(expTimeMillis);
+
+    GeneratePresignedUrlRequest generatePresignedUrlRequest =
+        new GeneratePresignedUrlRequest(bucket, fileName)
+            .withMethod(com.amazonaws.HttpMethod.GET)
+            .withExpiration(expiration);
+
+    return amazonS3Client.generatePresignedUrl(generatePresignedUrlRequest).toString();
+  }
+
+  public String getPresignedUrl(String fileName) {
+    return generatePresignedUrl(fileName);
   }
 
   public List<String> uploadMultipleFiles(List<MultipartFile> files) throws IOException {

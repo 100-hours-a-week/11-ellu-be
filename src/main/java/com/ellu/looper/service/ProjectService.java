@@ -142,7 +142,7 @@ public class ProjectService {
                           new MemberDto(
                               pm.getUser().getId(),
                               pm.getUser().getNickname(),
-                              pm.getUser().getFileName(),
+                              profileImageService.getProfileImageUrl(pm.getUser().getFileName()),
                               pm.getPosition()))
                       .collect(Collectors.toList());
 
