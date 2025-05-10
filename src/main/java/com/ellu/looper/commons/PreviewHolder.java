@@ -30,7 +30,7 @@ public class PreviewHolder {
     if (result != null && !result.isSetOrExpired()) {
       log.info("[PreviewHolder] Setting result for project: {}", projectId);
       result.setResult(
-          ResponseEntity.ok(Map.of("message", "schedule_fetched", "data", aiResponse)));
+          ResponseEntity.ok(aiResponse));
     } else {
       log.warn("[PreviewHolder] No waiting client found or result already set for project: {}", projectId);
     }

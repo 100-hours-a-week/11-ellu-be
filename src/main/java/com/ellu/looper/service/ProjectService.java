@@ -33,6 +33,7 @@ public class ProjectService {
   private final UserRepository userRepository;
   private final ProjectScheduleRepository projectScheduleRepository;
   private final FastApiService fastApiService;
+  private final ProfileImageService profileImageService;
 
   @Transactional
   public void createProject(ProjectCreateRequest request, Long creatorId) {
@@ -179,7 +180,7 @@ public class ProjectService {
                     new MemberDto(
                         pm.getUser().getId(),
                         pm.getUser().getNickname(),
-                        pm.getUser().getFileName(),
+                        profileImageService.getProfileImageUrl(pm.getUser().getFileName()),
                         pm.getPosition()))
             .collect(Collectors.toList());
 
