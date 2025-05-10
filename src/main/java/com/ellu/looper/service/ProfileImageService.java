@@ -20,6 +20,7 @@ public class ProfileImageService {
 
   private final AmazonS3Client amazonS3Client;
   private final ResourceLoader resourceLoader;
+  private final S3Service s3Service;
   private final Random random = new Random();
 
   @Value("${cloud.aws.s3.bucket}")
@@ -79,7 +80,10 @@ public class ProfileImageService {
   }
 
   public String getProfileImageUrl(String fileName) {
-    return amazonS3Client.getUrl(bucket, fileName).toString();
+    if (fileName == null || fileName.isEmpty()) {
+      return null;
+    }
+    return s3Service.getPresignedUrl(fileName);
   }
 
   private String createFileName(String originalFileName) {
