@@ -117,7 +117,7 @@ public class ProjectScheduleService {
 
   @Transactional
   public ProjectScheduleResponse updateSchedule(
-      Long projectId, Long scheduleId, Long userId, ProjectScheduleUpdateRequest request) {
+      Long scheduleId, Long userId, ProjectScheduleUpdateRequest request) {
     ProjectSchedule schedule =
         scheduleRepository
             .findByIdAndDeletedAtIsNull(scheduleId)
@@ -130,7 +130,8 @@ public class ProjectScheduleService {
     validateTimeOrder(request.start_time(), request.end_time());
 
     schedule.update(
-        request.title(), null, request.start_time(), request.end_time(), request.completed());
+        request.title(), request.description(), request.start_time(), request.end_time(),
+        request.completed());
     return new ProjectScheduleResponse(
         schedule.getId(),
         schedule.getTitle(),
@@ -147,11 +148,9 @@ public class ProjectScheduleService {
         scheduleRepository
             .findByIdAndDeletedAtIsNull(scheduleId)
             .orElseThrow(() -> new IllegalArgumentException("Schedule not found"));
-
     if (!schedule.getUser().getId().equals(userId)) {
       throw new AccessDeniedException("Unauthorized");
     }
-
     schedule.softDelete();
   }
 
