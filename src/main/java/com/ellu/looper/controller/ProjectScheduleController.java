@@ -32,7 +32,7 @@ import org.springframework.security.access.AccessDeniedException;
 import com.ellu.looper.repository.ProjectMemberRepository;
 
 @RestController
-@RequestMapping("/projects/{projectId}")
+@RequestMapping("/projects")
 @RequiredArgsConstructor
 public class ProjectScheduleController {
 
@@ -40,7 +40,7 @@ public class ProjectScheduleController {
   private final PreviewHolder previewHolder;
   private final ProjectMemberRepository projectMemberRepository;
 
-  @PostMapping("/schedules")
+  @PostMapping("/{projectId}/schedules")
   public ResponseEntity<ApiResponse<List<ProjectScheduleResponse>>> createSchedules(
       @PathVariable Long projectId,
       @RequestBody ProjectScheduleCreateRequest request,
@@ -52,23 +52,22 @@ public class ProjectScheduleController {
 
   @PatchMapping("/schedules/{scheduleId}")
   public ResponseEntity<ApiResponse<ProjectScheduleResponse>> updateSchedule(
-      @PathVariable Long projectId,
       @PathVariable Long scheduleId,
       @RequestBody ProjectScheduleUpdateRequest request,
       @CurrentUser Long userId) {
     ProjectScheduleResponse result =
-        scheduleService.updateSchedule(projectId, scheduleId, userId, request);
+        scheduleService.updateSchedule(scheduleId, userId, request);
     return ResponseEntity.ok(new ApiResponse<>("schedule_updated", result));
   }
 
   @DeleteMapping("/schedules/{scheduleId}")
   public ResponseEntity<Void> deleteSchedule(
-      @PathVariable Long projectId, @PathVariable Long scheduleId, @CurrentUser Long userId) {
+      @PathVariable Long scheduleId, @CurrentUser Long userId) {
     scheduleService.deleteSchedule(scheduleId, userId);
     return ResponseEntity.noContent().build();
   }
 
-  @GetMapping("/schedules/daily")
+  @GetMapping("/{projectId}/schedules/daily")
   public ResponseEntity<ApiResponse<?>> getDailySchedules(
       @PathVariable Long projectId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -89,7 +88,7 @@ public class ProjectScheduleController {
     return ResponseEntity.ok(new ApiResponse<>("project_daily_schedule", schedules));
   }
 
-  @GetMapping("/schedules/weekly")
+  @GetMapping("/{projectId}/schedules/weekly")
   public ResponseEntity<ApiResponse<Map<String, ?>>> getWeeklySchedules(
       @PathVariable Long projectId,
       @RequestParam(required = false, name = "startDate")
@@ -113,7 +112,7 @@ public class ProjectScheduleController {
   }
 
 
-  @GetMapping("/schedules/monthly")
+  @GetMapping("/{projectId}/schedules/monthly")
   public ResponseEntity<ApiResponse<?>> getMonthlySchedules(
       @PathVariable Long projectId,
       @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth month) {
@@ -144,7 +143,7 @@ public class ProjectScheduleController {
         new ApiResponse<>("project_monthly_schedule", flattenedSchedules));
   }
 
-  @GetMapping("/schedules/yearly")
+  @GetMapping("/{projectId}/schedules/yearly")
   public ResponseEntity<ApiResponse<?>> getYearlySchedules(
       @PathVariable Long projectId,
       @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy") Year year) {
@@ -168,7 +167,7 @@ public class ProjectScheduleController {
     return ResponseEntity.ok(new ApiResponse<>("project_yearly_schedule", flattenedSchedules));
   }
 
-  @GetMapping("/tasks/preview")
+  @GetMapping("/{projectId}/tasks/preview")
   public DeferredResult<ResponseEntity<?>> getPreview(@PathVariable Long projectId,
       @CurrentUser Long userId) {
     // 프로젝트 멤버십 확인
