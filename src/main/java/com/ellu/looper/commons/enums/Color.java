@@ -5,5 +5,5 @@ public enum Color {
   FFDDB4,
   FFB9B4,
   FFD9D7,
-  ECCAC5
+  ECCAC5;
 }

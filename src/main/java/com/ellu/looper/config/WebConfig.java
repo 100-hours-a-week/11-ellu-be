@@ -18,14 +18,3 @@ public class WebConfig implements WebMvcConfigurer {
     resolvers.add(currentUserArgumentResolver);
   }
 }
-
-// 아래처럼 사용 가능
-// @RestController
-// @RequestMapping("/api/users")
-// public class UserController {
-//
-//    @GetMapping("/me")
-//    public ResponseEntity<String> getCurrentUserId(@CurrentUser Long userId) {
-//        return ResponseEntity.ok("현재 로그인한 유저 ID: " + userId);
-//    }
-// }

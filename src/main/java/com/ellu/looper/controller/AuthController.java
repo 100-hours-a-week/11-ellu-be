@@ -2,16 +2,19 @@ package com.ellu.looper.controller;
 
 import com.ellu.looper.commons.ApiResponse;
 import com.ellu.looper.commons.CurrentUser;
-import com.ellu.looper.dto.AuthRequest;
 import com.ellu.looper.dto.AuthResponse;
-import com.ellu.looper.dto.LogoutRequest;
+import com.ellu.looper.dto.LoginResponse;
 import com.ellu.looper.dto.NicknameRequest;
+import com.ellu.looper.dto.TokenRefreshResponse;
 import com.ellu.looper.service.AuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -24,21 +27,26 @@ import org.springframework.web.client.RestTemplate;
 public class AuthController {
 
   private final AuthService authService;
+  private final HttpServletResponse httpServletResponse;
 
-  private final String clientId = "44153da72adabc7e47959244ebe53bac"; // 카카오 REST API 키
-  private final String redirectUri = "http://localhost:8080/auth/kakao/callback";
+  @Value("${kakao.client-id}")
+  private String clientId;
+
+  @Value("${kakao.redirect-uri}")
+  private String redirectUri;
 
   @GetMapping("/auth/kakao/callback")
-  public ResponseEntity<AuthResponse> kakaoCallback(@RequestParam("code") String code) {
-    log.info("Authorization Code: " + code);
+  public ResponseEntity<?> kakaoCallback(
+      @RequestParam("code") String code, HttpServletResponse response) {
     String accessToken = requestAccessToken(code);
-    log.info("Access Token: " + accessToken);
 
-    // 1. access token으로 로그인/회원가입 처리
+    // 로그인/회원가입 처리
     AuthResponse authResponse = authService.loginOrSignUp("kakao", accessToken);
 
-    // 2. access token, refresh token, isNewUser 등을 JSON 형태로 응답
-    return ResponseEntity.ok(authResponse);
+    // 응답에 쿠키로 토큰 설정
+    authService.setTokenCookies(response, authResponse.getRefreshToken());
+
+    return ResponseEntity.ok(new ApiResponse("로그인 성공", null));
   }
 
   private String requestAccessToken(String code) {
@@ -47,7 +55,7 @@ public class AuthController {
 
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-    headers.setAccept(List.of(MediaType.APPLICATION_JSON)); // 꼭 추가
+    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
 
     MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
     params.add("grant_type", "authorization_code");
@@ -79,14 +87,60 @@ public class AuthController {
   }
 
   @PostMapping("/auth/token")
-  public ResponseEntity<?> kakaoLogin(@RequestBody AuthRequest request) {
-    return ResponseEntity.ok(
-        authService.loginOrSignUp(request.getProvider(), request.getAccessToken()));
+  public ResponseEntity<ApiResponse<LoginResponse>> kakaoLogin(
+      @RequestBody Map<String, String> request, HttpServletResponse response) {
+    String code = request.get("code");
+    if (code == null || code.isBlank()) {
+      return ResponseEntity.badRequest().body(new ApiResponse("code가 필요합니다.", null));
+    }
+
+    // Kakao access token 요청
+    String accessToken = requestAccessToken(code);
+
+    // 로그인/회원가입 처리
+    AuthResponse authResponse = authService.loginOrSignUp("kakao", accessToken);
+
+    // RefreshToken을 쿠키로 설정
+    authService.setTokenCookies(response, authResponse.getRefreshToken());
+
+    LoginResponse loginResponse = new LoginResponse(authResponse.getAccessToken(), authResponse.isNewUser());
+
+    ResponseEntity<ApiResponse<LoginResponse>> responseEntity =
+        ResponseEntity.ok(ApiResponse.success("로그인 성공", loginResponse));
+
+    // ObjectMapper는 보통 Bean으로 등록되어 있으니 주입받거나 새로 생성할 수 있음
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    try {
+      String json = objectMapper.writeValueAsString(responseEntity.getBody());
+      log.info("응답 내용: {}", json);
+    } catch (Exception e) {
+      log.error("응답 내용 로깅 중 오류 발생", e);
+    }
+
+    return responseEntity;
   }
 
   @DeleteMapping("/auth/token")
-  public ResponseEntity<ApiResponse<Void>> logout(@RequestBody LogoutRequest request) {
-    authService.logout(request.getRefreshToken());
+  public ResponseEntity<ApiResponse<Void>> logout(
+      HttpServletRequest request, HttpServletResponse response) {
+    // 쿠키에서 refresh_token 가져오기
+    String refreshToken = authService.extractRefreshTokenFromCookies(request);
+    if (refreshToken == null) {
+      throw new RuntimeException("Refresh token not found in cookies");
+    }
+
+    authService.logout(refreshToken);
+    ResponseCookie deleteRefreshCookie = ResponseCookie.from("refresh_token", refreshToken)
+        .httpOnly(true)
+        .secure(true)
+        .sameSite("None")
+        .path("/")
+        .maxAge(0)
+        .build();
+
+    response.addHeader(HttpHeaders.SET_COOKIE, deleteRefreshCookie.toString());
+
     return ResponseEntity.ok(new ApiResponse("로그아웃 성공", null));
   }
 
@@ -94,12 +148,13 @@ public class AuthController {
   public ResponseEntity<?> registerNickname(
       @CurrentUser Long userId, @RequestBody NicknameRequest request) {
     authService.registerNickname(userId, request.getNickname());
-    return ResponseEntity.ok(new ApiResponse("닉네임 등록 완료", null));
+    return ResponseEntity.ok(new ApiResponse("nickname_registered", null));
   }
 
   @PostMapping("/auth/token/refresh")
-  public ResponseEntity<?> refreshToken(@RequestHeader("Authorization") String refreshTokenHeader) {
-    String refreshToken = refreshTokenHeader.replace("Bearer ", "");
-    return ResponseEntity.ok(authService.refreshAccessToken(refreshToken));
+  public ResponseEntity<?> refresh(@CookieValue("refresh_token") String refreshToken,
+      @RequestHeader(value = "Authorization", required = false) String accessToken) {
+    TokenRefreshResponse response = authService.refreshAccessToken(refreshToken, httpServletResponse);
+    return ResponseEntity.ok(new ApiResponse("token_refreshed", response));
   }
 }

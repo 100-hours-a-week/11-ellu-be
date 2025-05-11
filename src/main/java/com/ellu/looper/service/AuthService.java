@@ -1,17 +1,25 @@
 package com.ellu.looper.service;
 
 import com.ellu.looper.dto.AuthResponse;
+import com.ellu.looper.dto.TokenRefreshResponse;
 import com.ellu.looper.dto.oauth.KakaoUserInfo;
 import com.ellu.looper.entity.RefreshToken;
 import com.ellu.looper.entity.User;
+import com.ellu.looper.exception.JwtException;
+import com.ellu.looper.exception.NicknameAlreadyExistsException;
 import com.ellu.looper.jwt.JwtExpiration;
 import com.ellu.looper.jwt.JwtProvider;
 import com.ellu.looper.repository.RefreshTokenRepository;
 import com.ellu.looper.repository.UserRepository;
 import com.ellu.looper.service.oauth.KakaoOAuthService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +32,7 @@ public class AuthService {
   private final UserRepository userRepository;
   private final JwtProvider jwtProvider;
   private final RefreshTokenRepository refreshTokenRepository;
+  private final ProfileImageService profileImageService;
 
   @Transactional
   public AuthResponse loginOrSignUp(String provider, String accessToken) {
@@ -38,6 +47,7 @@ public class AuthService {
             .findByEmail(kakaoUserInfo.getEmail())
             .orElseGet(
                 () -> {
+                  String randomProfileImage = profileImageService.getRandomProfileImage();
                   User newUser =
                       new User(
                           null,
@@ -45,7 +55,7 @@ public class AuthService {
                           kakaoUserInfo.getEmail(),
                           "kakao",
                           kakaoUserInfo.getId(),
-                          "default_profile.jpg", // default image
+                          randomProfileImage,
                           LocalDateTime.now(),
                           LocalDateTime.now(),
                           null);
@@ -59,7 +69,12 @@ public class AuthService {
 
     refreshTokenRepository
         .findByUserId(user.getId())
-        .ifPresent(refreshTokenRepository::delete); // 기존 토큰 삭제 (있으면)
+        .ifPresent(
+            existingToken -> {
+              log.info("Deleting existing token: {}", existingToken);
+              refreshTokenRepository.delete(existingToken);
+              refreshTokenRepository.flush();
+            });
 
     RefreshToken refreshTokenEntity =
         RefreshToken.builder()
@@ -77,18 +92,19 @@ public class AuthService {
 
   @Transactional
   public void registerNickname(Long userId, String nickname) {
-    if (nickname.length() < 1 || nickname.length() > 10) {
+    if (nickname.isEmpty() || nickname.length() > 10) {
       throw new IllegalArgumentException("Nickname should be 1-10 letters.");
     }
 
     if (userRepository.findByNickname(nickname).isPresent()) {
-      throw new RuntimeException("nickname_already_exists");
+      throw new NicknameAlreadyExistsException("nickname_already_exists");
     }
 
     User user =
         userRepository.findById(userId).orElseThrow(() -> new RuntimeException("user_not_found"));
 
     user.updateNickname(nickname);
+    userRepository.save(user);
   }
 
   @Transactional
@@ -101,21 +117,69 @@ public class AuthService {
   }
 
   @Transactional
-  public AuthResponse refreshAccessToken(String oldRefreshToken) {
-    RefreshToken savedToken =
-        refreshTokenRepository
-            .findByRefreshToken(oldRefreshToken)
-            .orElseThrow(() -> new RuntimeException("invalid_refresh_token"));
+  public TokenRefreshResponse refreshAccessToken(String oldRefreshToken, HttpServletResponse response) {
+    RefreshToken savedToken = refreshTokenRepository.findByRefreshToken(oldRefreshToken)
+        .orElseThrow(() -> new RuntimeException("invalid_refresh_token"));
 
-    Long userId = jwtProvider.extractUserId(oldRefreshToken);
+    Long userId;
+    boolean refreshTokenExpired = false;
 
-    String newAccessToken =
-        jwtProvider.generateToken(userId, JwtExpiration.ACCESS_TOKEN_EXPIRATION);
-    String newRefreshToken =
-        jwtProvider.generateToken(userId, JwtExpiration.REFRESH_TOKEN_EXPIRATION);
+    try {
+      userId = jwtProvider.extractUserId(oldRefreshToken); // 내부적으로 parseClaims 호출됨
+      jwtProvider.validateToken(oldRefreshToken); // 만료되었으면 예외 발생
+    } catch (JwtException e) {
+      refreshTokenExpired = true;
+      userId = jwtProvider.extractUserId(oldRefreshToken); // 만료된 토큰이라도 userId는 뽑을 수 있음
+    }
 
-    savedToken.updateToken(newRefreshToken);
+    String newAccessToken = jwtProvider.createAccessToken(userId);
 
-    return new AuthResponse(newAccessToken, newRefreshToken, false);
+    if (refreshTokenExpired) {
+      String newRefreshToken = jwtProvider.createRefreshToken(userId);
+      savedToken.updateToken(newRefreshToken);
+
+      // HttpOnly 쿠키로 새 refresh token 전달
+      Cookie refreshTokenCookie = new Cookie("refresh_token", newRefreshToken);
+      refreshTokenCookie.setHttpOnly(true);
+      refreshTokenCookie.setSecure(true); // HTTPS 환경에서만 true
+      refreshTokenCookie.setPath("/");
+      refreshTokenCookie.setMaxAge((int)(JwtExpiration.REFRESH_TOKEN_EXPIRATION / 1000));
+      response.addCookie(refreshTokenCookie);
+    }
+
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new RuntimeException("User not found"));
+
+    TokenRefreshResponse.UserInfo userInfo = new TokenRefreshResponse.UserInfo(
+        user.getId(), user.getNickname(), profileImageService.getProfileImageUrl(user.getFileName())
+    );
+
+    return new TokenRefreshResponse(newAccessToken, userInfo);
+  }
+
+
+  public void setTokenCookies(HttpServletResponse response, String refreshToken) {
+    ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
+        .httpOnly(true)
+        .secure(true)
+        .sameSite("None")
+        .path("/")
+        .maxAge(JwtExpiration.REFRESH_TOKEN_EXPIRATION)
+        .build();
+    response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+
+  }
+
+  public String extractRefreshTokenFromCookies(HttpServletRequest request) {
+    if (request.getCookies() == null) {
+      return null;
+    }
+
+    for (Cookie cookie : request.getCookies()) {
+      if ("refresh_token".equals(cookie.getName())) {
+        return cookie.getValue();
+      }
+    }
+    return null;
   }
 }

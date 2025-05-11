@@ -22,7 +22,6 @@ public class JwtAuthenticationToken extends AbstractAuthenticationToken {
 
   @Override
   public Object getPrincipal() {
-    log.info("ID is..." + String.valueOf(userId));
     return userId;
   }
 }

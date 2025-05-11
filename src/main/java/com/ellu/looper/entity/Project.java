@@ -4,6 +4,7 @@ import com.ellu.looper.commons.enums.Color;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -11,6 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
+@Builder(toBuilder = true)
 public class Project {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,4 +36,12 @@ public class Project {
 
   @Column(name = "deleted_at")
   private LocalDateTime deletedAt;
+
+  @Basic(fetch = FetchType.LAZY)
+  @Column(columnDefinition = "TEXT")
+  private String wiki;
+
+  public void setDeletedAt(LocalDateTime now) {
+    this.deletedAt = now;
+  }
 }
