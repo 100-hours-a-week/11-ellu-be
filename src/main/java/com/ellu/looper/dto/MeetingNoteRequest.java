@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MeetingNoteRequest {
-  private int project_id;
+  private Long project_id;
   private String content;
   private String nickname;
   private String position;
