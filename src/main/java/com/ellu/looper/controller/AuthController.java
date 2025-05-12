@@ -6,6 +6,7 @@ import com.ellu.looper.dto.AuthResponse;
 import com.ellu.looper.dto.LoginResponse;
 import com.ellu.looper.dto.NicknameRequest;
 import com.ellu.looper.dto.TokenRefreshResponse;
+import com.ellu.looper.jwt.JwtExpiration;
 import com.ellu.looper.service.AuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,6 +35,12 @@ public class AuthController {
 
   @Value("${kakao.redirect-uri}")
   private String redirectUri;
+
+  @Value("${spring.application.mode}")
+  private String devEnv;
+
+  @Value("${cookie.secure}")
+  private boolean useHttps;
 
   @GetMapping("/auth/kakao/callback")
   public ResponseEntity<?> kakaoCallback(
@@ -103,7 +110,8 @@ public class AuthController {
     // RefreshToken을 쿠키로 설정
     authService.setTokenCookies(response, authResponse.getRefreshToken());
 
-    LoginResponse loginResponse = new LoginResponse(authResponse.getAccessToken(), authResponse.isNewUser());
+    LoginResponse loginResponse = new LoginResponse(authResponse.getAccessToken(),
+        authResponse.isNewUser());
 
     ResponseEntity<ApiResponse<LoginResponse>> responseEntity =
         ResponseEntity.ok(ApiResponse.success("로그인 성공", loginResponse));
@@ -130,11 +138,15 @@ public class AuthController {
       throw new RuntimeException("Refresh token not found in cookies");
     }
 
+    boolean isProduction = "production".equals(devEnv);
+    boolean shouldUseSecure = isProduction && useHttps;
+    String sameSite = shouldUseSecure ? "None" : "Lax";
+
     authService.logout(refreshToken);
     ResponseCookie deleteRefreshCookie = ResponseCookie.from("refresh_token", refreshToken)
         .httpOnly(true)
-        .secure(true)
-        .sameSite("None")
+        .secure(shouldUseSecure)
+        .sameSite(sameSite)
         .path("/")
         .maxAge(0)
         .build();
@@ -154,7 +166,8 @@ public class AuthController {
   @PostMapping("/auth/token/refresh")
   public ResponseEntity<?> refresh(@CookieValue("refresh_token") String refreshToken,
       @RequestHeader(value = "Authorization", required = false) String accessToken) {
-    TokenRefreshResponse response = authService.refreshAccessToken(refreshToken, httpServletResponse);
+    TokenRefreshResponse response = authService.refreshAccessToken(refreshToken,
+        httpServletResponse);
     return ResponseEntity.ok(new ApiResponse("token_refreshed", response));
   }
 }

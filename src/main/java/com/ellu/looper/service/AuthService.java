@@ -18,6 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,12 @@ public class AuthService {
   private final JwtProvider jwtProvider;
   private final RefreshTokenRepository refreshTokenRepository;
   private final ProfileImageService profileImageService;
+
+  @Value("${spring.application.mode}")
+  private String devEnv;
+
+  @Value("${cookie.secure}")
+  private boolean useHttps;
 
   @Transactional
   public AuthResponse loginOrSignUp(String provider, String accessToken) {
@@ -159,15 +166,18 @@ public class AuthService {
 
 
   public void setTokenCookies(HttpServletResponse response, String refreshToken) {
+    boolean isProduction = "production".equals(devEnv);
+    boolean shouldUseSecure = isProduction && useHttps;
+    String sameSite = shouldUseSecure ? "None" : "Lax";
+
     ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
         .httpOnly(true)
-        .secure(true)
-        .sameSite("None")
+        .secure(shouldUseSecure)
+        .sameSite(sameSite)
         .path("/")
         .maxAge(JwtExpiration.REFRESH_TOKEN_EXPIRATION)
         .build();
     response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
-
   }
 
   public String extractRefreshTokenFromCookies(HttpServletRequest request) {

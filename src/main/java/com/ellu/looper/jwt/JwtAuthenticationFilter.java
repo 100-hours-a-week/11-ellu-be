@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,6 +22,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
   private final JwtProvider jwtProvider;
   private final JwtService jwtService;
+
+  @Value("${spring.application.mode}")
+  private String devEnv;
+
+  @Value("${cookie.secure}")
+  private boolean useHttps;
 
   public JwtAuthenticationFilter(JwtProvider jwtProvider, JwtService jwtService) {
     this.jwtProvider = jwtProvider;
@@ -103,12 +110,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
   }
 
   private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
+    boolean isProduction = "production".equals(devEnv);
+    boolean shouldUseSecure = isProduction && useHttps;
+    String sameSite = shouldUseSecure ? "None" : "Lax";
+
     Cookie refreshCookie = new Cookie("refresh_token", refreshToken);
     refreshCookie.setHttpOnly(true);
-    refreshCookie.setSecure(true);
+    refreshCookie.setSecure(shouldUseSecure);
     refreshCookie.setPath("/");
     refreshCookie.setMaxAge((int) JwtExpiration.REFRESH_TOKEN_EXPIRATION);
 
     response.addCookie(refreshCookie);
   }
 }
+
