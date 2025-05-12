@@ -3,6 +3,7 @@ package com.ellu.looper.controller;
 import com.ellu.looper.commons.ApiResponse;
 import com.ellu.looper.commons.CurrentUser;
 import com.ellu.looper.commons.PreviewHolder;
+import com.ellu.looper.commons.ScheduleHolder;
 import com.ellu.looper.dto.schedule.ProjectScheduleCreateRequest;
 import com.ellu.looper.dto.schedule.ProjectScheduleResponse;
 import com.ellu.looper.dto.schedule.ProjectScheduleUpdateRequest;
@@ -38,16 +39,41 @@ public class ProjectScheduleController {
 
   private final ProjectScheduleService scheduleService;
   private final PreviewHolder previewHolder;
+  private final ScheduleHolder scheduleHolder;
   private final ProjectMemberRepository projectMemberRepository;
 
   @PostMapping("/{projectId}/schedules")
-  public ResponseEntity<ApiResponse<List<ProjectScheduleResponse>>> createSchedules(
+  public DeferredResult<ResponseEntity<?>> createSchedules(
       @PathVariable Long projectId,
       @RequestBody ProjectScheduleCreateRequest request,
       @CurrentUser Long userId) {
-    List<ProjectScheduleResponse> result =
-        scheduleService.createSchedules(projectId, userId, request);
-    return ResponseEntity.ok(new ApiResponse<>("project_daily_schedule", result));
+
+    // 프로젝트 멤버인지 확인
+    projectMemberRepository.findByProjectIdAndUserId(projectId, userId)
+        .orElseThrow(() -> new AccessDeniedException("Not a member of this project"));
+
+    DeferredResult<ResponseEntity<?>> result = new DeferredResult<>(300000L); // 5분 타임아웃
+
+    // 요청 등록
+    scheduleHolder.register(projectId, userId, request, result);
+
+    result.onTimeout(() -> {
+      scheduleHolder.remove(projectId, userId);
+      result.setResult(ResponseEntity.status(HttpStatus.ACCEPTED).body(
+          ApiResponse.success("still_processing", Map.of(
+              "message", "Schedule creation is still processing.",
+              "data", List.of()
+          ))
+      ));
+    });
+
+    result.onError((error) -> {
+      scheduleHolder.remove(projectId, userId);
+      result.setResult(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(ApiResponse.error("internal_server_error")));
+    });
+
+    return result;
   }
 
   @PatchMapping("/schedules/{scheduleId}")
