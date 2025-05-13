@@ -28,12 +28,14 @@ public class AuthController {
 
   private final AuthService authService;
   private final HttpServletResponse httpServletResponse;
-
   @Value("${kakao.client-id}")
   private String clientId;
-
   @Value("${kakao.redirect-uri}")
   private String redirectUri;
+  @Value("${spring.application.mode}")
+  private String devEnv;
+  @Value("${cookie.secure}")
+  private boolean useHttps;
 
   @GetMapping("/auth/kakao/callback")
   public ResponseEntity<?> kakaoCallback(
@@ -129,12 +131,14 @@ public class AuthController {
     if (refreshToken == null) {
       throw new RuntimeException("Refresh token not found in cookies");
     }
-
+    boolean isProduction = "production".equals(devEnv);
+    boolean shouldUseSecure = isProduction && useHttps;
+    String sameSite = shouldUseSecure ? "None" : "Lax";
     authService.logout(refreshToken);
     ResponseCookie deleteRefreshCookie = ResponseCookie.from("refresh_token", refreshToken)
         .httpOnly(true)
-        .secure(true)
-        .sameSite("None")
+        .secure(shouldUseSecure)
+        .sameSite(sameSite)
         .path("/")
         .maxAge(0)
         .build();
