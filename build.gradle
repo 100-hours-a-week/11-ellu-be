@@ -1,87 +1,100 @@
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '3.4.4'
-	id 'io.spring.dependency-management' version '1.1.7'
-	id 'com.diffplug.spotless' version '6.25.0'
+    id 'java'
+    id 'org.springframework.boot' version '3.4.4'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'com.diffplug.spotless' version '6.25.0'
 }
 
 group = 'com.ellu.looper'
 version = '1.0.0'
 
 java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 spotless {
-	java {
-		importOrder()
-		removeUnusedImports()
-		googleJavaFormat()
-	}
+    java {
+        importOrder()
+        removeUnusedImports()
+        googleJavaFormat()
+    }
 }
 
 dependencies {
-	// Spring 기본
-	implementation 'org.springframework.boot:spring-boot-starter'
-	implementation 'org.springframework.boot:spring-boot-starter-web'         // MVC 서버
-	implementation 'org.springframework.boot:spring-boot-starter-webflux'     // WebClient (비동기 HTTP 클라이언트)
-	implementation 'org.springframework.boot:spring-boot-starter-validation' // @Valid 등 유효성 검증
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'   // 헬스 체크, 메트릭
+    // Spring 기본
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-web'         // MVC 서버
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    // WebClient (비동기 HTTP 클라이언트)
+    implementation 'org.springframework.boot:spring-boot-starter-validation' // @Valid 등 유효성 검증
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'   // 헬스 체크, 메트릭
 
-	// Spring Security & OAuth2
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    // Spring Security & OAuth2
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 
-	// JPA / DB
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	runtimeOnly 'org.postgresql:postgresql'
+    // JPA / DB
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly 'org.postgresql:postgresql'
 
-	// JWT
-	implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
-	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.3'
-	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.3'
+    // JWT
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.3'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.3'
 
-	// AWS (S3 등)
-	implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
-	implementation 'com.amazonaws:aws-java-sdk-s3:1.12.261'
+    // AWS (S3 등)
+    implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
+    implementation 'com.amazonaws:aws-java-sdk-s3:1.12.261'
 
-	// Swagger (API 문서)
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6'
 
-	// 테스트
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.springframework.security:spring-security-test'
-	testImplementation 'io.projectreactor:reactor-test'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
 
-	// 개발 편의
-	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
+//    developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
 
-	// Lombok
-	compileOnly 'org.projectlombok:lombok'
-	annotationProcessor 'org.projectlombok:lombok'
+    // Swagger (API 문서)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6'
+
+    // 테스트
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'io.projectreactor:reactor-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation "org.testcontainers:postgresql:1.21.0"
+
+    // 개발 편의
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
-bootBuildImage{
-	imageName = "${project.name}"
-	environment = ["BP_JVM_VERSION" : "21.*"]
+bootBuildImage {
+    imageName = "${project.name}"
+    environment = ["BP_JVM_VERSION": "21.*"]
 
-	docker {
-		publishRegistry {
-			username = project.findProperty("registryUsername")
-			password = project.findProperty("registryToken")
-			url = project.findProperty("registryUrl")
+    docker {
+        publishRegistry {
+            username = project.findProperty("registryUsername")
+            password = project.findProperty("registryToken")
+            url = project.findProperty("registryUrl")
 
-		}
-	}
+        }
+    }
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+    useJUnitPlatform()
 }
