@@ -34,10 +34,6 @@ public class AuthService {
   private final JwtProvider jwtProvider;
   private final RefreshTokenRepository refreshTokenRepository;
   private final ProfileImageService profileImageService;
-  @Value("${spring.application.mode}")
-  private String devEnv;
-  @Value("${cookie.secure}")
-  private boolean useHttps;
 
   @Transactional
   public AuthResponse loginOrSignUp(String provider, String accessToken) {
@@ -144,10 +140,6 @@ public class AuthService {
       savedToken.updateToken(newRefreshToken);
 
       // HttpOnly 쿠키로 새 refresh token 전달
-      boolean isProduction = "production".equals(devEnv);
-      boolean shouldUseSecure = isProduction && useHttps;
-      String sameSite = shouldUseSecure ? "None" : "Lax";
-
       setTokenCookies(response, newRefreshToken);
     }
 
@@ -163,13 +155,10 @@ public class AuthService {
 
 
   public void setTokenCookies(HttpServletResponse response, String refreshToken) {
-    boolean isProduction = "production".equals(devEnv);
-    boolean shouldUseSecure = isProduction && useHttps;
-    String sameSite = shouldUseSecure ? "None" : "Lax";
     ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
-        .httpOnly(useHttps)
-        .secure(shouldUseSecure)
-        .sameSite(sameSite)
+        .httpOnly(true)
+        .secure(true)
+        .sameSite("None")
         .path("/")
         .maxAge(JwtExpiration.REFRESH_TOKEN_EXPIRATION)
         .build();
