@@ -3,7 +3,6 @@ spring:
     import: optional:dotenv:.env
   application:
     name: looper
-    mode: ${DEV_ENV:development}
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5433/looperdb_main_dev}
     username: ${DB_USERNAME}
@@ -58,6 +57,3 @@ info:
     name: ${spring.application.name}
     version: 1.0.1
     description: Looper API 서버
-
-cookie:
-  secure: ${USE_HTTPS:false}
