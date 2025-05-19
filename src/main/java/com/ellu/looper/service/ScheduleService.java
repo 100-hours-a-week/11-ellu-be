@@ -211,6 +211,7 @@ public class ScheduleService {
         .projectSchedule(isProject)
         .startTime(s.getStartTime())
         .endTime(s.getEndTime())
+        .color(null)
         .build();
   }
 }
