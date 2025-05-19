@@ -1,5 +1,6 @@
 package com.ellu.looper.service;
 
+import com.ellu.looper.commons.enums.Color;
 import com.ellu.looper.commons.enums.Role;
 import com.ellu.looper.dto.MemberDto;
 import com.ellu.looper.dto.ProjectCreateRequest;
@@ -71,7 +72,7 @@ public class ProjectService {
             null,
             creator,
             request.getTitle(),
-            null, // color enum 매칭은 version2+
+            Color.valueOf(request.getColor()), // color enum 매칭은 version2+
             LocalDateTime.now(),
             LocalDateTime.now(),
             null,
@@ -188,7 +189,6 @@ public class ProjectService {
         project.getId(),
         project.getTitle(),
         project.getColor() != null ? project.getColor().name() : "E3EEFC",
-        // version 1 default color
         memberDtos,
         project.getWiki());
   }
@@ -266,6 +266,7 @@ public class ProjectService {
     project = project.toBuilder()
         .title(request.getTitle())
         .wiki(request.getWiki() != null ? request.getWiki() : project.getWiki())
+        .color(Color.valueOf(request.getColor()))
         .updatedAt(LocalDateTime.now())
         .build();
     projectRepository.save(project);

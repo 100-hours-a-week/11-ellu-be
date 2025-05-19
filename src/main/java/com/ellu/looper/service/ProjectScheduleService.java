@@ -111,7 +111,8 @@ public class ProjectScheduleService {
                     s.getStartTime(),
                     s.getEndTime(),
                     s.isCompleted(),
-                    true))
+                    true,
+                    s.getProject().getColor()))
         .toList();
   }
 
@@ -139,7 +140,8 @@ public class ProjectScheduleService {
         schedule.getStartTime(),
         schedule.getEndTime(),
         schedule.isCompleted(),
-        true);
+        true,
+        schedule.getProject().getColor());
   }
 
   @Transactional
@@ -173,6 +175,7 @@ public class ProjectScheduleService {
         .start_time(s.getStartTime())
         .end_time(s.getEndTime())
         .is_project_schedule(isProject)
+        .color(s.getProject().getColor())
         .build();
   }
 
@@ -225,7 +228,8 @@ public class ProjectScheduleService {
                                 s.getStartTime(),
                                 s.getEndTime(),
                                 s.isCompleted(),
-                                true),
+                                true,
+                                s.getProject().getColor()),
                         Collectors.toList())));
     return collect;
   }
