@@ -164,7 +164,8 @@ public class ScheduleService {
                     false,
                     ps.is_project_schedule(),
                     ps.start_time(),
-                    ps.end_time()))
+                    ps.end_time(),
+                    ps.color()))
         .toList();
   }
 
@@ -195,11 +196,12 @@ public class ScheduleService {
                     false,
                     ps.is_project_schedule(),
                     ps.start_time(),
-                    ps.end_time()))
+                    ps.end_time(),
+                    ps.color()))
         .toList();
   }
 
-  private ScheduleResponse toResponse(Schedule s, boolean isProject) {
+  public ScheduleResponse toResponse(Schedule s, boolean isProject) {
     return ScheduleResponse.builder()
         .id(s.getId())
         .title(s.getTitle())
