@@ -47,6 +47,10 @@ public class UserService {
 
 
   public List<UserResponse> searchNicknames(String query) {
+    if (query.isEmpty()){
+      throw new RuntimeException("At least 1 character is required. ");
+    }
+
     List<UserProjection> userProjections;
 
     if (HangulUtil.containsOnlyChoseong(query)) {
