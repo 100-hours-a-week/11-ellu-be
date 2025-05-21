@@ -8,11 +8,9 @@ import com.ellu.looper.repository.UserRepository;
 import com.ellu.looper.util.HangulUtil;
 import jakarta.transaction.Transactional;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor; 
 import org.springframework.stereotype.Service;
-
-@Slf4j
+ 
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -47,6 +45,7 @@ public class UserService {
 
 
   public List<UserResponse> searchNicknames(String query) {
+
     if (query.isEmpty()){
       throw new RuntimeException("At least 1 character is required. ");
     }

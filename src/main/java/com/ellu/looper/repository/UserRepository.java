@@ -26,6 +26,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
       FROM member 
       WHERE nickname LIKE CONCAT(:query, '%') 
       OR nickname_choseong LIKE CONCAT(:query, '%') 
+
       ORDER BY nickname LIMIT 10
       """, nativeQuery = true)
   List<UserProjection> findTop10ByNicknameOrChoseongContaining(@Param("query") String query);
