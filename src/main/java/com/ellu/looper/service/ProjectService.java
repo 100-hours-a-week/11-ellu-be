@@ -16,8 +16,10 @@ import com.ellu.looper.repository.ProjectScheduleRepository;
 import com.ellu.looper.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,14 +47,27 @@ public class ProjectService {
             .findById(creatorId)
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
+    Set<String> nicknameSet = new HashSet<>();
     List<User> addedUsers = new ArrayList<>();
+
     if (request.getAdded_members() != null) {
       for (ProjectCreateRequest.AddedMember member : request.getAdded_members()) {
+        String nickname = member.getNickname();
+
+        // 생성자 본인을 초대하는 경우
+        if (creator.getNickname().equals(nickname)) {
+          throw new IllegalArgumentException("Cannot invite the project creator");
+        }
+
+        // 중복 닉네임 체크
+        if (!nicknameSet.add(nickname)) {
+          throw new IllegalArgumentException("Duplicate member: " + nickname);
+        }
+
         User user =
             userRepository
-                .findByNickname(member.getNickname())
-                .orElseThrow(
-                    () -> new IllegalArgumentException("User not found: " + member.getNickname()));
+                .findByNickname(nickname)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + nickname));
         addedUsers.add(user);
       }
     }
@@ -72,7 +87,7 @@ public class ProjectService {
             null,
             creator,
             request.getTitle(),
-            Color.valueOf(request.getColor()), // color enum 매칭은 version2+
+            Color.valueOf(request.getColor()),
             LocalDateTime.now(),
             LocalDateTime.now(),
             null,
@@ -118,6 +133,11 @@ public class ProjectService {
     // TODO: 초대 알림 보내기 (version2+)
     log.info("Project created successfully with ID: {}", project.getId());
   }
+
+
+
+
+
 
   @Transactional(readOnly = true)
   public List<ProjectResponse> getProjects(Long userId) {
