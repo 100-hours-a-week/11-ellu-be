@@ -53,6 +53,7 @@ public class AuthService {
                       new User(
                           null,
                           null,
+                          null,
                           kakaoUserInfo.getEmail(),
                           "kakao",
                           kakaoUserInfo.getId(),
