@@ -29,6 +29,7 @@ public class ProjectMember {
   @JoinColumn(name = "member_id", nullable = false)
   private User user;
 
+  @Setter
   @Column(length = 15)
   private String position; // frontend, backend, cloud 등
 
@@ -60,4 +61,5 @@ public class ProjectMember {
   public void softDelete() {
     this.deletedAt = LocalDateTime.now();
   }
+
 }
