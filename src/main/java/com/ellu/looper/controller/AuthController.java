@@ -28,10 +28,8 @@ public class AuthController {
 
   private final AuthService authService;
   private final HttpServletResponse httpServletResponse;
-
   @Value("${kakao.client-id}")
   private String clientId;
-
   @Value("${kakao.redirect-uri}")
   private String redirectUri;
 

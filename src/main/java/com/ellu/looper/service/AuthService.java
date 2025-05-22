@@ -18,6 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,7 @@ public class AuthService {
                   String randomProfileImage = profileImageService.getRandomProfileImage();
                   User newUser =
                       new User(
+                          null,
                           null,
                           null,
                           kakaoUserInfo.getEmail(),
@@ -139,12 +141,7 @@ public class AuthService {
       savedToken.updateToken(newRefreshToken);
 
       // HttpOnly 쿠키로 새 refresh token 전달
-      Cookie refreshTokenCookie = new Cookie("refresh_token", newRefreshToken);
-      refreshTokenCookie.setHttpOnly(true);
-      refreshTokenCookie.setSecure(true); // HTTPS 환경에서만 true
-      refreshTokenCookie.setPath("/");
-      refreshTokenCookie.setMaxAge((int)(JwtExpiration.REFRESH_TOKEN_EXPIRATION / 1000));
-      response.addCookie(refreshTokenCookie);
+      setTokenCookies(response, newRefreshToken);
     }
 
     User user = userRepository.findById(userId)

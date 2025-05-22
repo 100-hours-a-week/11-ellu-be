@@ -1,8 +1,10 @@
 package com.ellu.looper.entity;
 
+import com.ellu.looper.util.HangulUtil;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -10,6 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
+@Builder(toBuilder = true)
 @Table(name = "MEMBER")
 public class User {
   @Id
@@ -19,6 +22,9 @@ public class User {
 
   @Column(unique = true, length = 15)
   private String nickname;
+
+  @Column(name = "nickname_choseong", length = 15)
+  private String nicknameChoseong;
 
   @Column(unique = true, length = 255)
   private String email;
@@ -43,11 +49,13 @@ public class User {
 
   public void updateNickname(String nickname) {
     this.nickname = nickname;
+    this.nicknameChoseong = HangulUtil.extractChoseong(nickname);
     this.updatedAt = LocalDateTime.now();
   }
 
   public void setNickname(String nickname) {
     this.nickname = nickname;
+    this.nicknameChoseong = HangulUtil.extractChoseong(nickname);
     this.createdAt = LocalDateTime.now();
   }
 

@@ -1,0 +1,76 @@
+spring:
+  config:
+    import: optional:dotenv:.env
+  application:
+    name: looper
+    mode: test
+  datasource:
+    url: jdbc:tc:postgresql:///test-db
+    username: test
+    password: test
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  test:
+    database:
+      replace: none
+
+# Disable other configurations for testing
+server:
+  forward-headers-strategy: framework
+
+cloud:
+  aws:
+    credentials:
+      access-key: test
+      secret-key: test
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false
+    s3:
+      bucket: test-bucket
+      profile-image-prefix: test-profile-images
+      initialize-profile-images: false
+
+kakao:
+  client-id: test-client-id
+
+jwt:
+  secret: test-secret-key
+
+fastapi:
+  base-url: http://localhost:8000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    version: 1.0.1
+    description: Looper API 서버
+
+cookie:
+  secure: false
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

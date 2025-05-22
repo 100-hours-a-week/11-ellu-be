@@ -1,5 +1,6 @@
 package com.ellu.looper.dto.schedule;
 
+import com.ellu.looper.commons.enums.Color;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 import lombok.Builder;
@@ -13,4 +14,5 @@ public record ScheduleResponse(
     @JsonProperty("is_ai_recommended") boolean aiRecommended,
     @JsonProperty("is_project_schedule") boolean projectSchedule,
     @JsonProperty("start_time") LocalDateTime startTime,
-    @JsonProperty("end_time") LocalDateTime endTime) {}
+    @JsonProperty("end_time") LocalDateTime endTime,
+    Color color) {}

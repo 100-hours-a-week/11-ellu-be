@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -60,7 +61,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
       }
     }
-
     filterChain.doFilter(request, response);
   }
 
@@ -108,7 +108,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     refreshCookie.setSecure(true);
     refreshCookie.setPath("/");
     refreshCookie.setMaxAge((int) JwtExpiration.REFRESH_TOKEN_EXPIRATION);
-
     response.addCookie(refreshCookie);
   }
 }

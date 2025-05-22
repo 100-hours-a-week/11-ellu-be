@@ -5,6 +5,7 @@ import com.ellu.looper.commons.CurrentUser;
 import com.ellu.looper.dto.NicknameRequest;
 import com.ellu.looper.dto.UserResponse;
 import com.ellu.looper.service.UserService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,5 +28,11 @@ public class UserController {
       @CurrentUser Long userId, @RequestBody NicknameRequest request) {
     userService.updateNickname(userId, request.getNickname());
     return ResponseEntity.ok(ApiResponse.success("user_nickname_revised", null));
+  }
+
+  @GetMapping
+  public ResponseEntity<?> searchNicknames(@CurrentUser Long userId, @RequestParam String query){
+    List<UserResponse> userResponseList = userService.searchNicknames(query);
+    return ResponseEntity.ok(ApiResponse.success("search_completed", userResponseList));
   }
 }

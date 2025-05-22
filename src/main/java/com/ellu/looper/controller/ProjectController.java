@@ -2,8 +2,10 @@ package com.ellu.looper.controller;
 
 import com.ellu.looper.commons.ApiResponse;
 import com.ellu.looper.commons.CurrentUser;
+import com.ellu.looper.dto.CreatorExcludedProjectResponse;
 import com.ellu.looper.dto.ProjectCreateRequest;
 import com.ellu.looper.dto.ProjectResponse;
+import com.ellu.looper.dto.ProjectUpdateRequest;
 import com.ellu.looper.service.ProjectService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -31,9 +33,9 @@ public class ProjectController {
   }
 
   @GetMapping("/{projectId}")
-  public ResponseEntity<ApiResponse<ProjectResponse>> getProjectDetails(
+  public ResponseEntity<ApiResponse<CreatorExcludedProjectResponse>> getProjectDetails(
       @CurrentUser Long userId, @PathVariable Long projectId) {
-    ProjectResponse response = projectService.getProjectDetail(projectId, userId);
+    CreatorExcludedProjectResponse response = projectService.getProjectDetail(projectId, userId);
     return ResponseEntity.ok(ApiResponse.success("project_fetched", response));
   }
 
@@ -41,7 +43,7 @@ public class ProjectController {
   public ResponseEntity<ApiResponse<ProjectResponse>> updateProject(
       @CurrentUser Long userId,
       @PathVariable Long projectId,
-      @RequestBody ProjectCreateRequest request) {
+      @RequestBody ProjectUpdateRequest request) {
     projectService.updateProject(projectId, request, userId);
     return ResponseEntity.ok(ApiResponse.success("project_updated", null));
   }
