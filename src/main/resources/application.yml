@@ -9,10 +9,10 @@ spring:
     password: ${DB_PASSWORD}
   sql:
     init:
-      mode: always
+      mode: never
   jpa:
     hibernate:
-      ddl-auto: never
+      ddl-auto: update
 
 server:
   forward-headers-strategy: framework
