@@ -4,12 +4,12 @@ spring:
   application:
     name: looper
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5433/looperdb_main_dev}
+    url: ${DB_URL:jdbc:postgresql://localhost:5434/looperdb_main_dev}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
   sql:
     init:
-      mode: always
+      mode: never
   jpa:
     hibernate:
       ddl-auto: update
