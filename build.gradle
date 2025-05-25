@@ -55,6 +55,7 @@ dependencies {
 
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.apache.kafka:kafka-clients:4.0.0'
 
     implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
 //    developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
@@ -79,6 +80,10 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
+
+    // hibernate types
+    implementation 'com.vladmihalcea:hibernate-types-60:2.21.1'
+
 }
 
 bootBuildImage {
