@@ -1,6 +1,8 @@
 package com.ellu.looper.service;
 
 import com.ellu.looper.commons.enums.Color;
+import com.ellu.looper.commons.enums.InviteStatus;
+import com.ellu.looper.commons.enums.NotificationType;
 import com.ellu.looper.commons.enums.Role;
 import com.ellu.looper.dto.CreatorExcludedProjectResponse;
 import com.ellu.looper.dto.MemberDto;
@@ -8,10 +10,16 @@ import com.ellu.looper.dto.ProjectCreateRequest;
 import com.ellu.looper.dto.ProjectResponse;
 import com.ellu.looper.dto.ProjectUpdateRequest;
 import com.ellu.looper.dto.WikiRequest;
+import com.ellu.looper.entity.Notification;
+import com.ellu.looper.entity.NotificationTemplate;
 import com.ellu.looper.entity.Project;
 import com.ellu.looper.entity.ProjectMember;
 import com.ellu.looper.entity.ProjectSchedule;
 import com.ellu.looper.entity.User;
+import com.ellu.looper.kafka.NotificationProducer;
+import com.ellu.looper.kafka.dto.NotificationMessage;
+import com.ellu.looper.repository.NotificationRepository;
+import com.ellu.looper.repository.NotificationTemplateRepository;
 import com.ellu.looper.repository.ProjectMemberRepository;
 import com.ellu.looper.repository.ProjectRepository;
 import com.ellu.looper.repository.ProjectScheduleRepository;
@@ -42,6 +50,10 @@ public class ProjectService {
   private final ProjectScheduleRepository projectScheduleRepository;
   private final FastApiService fastApiService;
   private final ProfileImageService profileImageService;
+  private final NotificationRepository notificationRepository;
+  private final NotificationTemplateRepository notificationTemplateRepository;
+  private final SseService sseService;
+  private final NotificationProducer notificationProducer;
 
   @Transactional
   public void createProject(ProjectCreateRequest request, Long creatorId) {
@@ -112,19 +124,6 @@ public class ProjectService {
             .updatedAt(LocalDateTime.now())
             .build());
 
-    // 초대 멤버 추가
-    for (int i = 0; i < addedUsers.size(); i++) {
-      projectMembers.add(
-          ProjectMember.builder()
-              .project(project)
-              .user(addedUsers.get(i))
-              .position(request.getAdded_members().get(i).getPosition())
-              .role(Role.PARTICIPANT)
-              .createdAt(LocalDateTime.now())
-              .updatedAt(LocalDateTime.now())
-              .build());
-    }
-
     projectMemberRepository.saveAll(projectMembers);
 
     // wiki 저장하는 FastAPI 호출
@@ -136,8 +135,43 @@ public class ProjectService {
       fastApiService.createWiki(project.getId(), wikiRequest);
     }
 
-    // TODO: 초대 알림 보내기 (version2+)
+    log.info("Sending invitation notification to project members");
+    // 초대 알림 보내기
+    sendInvitationNotification(addedUsers, creator, project);
+
     log.info("Project created successfully with ID: {}", project.getId());
+  }
+
+  private void sendInvitationNotification(List<User> addedUsers, User creator, Project project) {
+    // Notification 생성
+    NotificationTemplate inviteTemplate = notificationTemplateRepository
+        .findByType(NotificationType.PROJECT_INVITED)
+        .orElseThrow(() -> new IllegalArgumentException("초대 템플릿 없음"));
+
+    Map<String, Object> payload = new HashMap<>();
+    payload.put("creator", creator.getNickname());
+    payload.put("project", project.getTitle());
+
+    for (User user : addedUsers) {
+      Notification notification = Notification.builder()
+          .sender(creator)
+          .receiver(user)
+          .project(project)
+          .template(inviteTemplate)
+          .payload(payload)
+          .isProcessed(false)
+          .inviteStatus(String.valueOf(InviteStatus.PENDING))
+          .createdAt(LocalDateTime.now())
+          .build();
+      notificationRepository.save(notification);
+
+      // Kafka를 통해 알림 메시지 전송
+      NotificationMessage message = new NotificationMessage(
+          NotificationType.PROJECT_INVITED.toString(),
+          project.getId(), creator.getId(), List.of(user.getId()), "프로젝트에 초대되었습니다.");
+
+      notificationProducer.sendNotification(message);
+    }
   }
 
   @Transactional(readOnly = true)
@@ -282,7 +316,7 @@ public class ProjectService {
                 .orElseThrow(
                     () -> new IllegalArgumentException("User not found: " + member.getNickname()));
         updatedUsers.add(user);
-        log.info("UPDATED"+updatedUsers);
+        log.info("UPDATED" + updatedUsers);
         updatedPositions.put(user.getId(), member.getPosition());
       }
     }
@@ -294,7 +328,7 @@ public class ProjectService {
 
     // 프로젝트 업데이트
     project = project.toBuilder()
-        .title(request.getTitle() != null ?request.getTitle() : project.getTitle())
+        .title(request.getTitle() != null ? request.getTitle() : project.getTitle())
         .wiki(request.getWiki() != null ? request.getWiki() : project.getWiki())
         .color(request.getColor() != null ? Color.valueOf(request.getColor()) : project.getColor())
         .updatedAt(LocalDateTime.now())
@@ -327,7 +361,7 @@ public class ProjectService {
     toRemove.forEach(pm -> pm.setDeletedAt(LocalDateTime.now()));
     projectMemberRepository.saveAll(toRemove);
 
-    log.info("updatedUsers"+updatedUsers);
+    log.info("updatedUsers" + updatedUsers);
     // 새로운 멤버 추가 및 포지션 업데이트
     for (User user : updatedUsers) {
       Optional<ProjectMember> existing = existingMembers.stream()
