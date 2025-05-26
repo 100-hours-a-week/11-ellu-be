@@ -13,6 +13,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -22,11 +23,14 @@ public class NotificationProducer {
   private final ObjectMapper objectMapper;
   private KafkaProducer<String, String> producer;
 
+  @Value("${kafka.bootstrap-servers}")
+  private String bootstrapServers;
+
   @PostConstruct
   public void initialize() {
     // Create producer properties
     Properties properties = new Properties();
-    properties.setProperty("bootstrap.servers", "127.0.0.1:9092");
+    properties.setProperty("bootstrap.servers", bootstrapServers);
     properties.setProperty("key.serializer", StringSerializer.class.getName());
     properties.setProperty("value.serializer", StringSerializer.class.getName());
     properties.setProperty("batch.size", "400");
