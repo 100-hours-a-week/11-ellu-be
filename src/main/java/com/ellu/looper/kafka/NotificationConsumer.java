@@ -16,6 +16,7 @@ import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -29,6 +30,9 @@ public class NotificationConsumer implements Runnable {
   private KafkaConsumer<String, String> consumer;
   private volatile boolean running = true;
 
+  @Value("${kafka.bootstrap-servers}")
+  private String bootstrapServers;
+
   @PostConstruct
   public void init() {
     log.info("NotificationConsumer init() called");
@@ -41,7 +45,7 @@ public class NotificationConsumer implements Runnable {
 
     // Create consumer properties
     Properties properties = new Properties();
-    properties.setProperty("bootstrap.servers", "127.0.0.1:9092");
+    properties.setProperty("bootstrap.servers", bootstrapServers);
     properties.setProperty("key.deserializer", StringDeserializer.class.getName());
     properties.setProperty("value.deserializer", StringDeserializer.class.getName());
     properties.setProperty("group.id", groupId);
