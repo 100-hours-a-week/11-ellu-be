@@ -1,11 +1,9 @@
 package com.ellu.looper.kafka;
 
-import com.ellu.looper.entity.Notification;
 import com.ellu.looper.kafka.dto.NotificationMessage;
-import com.ellu.looper.repository.NotificationRepository;
-import com.ellu.looper.repository.UserRepository;
 import com.ellu.looper.service.SseService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -24,13 +22,18 @@ import org.springframework.stereotype.Service;
 @Service
 public class NotificationConsumer implements Runnable {
 
-  private static final Logger log = LoggerFactory.getLogger(NotificationConsumer.class.getSimpleName());
+  private static final Logger log = LoggerFactory.getLogger(
+      NotificationConsumer.class.getSimpleName());
   private final ObjectMapper objectMapper;
-  private final NotificationRepository notificationRepository;
   private final SseService sseEmitterService;
-  private final UserRepository userRepository;
   private KafkaConsumer<String, String> consumer;
   private volatile boolean running = true;
+
+  @PostConstruct
+  public void init() {
+    log.info("NotificationConsumer init() called");
+    this.start();
+  }
 
   public void start() {
     String groupId = "notification-service-group";
@@ -80,9 +83,11 @@ public class NotificationConsumer implements Runnable {
 
         for (ConsumerRecord<String, String> record : records) {
           try {
-            NotificationMessage event = objectMapper.readValue(record.value(), NotificationMessage.class);
+            NotificationMessage event = objectMapper.readValue(record.value(),
+                NotificationMessage.class);
             processNotification(event);
-            log.info("Processed notification for partition: {}, offset: {}", record.partition(), record.offset());
+            log.info("Processed notification for partition: {}, offset: {}", record.partition(),
+                record.offset());
           } catch (Exception e) {
             log.error("Error processing notification: {}", e.getMessage(), e);
           }
@@ -100,18 +105,8 @@ public class NotificationConsumer implements Runnable {
 
   private void processNotification(NotificationMessage event) {
     for (Long userId : event.getTargetUserIds()) {
-      Notification notification = Notification.builder()
-//          .receiver(userRepository.findById(userId))
-//          .type(event.getType())
-//          .message(event.getMessage())
-//          .project(event.getProjectId())
-          .createdAt(LocalDateTime.now())
-          .build();
-
-      notificationRepository.save(notification);
-
       // SSE 구독 중인 유저에게 전송
-      sseEmitterService.sendNotification(userId, notification);
+      sseEmitterService.sendNotification(userId, event);
     }
   }
 }
