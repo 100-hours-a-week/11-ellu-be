@@ -101,6 +101,8 @@ public class ProjectScheduleService {
             .map(scheduleRepository::save)
             .toList();
 
+    // TODO: Send schedule creation notification
+
     return saved.stream()
         .map(
             s ->
@@ -133,6 +135,9 @@ public class ProjectScheduleService {
     schedule.update(
         request.title(), request.description(), request.start_time(), request.end_time(),
         request.completed());
+
+    // TODO: Send schedule update notification
+
     return new ProjectScheduleResponse(
         schedule.getId(),
         schedule.getTitle(),
@@ -154,6 +159,7 @@ public class ProjectScheduleService {
       throw new AccessDeniedException("Unauthorized");
     }
     schedule.softDelete();
+    // TODO: Send schedule deletion notification
   }
 
   @Transactional(readOnly = true)
