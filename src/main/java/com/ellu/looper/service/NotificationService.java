@@ -7,10 +7,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
@@ -32,7 +34,9 @@ public class NotificationService {
         .collect(Collectors.toList());
   }
 
-  private String renderTemplate(String template, Notification notification) {
+  public String renderTemplate(String template, Notification notification) {
+   log.info("TEMPLATE: "+template);
+   log.info("notification.getSender().getNickname(): "+notification.getSender().getNickname());
     return template
         .replace("{creator}", notification.getSender().getNickname())
         .replace("{project}", notification.getProject().getTitle());

@@ -50,9 +50,9 @@ public class ProjectService {
   private final ProjectScheduleRepository projectScheduleRepository;
   private final FastApiService fastApiService;
   private final ProfileImageService profileImageService;
+  private final NotificationService notificationService;
   private final NotificationRepository notificationRepository;
   private final NotificationTemplateRepository notificationTemplateRepository;
-  private final SseService sseService;
   private final NotificationProducer notificationProducer;
 
   @Transactional
@@ -168,8 +168,10 @@ public class ProjectService {
       // Kafka를 통해 알림 메시지 전송
       NotificationMessage message = new NotificationMessage(
           NotificationType.PROJECT_INVITED.toString(),
-          project.getId(), creator.getId(), List.of(user.getId()), "프로젝트에 초대되었습니다.");
+          project.getId(), creator.getId(), List.of(user.getId()), notificationService.renderTemplate(
+          inviteTemplate.getTemplate(), notification));
 
+      log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
       notificationProducer.sendNotification(message);
     }
   }
@@ -360,6 +362,7 @@ public class ProjectService {
         .collect(Collectors.toList());
     toRemove.forEach(pm -> pm.setDeletedAt(LocalDateTime.now()));
     projectMemberRepository.saveAll(toRemove);
+    // TODO: Send expulsion notification
 
     log.info("updatedUsers" + updatedUsers);
     // 새로운 멤버 추가 및 포지션 업데이트

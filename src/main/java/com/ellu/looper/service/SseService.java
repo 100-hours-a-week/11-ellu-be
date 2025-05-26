@@ -2,6 +2,7 @@ package com.ellu.looper.service;
 
 import com.ellu.looper.dto.NotificationDto;
 import com.ellu.looper.entity.Notification;
+import com.ellu.looper.kafka.dto.NotificationMessage;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,19 +19,25 @@ public class SseService {
   public SseEmitter subscribe(Long userId) {
     SseEmitter emitter = new SseEmitter(60L * 1000 * 60); // 60분 타임아웃
     emitters.put(userId, emitter);
+    log.info("USER WITH ID {} IS CONNECTED TO SSE", userId);
 
-    emitter.onCompletion(() -> emitters.remove(userId));
-    emitter.onTimeout(() -> emitters.remove(userId));
-    emitter.onError(e -> emitters.remove(userId));
+    emitter.onCompletion(() -> {
+      emitters.remove(userId);
+      log.info("USER WITH ID {} IS DISCONNECTED TO SSE", userId);
+    });
+    emitter.onTimeout(() -> {
+      emitters.remove(userId);
+      log.info("USER WITH ID {} IS CONNECTION TIMEOUT", userId);
+    });
 
     return emitter;
   }
 
-  public void sendNotification(Long userId, Notification notification) {
+
+  public void sendNotification(Long userId, NotificationMessage dto) {
     SseEmitter emitter = emitters.get(userId);
     if (emitter != null) {
       try {
-        NotificationDto dto = notificationToDto(notification);
 
         // 로그 출력 추가
         log.info("Sending SSE notification to user {}: {}", userId, dto);
