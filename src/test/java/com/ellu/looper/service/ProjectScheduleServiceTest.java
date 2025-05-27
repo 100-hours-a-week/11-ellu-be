@@ -1,13 +1,13 @@
 package com.ellu.looper.service;
 
-import com.ellu.looper.commons.enums.Color;
-import com.ellu.looper.dto.schedule.ProjectScheduleCreateRequest;
-import com.ellu.looper.dto.schedule.ProjectScheduleCreateRequest.ProjectScheduleDto;
-import com.ellu.looper.dto.schedule.ProjectScheduleResponse;
-import com.ellu.looper.dto.schedule.ProjectScheduleUpdateRequest;
-import com.ellu.looper.entity.Project;
-import com.ellu.looper.entity.ProjectSchedule;
-import com.ellu.looper.entity.User;
+import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest;
+import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest.ProjectScheduleDto;
+import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
+import com.ellu.looper.schedule.dto.ProjectScheduleUpdateRequest;
+import com.ellu.looper.project.entity.Project;
+import com.ellu.looper.schedule.entity.ProjectSchedule;
+import com.ellu.looper.schedule.service.ProjectScheduleService;
+import com.ellu.looper.user.entity.User;
 import com.ellu.looper.exception.ValidationException;
 import com.ellu.looper.repository.ProjectRepository;
 import com.ellu.looper.repository.ProjectScheduleRepository;

@@ -1,18 +1,18 @@
 package com.ellu.looper.service;
 
-import com.ellu.looper.dto.schedule.ProjectScheduleResponse;
-import com.ellu.looper.dto.schedule.ScheduleCreateRequest;
-import com.ellu.looper.dto.schedule.ScheduleResponse;
-import com.ellu.looper.dto.schedule.ScheduleUpdateRequest;
-import com.ellu.looper.entity.Project;
-import com.ellu.looper.entity.ProjectSchedule;
-import com.ellu.looper.entity.Schedule;
-import com.ellu.looper.entity.User;
+import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
+import com.ellu.looper.schedule.dto.ScheduleCreateRequest;
+import com.ellu.looper.schedule.dto.ScheduleResponse;
+import com.ellu.looper.schedule.dto.ScheduleUpdateRequest;
+import com.ellu.looper.project.entity.Project;
+import com.ellu.looper.schedule.entity.Schedule;
+import com.ellu.looper.schedule.service.ProjectScheduleService;
+import com.ellu.looper.schedule.service.ScheduleService;
+import com.ellu.looper.user.entity.User;
 import com.ellu.looper.exception.ValidationException;
 import com.ellu.looper.repository.ProjectRepository;
 import com.ellu.looper.repository.ScheduleRepository;
 import com.ellu.looper.repository.UserRepository;
-import java.time.LocalTime;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,8 +1,8 @@
 package com.ellu.looper.commons;
 
-import com.ellu.looper.dto.schedule.ProjectScheduleCreateRequest;
-import com.ellu.looper.dto.schedule.ProjectScheduleResponse;
-import com.ellu.looper.service.ProjectScheduleService;
+import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest;
+import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
+import com.ellu.looper.schedule.service.ProjectScheduleService;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -24,17 +24,17 @@ public class ScheduleHolder {
   public void register(Long projectId, Long userId, ProjectScheduleCreateRequest request,
       DeferredResult<ResponseEntity<?>> result) {
     String key = generateKey(projectId, userId);
-    log.info("[ScheduleHolder] Registering schedule creation request for key: {}", key);
+    log.info("[ScheduleHolder] Registering dto creation request for key: {}", key);
     waitingClients.put(key,
         result);    // 비동기 처리 시작
     CompletableFuture.runAsync(() -> {
       try {
-        log.info("[ScheduleHolder] Starting async schedule creation for key: {}", key);
+        log.info("[ScheduleHolder] Starting async dto creation for key: {}", key);
         List<ProjectScheduleResponse> schedules = scheduleService.createSchedules(projectId, userId,
             request);
         complete(projectId, userId, schedules);
       } catch (Exception e) {
-        log.error("[ScheduleHolder] Error during async schedule creation for key: {}, error: {}",
+        log.error("[ScheduleHolder] Error during async dto creation for key: {}, error: {}",
             key, e.getMessage(), e);
         completeWithError(projectId, userId, e);
       }
@@ -43,7 +43,7 @@ public class ScheduleHolder {
 
   public void complete(Long projectId, Long userId, List<ProjectScheduleResponse> response) {
     String key = generateKey(projectId, userId);
-    log.info("[ScheduleHolder] Completing schedule creation for key: {}", key);
+    log.info("[ScheduleHolder] Completing dto creation for key: {}", key);
     DeferredResult<ResponseEntity<?>> result = waitingClients.remove(key);
     if (result != null && !result.isSetOrExpired()) {
       log.info("[ScheduleHolder] Setting successful result for key: {}", key);
@@ -66,7 +66,7 @@ public class ScheduleHolder {
 
   public void remove(Long projectId, Long userId) {
     String key = generateKey(projectId, userId);
-    log.info("[ScheduleHolder] Removing schedule holder for key: {}", key);
+    log.info("[ScheduleHolder] Removing dto holder for key: {}", key);
     waitingClients.remove(key);
   }
 

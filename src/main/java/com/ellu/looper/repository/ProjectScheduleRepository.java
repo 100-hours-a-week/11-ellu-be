@@ -1,7 +1,7 @@
 package com.ellu.looper.repository;
 
-import com.ellu.looper.entity.Project;
-import com.ellu.looper.entity.ProjectSchedule;
+import com.ellu.looper.project.entity.Project;
+import com.ellu.looper.schedule.entity.ProjectSchedule;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;

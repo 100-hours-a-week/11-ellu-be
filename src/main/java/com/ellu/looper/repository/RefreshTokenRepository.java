@@ -1,6 +1,6 @@
 package com.ellu.looper.repository;
 
-import com.ellu.looper.entity.RefreshToken;
+import com.ellu.looper.auth.entity.RefreshToken;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

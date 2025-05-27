@@ -1,11 +1,10 @@
 package com.ellu.looper.kafka;
 
 import com.ellu.looper.kafka.dto.NotificationMessage;
-import com.ellu.looper.service.SseService;
+import com.ellu.looper.sse.service.SseService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Properties;
 import lombok.RequiredArgsConstructor;

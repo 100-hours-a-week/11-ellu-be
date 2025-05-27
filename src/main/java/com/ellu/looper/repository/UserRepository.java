@@ -1,7 +1,7 @@
 package com.ellu.looper.repository;
 
-import com.ellu.looper.dto.UserProjection;
-import com.ellu.looper.entity.User;
+import com.ellu.looper.user.dto.UserProjection;
+import com.ellu.looper.user.entity.User;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.Optional;
