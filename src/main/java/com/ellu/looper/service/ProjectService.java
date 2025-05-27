@@ -289,7 +289,7 @@ public class ProjectService {
     }
     projectMemberRepository.saveAll(members);
 
-    // TODO: Send deletion notification
+    // send deletion notification
     sendProjectNotification(NotificationType.PROJECT_DELETED, members, userId, project);
   }
 
@@ -365,7 +365,7 @@ public class ProjectService {
     toRemove.forEach(pm -> pm.setDeletedAt(LocalDateTime.now()));
     projectMemberRepository.saveAll(toRemove);
 
-    // TODO: Send expulsion notification
+    // send expulsion notification
     sendProjectNotification(NotificationType.PROJECT_INVITED, toRemove, userId, project);
 
     log.info("updatedUsers" + updatedUsers);

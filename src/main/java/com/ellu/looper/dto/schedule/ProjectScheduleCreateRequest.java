@@ -33,6 +33,8 @@ public class ProjectScheduleCreateRequest {
 
     private String description;
 
+    private String position;
+
     @NotNull(message = "start_time is required")
     @JsonProperty("start_time")
     private LocalDateTime startTime;
