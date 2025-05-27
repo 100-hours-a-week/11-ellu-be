@@ -168,8 +168,9 @@ public class ProjectService {
       // Kafka를 통해 알림 메시지 전송
       NotificationMessage message = new NotificationMessage(
           NotificationType.PROJECT_INVITED.toString(),
-          project.getId(), creator.getId(), List.of(user.getId()), notificationService.renderTemplate(
-          inviteTemplate.getTemplate(), notification));
+          project.getId(), creator.getId(), List.of(user.getId()),
+          notificationService.renderTemplate(
+              inviteTemplate.getTemplate(), notification));
 
       log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
       notificationProducer.sendNotification(message);
@@ -289,6 +290,7 @@ public class ProjectService {
     projectMemberRepository.saveAll(members);
 
     // TODO: Send deletion notification
+    sendProjectNotification(NotificationType.PROJECT_DELETED, members, userId, project);
   }
 
 
@@ -362,7 +364,9 @@ public class ProjectService {
         .collect(Collectors.toList());
     toRemove.forEach(pm -> pm.setDeletedAt(LocalDateTime.now()));
     projectMemberRepository.saveAll(toRemove);
+
     // TODO: Send expulsion notification
+    sendProjectNotification(NotificationType.PROJECT_INVITED, toRemove, userId, project);
 
     log.info("updatedUsers" + updatedUsers);
     // 새로운 멤버 추가 및 포지션 업데이트
@@ -401,6 +405,51 @@ public class ProjectService {
     }
 
     log.info("Project updated successfully: {}", projectId);
+  }
+
+  private void sendProjectNotification(NotificationType type, List<ProjectMember> toRemove,
+      Long creatorId, Project project) {
+    User creator =
+        userRepository
+            .findById(creatorId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+    // Notification 생성
+    NotificationTemplate inviteTemplate = notificationTemplateRepository
+        .findByType(type)
+        .orElseThrow(() -> new IllegalArgumentException("초대 템플릿 없음"));
+
+    Map<String, Object> payload = new HashMap<>();
+    payload.put("project", project.getTitle());
+
+    for (ProjectMember user : toRemove) {
+      User receiver =
+          userRepository
+              .findById(user.getId())
+              .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+      Notification notification = Notification.builder()
+          .sender(creator)
+          .receiver(receiver)
+          .project(project)
+          .template(inviteTemplate)
+          .payload(payload)
+          .isProcessed(false)
+          .inviteStatus(String.valueOf(InviteStatus.PENDING))
+          .createdAt(LocalDateTime.now())
+          .build();
+      notificationRepository.save(notification);
+
+      // Kafka를 통해 알림 메시지 전송
+      NotificationMessage message = new NotificationMessage(
+          NotificationType.PROJECT_INVITED.toString(),
+          project.getId(), creator.getId(), List.of(user.getId()),
+          notificationService.renderTemplate(
+              inviteTemplate.getTemplate(), notification));
+
+      log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
+      notificationProducer.sendNotification(message);
+    }
   }
 
 
