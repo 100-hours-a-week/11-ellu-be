@@ -24,22 +24,47 @@ public class NotificationService {
         userId);
 
     return notifications.stream()
-        .map(n -> NotificationDto.builder()
-            .id(n.getId())
-            .senderNickname(n.getSender().getNickname())
-            .message(renderTemplate(n.getTemplate().getTemplate(), n))
-            .processed(n.getIsProcessed())
-            .createdAt(n.getCreatedAt())
-            .build())
+        .map(n -> {
+          String message;
+          Long templateId = n.getTemplate().getId();
+
+          if (templateId == 1L) {
+            message = renderInvitationTemplate(n.getTemplate().getTemplate(), n);
+          } else if (templateId == 2L || templateId == 3L) {
+            message = renderProjectTemplate(n.getTemplate().getTemplate(), n);
+          } else if (templateId == 4L || templateId == 5L || templateId == 6L) {
+            message = renderScheduleTemplate(n.getTemplate().getTemplate(), n);
+          } else {
+            message = "";
+          }
+
+          return NotificationDto.builder()
+              .id(n.getId())
+              .senderNickname(n.getSender().getNickname())
+              .message(message)
+              .processed(n.getIsProcessed())
+              .inviteStatus(n.getInviteStatus())
+              .createdAt(n.getCreatedAt())
+              .build();
+        })
         .collect(Collectors.toList());
   }
 
-  public String renderTemplate(String template, Notification notification) {
-   log.info("TEMPLATE: "+template);
-   log.info("notification.getSender().getNickname(): "+notification.getSender().getNickname());
+  public String renderInvitationTemplate(String template, Notification notification) {
     return template
-        .replace("{creator}", notification.getSender().getNickname())
-        .replace("{project}", notification.getProject().getTitle());
+        .replace("{creator}", notification.getPayload().get("creator").toString())
+        .replace("{project}", notification.getPayload().get("project").toString());
+  }
+
+  public String renderProjectTemplate(String template, Notification notification) {
+    return template
+        .replace("{project}", notification.getPayload().get("project").toString());
+  }
+
+  public String renderScheduleTemplate(String template, Notification notification) {
+    return template
+        .replace("{schedule}", notification.getPayload().get("schedule").toString())
+        .replace("{project}", notification.getPayload().get("project").toString());
   }
 
   @Transactional

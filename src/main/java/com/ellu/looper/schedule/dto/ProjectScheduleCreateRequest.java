@@ -46,5 +46,7 @@ public class ProjectScheduleCreateRequest {
     @NotNull(message = "is_completed is required")
     @JsonProperty("is_completed")
     private Boolean completed;
+
+    private List<AssigneeDto> assignees;
   }
 }

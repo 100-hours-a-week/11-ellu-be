@@ -11,11 +11,13 @@ import lombok.NoArgsConstructor;
 @Builder(toBuilder = true)
 public class NotificationDto {
 
+  @JsonProperty("id")
   private Long id;
 
   @JsonProperty("sender_nickname")
   private String senderNickname;
 
+  @JsonProperty("message")
   private String message;
 
   @JsonProperty("is_processed")

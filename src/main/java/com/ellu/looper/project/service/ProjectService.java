@@ -172,7 +172,7 @@ public class ProjectService {
       NotificationMessage message = new NotificationMessage(
           NotificationType.PROJECT_INVITED.toString(),
           project.getId(), creator.getId(), List.of(user.getId()),
-          notificationService.renderTemplate(
+          notificationService.renderInvitationTemplate(
               inviteTemplate.getTemplate(), notification));
 
       log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
@@ -444,9 +444,9 @@ public class ProjectService {
 
       // Kafka를 통해 알림 메시지 전송
       NotificationMessage message = new NotificationMessage(
-          NotificationType.PROJECT_INVITED.toString(),
+          type.toString(),
           project.getId(), creator.getId(), List.of(user.getId()),
-          notificationService.renderTemplate(
+          notificationService.renderProjectTemplate(
               inviteTemplate.getTemplate(), notification));
 
       log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());

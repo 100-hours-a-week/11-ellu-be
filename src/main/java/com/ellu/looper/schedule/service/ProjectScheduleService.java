@@ -1,6 +1,5 @@
 package com.ellu.looper.schedule.service;
 
-import com.ellu.looper.commons.enums.InviteStatus;
 import com.ellu.looper.commons.enums.NotificationType;
 import com.ellu.looper.notification.service.NotificationService;
 import com.ellu.looper.schedule.dto.AssigneeDto;
@@ -150,10 +149,10 @@ public class ProjectScheduleService {
           schedule.isCompleted(),
           true,
           schedule.getProject().getColor(),
-          convertToAssigneeDtos(schedule.getAssignees())
+          convertToAssigneeDtos(assignees)
       ));
 
-      // Send dto creation notification
+      // Send schedule creation notification
       sendScheduleNotification(NotificationType.SCHEDULE_CREATED, assignees, userId, project,
           schedule);
     }
@@ -209,7 +208,7 @@ public class ProjectScheduleService {
       }
     }
 
-    // Send dto update notification
+    // Send schedule update notification
     sendScheduleNotification(NotificationType.SCHEDULE_UPDATED, schedule.getAssignees(), userId,
         schedule.getProject(), schedule);
 
@@ -236,12 +235,12 @@ public class ProjectScheduleService {
       throw new AccessDeniedException("Unauthorized");
     }
     schedule.softDelete();
-    //  delete dto assignee
+    //  delete schedule assignee
     for (Assignee assignee : schedule.getAssignees()) {
       assignee.softDelete();
     }
 
-    // Send dto deletion notification
+    // Send schedule deletion notification
     sendScheduleNotification(NotificationType.SCHEDULE_DELETED, schedule.getAssignees(), userId,
         schedule.getProject(), schedule);
 
@@ -351,7 +350,7 @@ public class ProjectScheduleService {
 
     Map<String, Object> payload = new HashMap<>();
     payload.put("project", project.getTitle());
-    payload.put("dto", schedule.getTitle());
+    payload.put("schedule", schedule.getTitle());
 
     for (Assignee assignee : assignees) {
       User receiver =
@@ -366,16 +365,15 @@ public class ProjectScheduleService {
           .template(inviteTemplate)
           .payload(payload)
           .isProcessed(false)
-          .inviteStatus(String.valueOf(InviteStatus.PENDING))
           .createdAt(LocalDateTime.now())
           .build();
       notificationRepository.save(notification);
 
       // Kafka를 통해 알림 메시지 전송
       NotificationMessage message = new NotificationMessage(
-          NotificationType.PROJECT_INVITED.toString(),
+          type.toString(),
           project.getId(), creator.getId(), List.of(assignee.getUser().getId()),
-          notificationService.renderTemplate(
+          notificationService.renderScheduleTemplate(
               inviteTemplate.getTemplate(), notification));
 
       log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());

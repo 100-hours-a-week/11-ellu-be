@@ -21,7 +21,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
 @Table(
-    name = "dto",
     indexes = {
       @Index(name = "IDX_SCHEDULE_DELETED_AT", columnList = "deleted_at"),
       @Index(name = "IDX_SCHEDULE_MEMBER_ID", columnList = "member_id"),

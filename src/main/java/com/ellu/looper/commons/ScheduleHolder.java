@@ -25,8 +25,7 @@ public class ScheduleHolder {
       DeferredResult<ResponseEntity<?>> result) {
     String key = generateKey(projectId, userId);
     log.info("[ScheduleHolder] Registering dto creation request for key: {}", key);
-    waitingClients.put(key,
-        result);    // 비동기 처리 시작
+    waitingClients.put(key, result);    // 비동기 처리 시작
     CompletableFuture.runAsync(() -> {
       try {
         log.info("[ScheduleHolder] Starting async dto creation for key: {}", key);
