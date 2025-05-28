@@ -1,4 +1,4 @@
-package com.ellu.looper.repository;
+package com.ellu.looper.user.repository;
 
 import com.ellu.looper.user.dto.UserProjection;
 import com.ellu.looper.user.entity.User;

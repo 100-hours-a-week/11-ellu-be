@@ -1,4 +1,4 @@
-package com.ellu.looper.repository;
+package com.ellu.looper.schedule.repository;
 
 import com.ellu.looper.project.entity.Assignee;
 import java.util.List;
@@ -9,4 +9,6 @@ import org.springframework.stereotype.Repository;
 public interface AssigneeRepository extends JpaRepository<Assignee, Long> {
 
   List<Assignee> findByProjectScheduleIdAndDeletedAtIsNull(Long scheduleId);
+
+  List<Assignee> findByProjectIdAndDeletedAtIsNull();
 }

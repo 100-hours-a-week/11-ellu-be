@@ -7,6 +7,8 @@ import com.ellu.looper.commons.enums.Role;
 import com.ellu.looper.fastapi.service.FastApiService;
 import com.ellu.looper.notification.service.NotificationService;
 import com.ellu.looper.project.dto.CreatorExcludedProjectResponse;
+import com.ellu.looper.project.entity.Assignee;
+import com.ellu.looper.schedule.repository.AssigneeRepository;
 import com.ellu.looper.user.service.ProfileImageService;
 import com.ellu.looper.user.dto.MemberDto;
 import com.ellu.looper.project.dto.ProjectCreateRequest;
@@ -23,10 +25,10 @@ import com.ellu.looper.kafka.NotificationProducer;
 import com.ellu.looper.kafka.dto.NotificationMessage;
 import com.ellu.looper.notification.repository.NotificationRepository;
 import com.ellu.looper.notification.repository.NotificationTemplateRepository;
-import com.ellu.looper.repository.ProjectMemberRepository;
-import com.ellu.looper.repository.ProjectRepository;
-import com.ellu.looper.repository.ProjectScheduleRepository;
-import com.ellu.looper.repository.UserRepository;
+import com.ellu.looper.project.repository.ProjectMemberRepository;
+import com.ellu.looper.project.repository.ProjectRepository;
+import com.ellu.looper.schedule.repository.ProjectScheduleRepository;
+import com.ellu.looper.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -57,6 +59,7 @@ public class ProjectService {
   private final NotificationRepository notificationRepository;
   private final NotificationTemplateRepository notificationTemplateRepository;
   private final NotificationProducer notificationProducer;
+  private final AssigneeRepository assigneeRepository;
 
   @Transactional
   public void createProject(ProjectCreateRequest request, Long creatorId) {
@@ -276,6 +279,13 @@ public class ProjectService {
 
     Project deltetedProject = project.toBuilder().deletedAt(LocalDateTime.now()).build();
     projectRepository.save(deltetedProject);
+
+    // delete project schedule assignees
+    List<Assignee> assignees = assigneeRepository.findByProjectIdAndDeletedAtIsNull();
+    for (Assignee assignee : assignees) {
+      assignee.softDelete();
+    }
+    assigneeRepository.saveAll(assignees);
 
     // 프로젝트의 스케줄 삭제
     List<ProjectSchedule> schedules =

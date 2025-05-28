@@ -1,4 +1,4 @@
-package com.ellu.looper.repository;
+package com.ellu.looper.schedule.repository;
 
 import com.ellu.looper.project.entity.Project;
 import com.ellu.looper.schedule.entity.ProjectSchedule;

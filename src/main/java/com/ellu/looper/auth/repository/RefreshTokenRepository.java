@@ -1,4 +1,4 @@
-package com.ellu.looper.repository;
+package com.ellu.looper.auth.repository;
 
 import com.ellu.looper.auth.entity.RefreshToken;
 import java.util.Optional;

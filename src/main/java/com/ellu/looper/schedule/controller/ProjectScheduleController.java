@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.DeferredResult;
 import org.springframework.security.access.AccessDeniedException;
-import com.ellu.looper.repository.ProjectMemberRepository;
+import com.ellu.looper.project.repository.ProjectMemberRepository;
 
 @RestController
 @RequestMapping("/projects")

@@ -1,4 +1,4 @@
-package com.ellu.looper.repository;
+package com.ellu.looper.project.repository;
 
 import com.ellu.looper.project.entity.Project;
 import com.ellu.looper.user.entity.User;

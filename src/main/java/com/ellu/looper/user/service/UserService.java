@@ -4,7 +4,7 @@ import com.ellu.looper.user.dto.UserProjection;
 import com.ellu.looper.user.dto.UserResponse;
 import com.ellu.looper.user.entity.User;
 import com.ellu.looper.exception.NicknameAlreadyExistsException;
-import com.ellu.looper.repository.UserRepository;
+import com.ellu.looper.user.repository.UserRepository;
 import com.ellu.looper.util.HangulUtil;
 import jakarta.transaction.Transactional;
 import java.util.List;
