@@ -369,7 +369,7 @@ public class ProjectService {
     projectMemberRepository.saveAll(toRemove);
 
     // send expulsion notification
-    sendProjectNotification(NotificationType.PROJECT_INVITED, toRemove, userId, project);
+    sendProjectNotification(NotificationType.PROJECT_EXPELLED, toRemove, userId, project);
 
     log.info("updatedUsers" + updatedUsers);
     // 새로운 멤버 추가 및 포지션 업데이트
@@ -438,7 +438,6 @@ public class ProjectService {
           .template(inviteTemplate)
           .payload(payload)
           .isProcessed(false)
-          .inviteStatus(String.valueOf(InviteStatus.PENDING))
           .createdAt(LocalDateTime.now())
           .build();
       notificationRepository.save(notification);
