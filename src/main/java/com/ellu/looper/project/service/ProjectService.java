@@ -7,7 +7,7 @@ import com.ellu.looper.commons.enums.Role;
 import com.ellu.looper.fastapi.service.FastApiService;
 import com.ellu.looper.notification.service.NotificationService;
 import com.ellu.looper.project.dto.CreatorExcludedProjectResponse;
-import com.ellu.looper.project.entity.Assignee;
+import com.ellu.looper.schedule.entity.Assignee;
 import com.ellu.looper.schedule.repository.AssigneeRepository;
 import com.ellu.looper.user.service.ProfileImageService;
 import com.ellu.looper.user.dto.MemberDto;
@@ -281,11 +281,13 @@ public class ProjectService {
     projectRepository.save(deltetedProject);
 
     // delete project schedule assignees
-    List<Assignee> assignees = assigneeRepository.findByProjectIdAndDeletedAtIsNull();
+    List<Assignee> assignees =
+        assigneeRepository.findByProjectIdThroughScheduleAndDeletedAtIsNull(projectId);
     for (Assignee assignee : assignees) {
       assignee.softDelete();
     }
     assigneeRepository.saveAll(assignees);
+
 
     // 프로젝트의 스케줄 삭제
     List<ProjectSchedule> schedules =

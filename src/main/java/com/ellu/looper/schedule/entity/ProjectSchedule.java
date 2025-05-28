@@ -1,6 +1,5 @@
 package com.ellu.looper.schedule.entity;
 
-import com.ellu.looper.project.entity.Assignee;
 import com.ellu.looper.project.entity.Project;
 import com.ellu.looper.user.entity.User;
 import jakarta.persistence.CascadeType;

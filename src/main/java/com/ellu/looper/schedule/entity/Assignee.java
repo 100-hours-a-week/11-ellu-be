@@ -1,6 +1,5 @@
-package com.ellu.looper.project.entity;
+package com.ellu.looper.schedule.entity;
 
-import com.ellu.looper.schedule.entity.ProjectSchedule;
 import com.ellu.looper.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

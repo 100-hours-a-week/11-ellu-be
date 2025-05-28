@@ -6,7 +6,7 @@ import com.ellu.looper.schedule.dto.AssigneeDto;
 import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest;
 import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
 import com.ellu.looper.schedule.dto.ProjectScheduleUpdateRequest;
-import com.ellu.looper.project.entity.Assignee;
+import com.ellu.looper.schedule.entity.Assignee;
 import com.ellu.looper.notification.entity.Notification;
 import com.ellu.looper.notification.entity.NotificationTemplate;
 import com.ellu.looper.project.entity.Project;
@@ -31,6 +31,7 @@ import java.time.Year;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -186,9 +187,7 @@ public class ProjectScheduleService {
           .map(a -> a.getUser().getNickname())
           .collect(Collectors.toSet());
 
-      Set<String> requestedNicknames = request.assignees().stream()
-          .map(AssigneeDto::nickname)
-          .collect(Collectors.toSet());
+      Set<String> requestedNicknames = new HashSet<>(request.assignees());
 
       // Soft delete removed assignees
       for (Assignee assignee : currentAssignees) {
@@ -198,18 +197,20 @@ public class ProjectScheduleService {
       }
 
       // Add new assignees
-      for (AssigneeDto dto : request.assignees()) {
-        if (!currentNicknames.contains(dto.nickname())) {
-          User user = userRepository.findByNickname(dto.nickname())
-              .orElseThrow(() -> new IllegalArgumentException("User not found: " + dto.nickname()));
+      for (String nickname : request.assignees()) {
+        if (!currentNicknames.contains(nickname)) {
+          User user = userRepository.findByNickname(nickname)
+              .orElseThrow(() -> new IllegalArgumentException("User not found: " + nickname));
           Assignee newAssignee = new Assignee(schedule, user);
           assigneeRepository.save(newAssignee);
         }
       }
     }
 
+    List<Assignee> assignees = assigneeRepository.findByProjectScheduleIdAndDeletedAtIsNull(scheduleId);
+
     // Send schedule update notification
-    sendScheduleNotification(NotificationType.SCHEDULE_UPDATED, schedule.getAssignees(), userId,
+    sendScheduleNotification(NotificationType.SCHEDULE_UPDATED, assignees, userId,
         schedule.getProject(), schedule);
 
     return new ProjectScheduleResponse(
@@ -221,7 +222,7 @@ public class ProjectScheduleService {
         schedule.isCompleted(),
         true,
         schedule.getProject().getColor(),
-        convertToAssigneeDtos(schedule.getAssignees())
+        convertToAssigneeDtos(assignees)
     );
   }
 
@@ -234,14 +235,17 @@ public class ProjectScheduleService {
     if (!schedule.getUser().getId().equals(userId)) {
       throw new AccessDeniedException("Unauthorized");
     }
-    schedule.softDelete();
+
     //  delete schedule assignee
-    for (Assignee assignee : schedule.getAssignees()) {
+    List<Assignee> assignees = assigneeRepository.findByProjectScheduleIdAndDeletedAtIsNull(scheduleId);
+    for (Assignee assignee : assignees) {
       assignee.softDelete();
     }
+    // delete project schedule
+    schedule.softDelete();
 
     // Send schedule deletion notification
-    sendScheduleNotification(NotificationType.SCHEDULE_DELETED, schedule.getAssignees(), userId,
+    sendScheduleNotification(NotificationType.SCHEDULE_DELETED, assignees, userId,
         schedule.getProject(), schedule);
 
   }

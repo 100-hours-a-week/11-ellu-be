@@ -46,7 +46,7 @@ public class ScheduleHolder {
     DeferredResult<ResponseEntity<?>> result = waitingClients.remove(key);
     if (result != null && !result.isSetOrExpired()) {
       log.info("[ScheduleHolder] Setting successful result for key: {}", key);
-      result.setResult(ResponseEntity.ok(ApiResponse.success("project_daily_schedule", response)));
+      result.setResult(ResponseEntity.ok(ApiResponse.success("project_schedule_created", response)));
     } else {
       log.warn("[ScheduleHolder] No waiting client found or result already set for key: {}", key);
     }
