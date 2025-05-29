@@ -15,4 +15,5 @@ public record ProjectScheduleResponse(
     boolean is_completed,
     boolean is_project_schedule,
     Color color,
+    String position,
     List<AssigneeDto> assignees) {}

@@ -26,4 +26,6 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
   Optional<ProjectMember> findByProjectIdAndUserId(Long projectId, Long userId);
 
   List<ProjectMember> findByProjectIdAndPositionAndDeletedAtIsNull(Long projectId, String position);
+
+  List<ProjectMember> findByProjectIdAndPosition(Long id, String position);
 }

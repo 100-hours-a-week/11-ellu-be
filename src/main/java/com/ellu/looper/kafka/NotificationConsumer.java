@@ -107,7 +107,7 @@ public class NotificationConsumer implements Runnable {
   }
 
   private void processNotification(NotificationMessage event) {
-    for (Long userId : event.getTargetUserIds()) {
+    for (Long userId : event.getReceiverId()) {
       // SSE 구독 중인 유저에게 전송
       sseEmitterService.sendNotification(userId, event);
     }

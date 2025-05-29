@@ -150,6 +150,7 @@ public class ProjectScheduleService {
           schedule.isCompleted(),
           true,
           schedule.getProject().getColor(),
+          schedule.getPosition(),
           convertToAssigneeDtos(assignees)
       ));
 
@@ -176,38 +177,28 @@ public class ProjectScheduleService {
 
     schedule.update(
         request.title(), request.description(), request.start_time(), request.end_time(),
-        request.completed());
+        request.position(), request.completed());
 
     // If assignee is newly added or removed, update assignee table
-    if (request.assignees() != null) {
+    if (request.position() != null) {
       List<Assignee> currentAssignees = assigneeRepository
           .findByProjectScheduleIdAndDeletedAtIsNull(scheduleId);
 
-      Set<String> currentNicknames = currentAssignees.stream()
-          .map(a -> a.getUser().getNickname())
-          .collect(Collectors.toSet());
-
-      Set<String> requestedNicknames = new HashSet<>(request.assignees());
-
-      // Soft delete removed assignees
-      for (Assignee assignee : currentAssignees) {
-        if (!requestedNicknames.contains(assignee.getUser().getNickname())) {
-          assignee.softDelete();
-        }
-      }
+      // Soft delete existing assignees
+      currentAssignees.forEach(Assignee::softDelete);
 
       // Add new assignees
-      for (String nickname : request.assignees()) {
-        if (!currentNicknames.contains(nickname)) {
-          User user = userRepository.findByNickname(nickname)
-              .orElseThrow(() -> new IllegalArgumentException("User not found: " + nickname));
-          Assignee newAssignee = new Assignee(schedule, user);
-          assigneeRepository.save(newAssignee);
-        }
+      List<ProjectMember> matchingMembers = projectMemberRepository.findByProjectIdAndPosition(
+          schedule.getProject().getId(), request.position());
+
+      for (ProjectMember member : matchingMembers) {
+        Assignee newAssignee = new Assignee(schedule, member.getUser());
+        assigneeRepository.save(newAssignee);
       }
     }
 
-    List<Assignee> assignees = assigneeRepository.findByProjectScheduleIdAndDeletedAtIsNull(scheduleId);
+    List<Assignee> assignees = assigneeRepository.findByProjectScheduleIdAndDeletedAtIsNull(
+        scheduleId);
 
     // Send schedule update notification
     sendScheduleNotification(NotificationType.SCHEDULE_UPDATED, assignees, userId,
@@ -222,6 +213,7 @@ public class ProjectScheduleService {
         schedule.isCompleted(),
         true,
         schedule.getProject().getColor(),
+        schedule.getPosition(),
         convertToAssigneeDtos(assignees)
     );
   }
@@ -237,7 +229,8 @@ public class ProjectScheduleService {
     }
 
     //  delete schedule assignee
-    List<Assignee> assignees = assigneeRepository.findByProjectScheduleIdAndDeletedAtIsNull(scheduleId);
+    List<Assignee> assignees = assigneeRepository.findByProjectScheduleIdAndDeletedAtIsNull(
+        scheduleId);
     for (Assignee assignee : assignees) {
       assignee.softDelete();
     }
@@ -325,6 +318,7 @@ public class ProjectScheduleService {
                                 s.isCompleted(),
                                 true,
                                 s.getProject().getColor(),
+                                s.getPosition(),
                                 convertToAssigneeDtos(s.getAssignees())
                             ),
                         Collectors.toList())));

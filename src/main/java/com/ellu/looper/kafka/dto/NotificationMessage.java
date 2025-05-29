@@ -12,6 +12,6 @@ public class NotificationMessage {
   private String type; // e.g., "INVITE"
   private Long projectId;
   private Long senderId;
-  private List<Long> targetUserIds;
+  private List<Long> receiverId;
   private String message;
 }

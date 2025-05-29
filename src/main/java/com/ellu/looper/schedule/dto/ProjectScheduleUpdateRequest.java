@@ -12,4 +12,4 @@ public record ProjectScheduleUpdateRequest(
     @NotNull LocalDateTime start_time,
     @NotNull LocalDateTime end_time,
     @JsonProperty("is_completed") Boolean completed,
-    List<String> assignees) {}
+    String position) {}

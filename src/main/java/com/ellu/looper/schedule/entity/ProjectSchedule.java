@@ -118,6 +118,7 @@ public class ProjectSchedule {
       String description,
       LocalDateTime startTime,
       LocalDateTime endTime,
+      String position,
       Boolean isCompleted) {
     if (title != null) {
       this.title = title;
@@ -130,6 +131,9 @@ public class ProjectSchedule {
     }
     if (endTime != null) {
       this.endTime = endTime;
+    }
+    if (position != null) {
+      this.position = position;
     }
     if (isCompleted != null) {
       this.isCompleted = isCompleted;

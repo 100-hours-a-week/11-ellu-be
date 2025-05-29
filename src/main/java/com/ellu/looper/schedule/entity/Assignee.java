@@ -47,6 +47,9 @@ public class Assignee {
   @Column(name = "deleted_at")
   private LocalDateTime deletedAt;
 
+  @Column(name = "has_taken_schedule")
+  private Boolean hasTakenSchedule;
+
   @PrePersist
   protected void onCreate() {
     this.createdAt = LocalDateTime.now();
