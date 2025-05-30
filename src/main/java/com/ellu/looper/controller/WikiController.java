@@ -33,7 +33,6 @@ public class WikiController {
         .body(ApiResponse.success("wiki_uploaded", Map.of("status", "success")));
   }
 
-
   @PatchMapping("/wiki")
   public ResponseEntity<ApiResponse<?>> updateWiki(
       @CurrentUser Long userId,

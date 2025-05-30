@@ -3,18 +3,18 @@ package com.ellu.looper.entity;
 import com.ellu.looper.commons.JsonConverter;
 import com.vladmihalcea.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import java.util.Map;
 import lombok.*;
-
-import java.time.LocalDateTime;
 import org.hibernate.annotations.Type;
 
 @Entity
-@Table(name = "notification",
+@Table(
+    name = "notification",
     indexes = {
-        @Index(name = "IDX_NOTIFICATION_DELETED_AT", columnList = "deleted_at"),
-        @Index(name = "IDX_NOTIFICATION_IS_PROCESSED", columnList = "is_processed"),
-        @Index(name = "IDX_NOTIFICATION_INVITE_STATUS", columnList = "invite_status")
+      @Index(name = "IDX_NOTIFICATION_DELETED_AT", columnList = "deleted_at"),
+      @Index(name = "IDX_NOTIFICATION_IS_PROCESSED", columnList = "is_processed"),
+      @Index(name = "IDX_NOTIFICATION_INVITE_STATUS", columnList = "invite_status")
     })
 @Getter
 @NoArgsConstructor

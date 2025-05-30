@@ -1,19 +1,26 @@
 package com.ellu.looper.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 import com.ellu.looper.dto.schedule.ProjectScheduleResponse;
 import com.ellu.looper.dto.schedule.ScheduleCreateRequest;
 import com.ellu.looper.dto.schedule.ScheduleResponse;
 import com.ellu.looper.dto.schedule.ScheduleUpdateRequest;
 import com.ellu.looper.entity.Project;
-import com.ellu.looper.entity.ProjectSchedule;
 import com.ellu.looper.entity.Schedule;
 import com.ellu.looper.entity.User;
 import com.ellu.looper.exception.ValidationException;
 import com.ellu.looper.repository.ProjectRepository;
 import com.ellu.looper.repository.ScheduleRepository;
 import com.ellu.looper.repository.UserRepository;
-import java.time.LocalTime;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,34 +31,19 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
 @Slf4j
 @ExtendWith(MockitoExtension.class)
 class ScheduleServiceTest {
 
-  @Mock
-  private ScheduleRepository scheduleRepository;
+  @Mock private ScheduleRepository scheduleRepository;
 
-  @Mock
-  private UserRepository memberRepository;
+  @Mock private UserRepository memberRepository;
 
-  @Mock
-  private ProjectRepository projectRepository;
+  @Mock private ProjectRepository projectRepository;
 
-  @Mock
-  private ProjectScheduleService projectScheduleService;
+  @Mock private ProjectScheduleService projectScheduleService;
 
-  @InjectMocks
-  private ScheduleService scheduleService;
+  @InjectMocks private ScheduleService scheduleService;
 
   private User testUser;
   private Schedule testSchedule;
@@ -63,34 +55,27 @@ class ScheduleServiceTest {
     now = LocalDateTime.now();
     future = now.plusHours(1);
 
-    testUser = User.builder()
-        .id(1L)
-        .nickname("testUser")
-        .build();
+    testUser = User.builder().id(1L).nickname("testUser").build();
 
-    testSchedule = Schedule.builder()
-        .id(1L)
-        .user(testUser)
-        .title("Test Schedule")
-        .description("Test Description")
-        .startTime(now)
-        .endTime(future)
-        .isCompleted(false)
-        .isAiRecommended(false)
-        .build();
+    testSchedule =
+        Schedule.builder()
+            .id(1L)
+            .user(testUser)
+            .title("Test Schedule")
+            .description("Test Description")
+            .startTime(now)
+            .endTime(future)
+            .isCompleted(false)
+            .isAiRecommended(false)
+            .build();
   }
 
   @Test
   @DisplayName("일정 생성 성공")
   void createSchedule_Success() {
     // given
-    ScheduleCreateRequest request = new ScheduleCreateRequest(
-        "New Schedule",
-        "New Description",
-        false,
-        now,
-        future
-    );
+    ScheduleCreateRequest request =
+        new ScheduleCreateRequest("New Schedule", "New Description", false, now, future);
     when(memberRepository.findById(1L)).thenReturn(Optional.of(testUser));
     when(scheduleRepository.save(any(Schedule.class))).thenReturn(testSchedule);
 
@@ -109,13 +94,10 @@ class ScheduleServiceTest {
   @DisplayName("일정 생성 실패 - 유효하지 않은 시간")
   void createSchedule_InvalidTime() {
     // given
-    ScheduleCreateRequest request = new ScheduleCreateRequest(
-        "New Schedule",
-        "New Description",
-        false,
-        future,
-        now  // end time is before start time
-    );
+    ScheduleCreateRequest request =
+        new ScheduleCreateRequest(
+            "New Schedule", "New Description", false, future, now // end time is before start time
+            );
     when(memberRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
     // when & then
@@ -127,13 +109,9 @@ class ScheduleServiceTest {
   @DisplayName("일정 수정 성공")
   void updateSchedule_Success() {
     // given
-    ScheduleUpdateRequest request = new ScheduleUpdateRequest(
-        "Updated Title",
-        "Updated Description",
-        true,
-        now.plusHours(2),
-        future.plusHours(2)
-    );
+    ScheduleUpdateRequest request =
+        new ScheduleUpdateRequest(
+            "Updated Title", "Updated Description", true, now.plusHours(2), future.plusHours(2));
     when(scheduleRepository.findByIdAndUserIdAndDeletedAtIsNull(1L, 1L))
         .thenReturn(Optional.of(testSchedule));
     when(scheduleRepository.save(any(Schedule.class))).thenReturn(testSchedule);
@@ -166,17 +144,16 @@ class ScheduleServiceTest {
     // given
     LocalDate today = LocalDate.now();
     List<Schedule> schedules = List.of(testSchedule);
-    List<ProjectScheduleResponse> projectSchedules = List.of(
-        new ProjectScheduleResponse(2L, "Project Schedule", "Description",
-            now, future, false, true, null)
-    );
+    List<ProjectScheduleResponse> projectSchedules =
+        List.of(
+            new ProjectScheduleResponse(
+                2L, "Project Schedule", "Description", now, future, false, true, null));
 
-    when(scheduleRepository.findDailySchedules(1L, today.atStartOfDay(),
-        today.plusDays(1).atStartOfDay()))
+    when(scheduleRepository.findDailySchedules(
+            1L, today.atStartOfDay(), today.plusDays(1).atStartOfDay()))
         .thenReturn(schedules);
     when(projectRepository.findAllByMemberId(1L)).thenReturn(List.of(new Project()));
-    when(projectScheduleService.getDailySchedules(any(), any()))
-        .thenReturn(projectSchedules);
+    when(projectScheduleService.getDailySchedules(any(), any())).thenReturn(projectSchedules);
 
     // when
     List<ScheduleResponse> response = scheduleService.getDailySchedules(1L, today);
@@ -197,15 +174,16 @@ class ScheduleServiceTest {
     LocalDateTime start = startDate.atStartOfDay();
     LocalDateTime end = endDate.plusDays(1).atStartOfDay().minusNanos(1);
 
-    Schedule personalSchedule = Schedule.builder()
-        .id(101L)
-        .title("개인 일정")
-        .description("설명")
-        .isCompleted(false)
-        .isAiRecommended(false)
-        .startTime(LocalDateTime.of(2025, 5, 1, 9, 0))
-        .endTime(LocalDateTime.of(2025, 5, 1, 10, 0))
-        .build();
+    Schedule personalSchedule =
+        Schedule.builder()
+            .id(101L)
+            .title("개인 일정")
+            .description("설명")
+            .isCompleted(false)
+            .isAiRecommended(false)
+            .startTime(LocalDateTime.of(2025, 5, 1, 9, 0))
+            .endTime(LocalDateTime.of(2025, 5, 1, 10, 0))
+            .build();
 
     // 개인 일정 반환
     when(scheduleRepository.findSchedulesBetween(memberId, start, end))
@@ -215,16 +193,16 @@ class ScheduleServiceTest {
     when(projectRepository.findAllByMemberId(memberId)).thenReturn(List.of(project));
 
     // project 일정은 ScheduleResponse로 리턴됨
-    ProjectScheduleResponse projectSchedule = new ProjectScheduleResponse(
-        202L,
-        "프로젝트 일정",
-        "설명",
-        LocalDateTime.of(2025, 5, 2, 14, 0),
-        LocalDateTime.of(2025, 5, 2, 15, 0),
-        true,
-        true,
-        null
-    );
+    ProjectScheduleResponse projectSchedule =
+        new ProjectScheduleResponse(
+            202L,
+            "프로젝트 일정",
+            "설명",
+            LocalDateTime.of(2025, 5, 2, 14, 0),
+            LocalDateTime.of(2025, 5, 2, 15, 0),
+            true,
+            true,
+            null);
 
     when(projectScheduleService.getSchedulesByRange(eq(300L), any(), any()))
         .thenReturn(Map.of("2025-05-02", List.of(projectSchedule)));
@@ -241,7 +219,6 @@ class ScheduleServiceTest {
     assertThat(day1).hasSize(1);
     assertThat(day1.get(0).title()).isEqualTo("개인 일정");
 
-
     List<ScheduleResponse> day2 = result.get(LocalDate.of(2025, 5, 2));
     assertThat(day2).hasSize(1);
     assertThat(day2.get(0).title()).isEqualTo("프로젝트 일정");
@@ -251,13 +228,8 @@ class ScheduleServiceTest {
   @DisplayName("존재하지 않는 사용자로 일정 생성 시도 시 예외 발생")
   void createSchedule_UserNotFound() {
     // given
-    ScheduleCreateRequest request = new ScheduleCreateRequest(
-        "New Schedule",
-        "New Description",
-        false,
-        now,
-        future
-    );
+    ScheduleCreateRequest request =
+        new ScheduleCreateRequest("New Schedule", "New Description", false, now, future);
     when(memberRepository.findById(999L)).thenReturn(Optional.empty());
 
     // when & then

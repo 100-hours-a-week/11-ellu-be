@@ -3,8 +3,7 @@ package com.ellu.looper.util;
 public class HangulUtil {
 
   private static final char[] CHOSEONG = {
-      'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ',
-      'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
+    'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
   };
 
   public static String extractChoseong(String text) {
@@ -29,4 +28,4 @@ public class HangulUtil {
   public static boolean containsOnlyChoseong(String text) {
     return !text.isEmpty() && text.chars().allMatch(c -> isChoseong((char) c));
   }
-} 
+}

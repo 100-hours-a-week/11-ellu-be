@@ -130,8 +130,11 @@ public class ProjectService {
     if (request.getWiki() != null && !request.getWiki().trim().isEmpty()) {
       log.info("Saving wiki in vectorDB for project: {}", project.getId());
       WikiRequest wikiRequest =
-          WikiRequest.builder().content(request.getWiki()).project_id(project.getId())
-              .updated_at(LocalDateTime.now()).build();
+          WikiRequest.builder()
+              .content(request.getWiki())
+              .project_id(project.getId())
+              .updated_at(LocalDateTime.now())
+              .build();
       fastApiService.createWiki(project.getId(), wikiRequest);
     }
 
@@ -144,32 +147,37 @@ public class ProjectService {
 
   private void sendInvitationNotification(List<User> addedUsers, User creator, Project project) {
     // Notification 생성
-    NotificationTemplate inviteTemplate = notificationTemplateRepository
-        .findByType(NotificationType.PROJECT_INVITED)
-        .orElseThrow(() -> new IllegalArgumentException("초대 템플릿 없음"));
+    NotificationTemplate inviteTemplate =
+        notificationTemplateRepository
+            .findByType(NotificationType.PROJECT_INVITED)
+            .orElseThrow(() -> new IllegalArgumentException("초대 템플릿 없음"));
 
     Map<String, Object> payload = new HashMap<>();
     payload.put("creator", creator.getNickname());
     payload.put("project", project.getTitle());
 
     for (User user : addedUsers) {
-      Notification notification = Notification.builder()
-          .sender(creator)
-          .receiver(user)
-          .project(project)
-          .template(inviteTemplate)
-          .payload(payload)
-          .isProcessed(false)
-          .inviteStatus(String.valueOf(InviteStatus.PENDING))
-          .createdAt(LocalDateTime.now())
-          .build();
+      Notification notification =
+          Notification.builder()
+              .sender(creator)
+              .receiver(user)
+              .project(project)
+              .template(inviteTemplate)
+              .payload(payload)
+              .isProcessed(false)
+              .inviteStatus(String.valueOf(InviteStatus.PENDING))
+              .createdAt(LocalDateTime.now())
+              .build();
       notificationRepository.save(notification);
 
       // Kafka를 통해 알림 메시지 전송
-      NotificationMessage message = new NotificationMessage(
-          NotificationType.PROJECT_INVITED.toString(),
-          project.getId(), creator.getId(), List.of(user.getId()), notificationService.renderTemplate(
-          inviteTemplate.getTemplate(), notification));
+      NotificationMessage message =
+          new NotificationMessage(
+              NotificationType.PROJECT_INVITED.toString(),
+              project.getId(),
+              creator.getId(),
+              List.of(user.getId()),
+              notificationService.renderTemplate(inviteTemplate.getTemplate(), notification));
 
       log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
       notificationProducer.sendNotification(message);
@@ -183,35 +191,38 @@ public class ProjectService {
         projectMemberRepository.findByUserIdAndDeletedAtIsNull(userId);
 
     // 중복 제거된 프로젝트만 추출
-    List<Project> distinctProjects = memberships.stream()
-        .map(ProjectMember::getProject)
-        .filter(project -> project.getDeletedAt() == null)
-        .distinct() // 중복 제거
-        .collect(Collectors.toList());
+    List<Project> distinctProjects =
+        memberships.stream()
+            .map(ProjectMember::getProject)
+            .filter(project -> project.getDeletedAt() == null)
+            .distinct() // 중복 제거
+            .collect(Collectors.toList());
 
     List<ProjectResponse> responses =
         distinctProjects.stream()
-            .map(project -> {
-              List<ProjectMember> members =
-                  projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
-              List<MemberDto> memberDtos =
-                  members.stream()
-                      .map(pm ->
-                          new MemberDto(
-                              pm.getUser().getId(),
-                              pm.getUser().getNickname(),
-                              profileImageService.getProfileImageUrl(pm.getUser().getFileName()),
-                              pm.getPosition()))
-                      .collect(Collectors.toList());
+            .map(
+                project -> {
+                  List<ProjectMember> members =
+                      projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
+                  List<MemberDto> memberDtos =
+                      members.stream()
+                          .map(
+                              pm ->
+                                  new MemberDto(
+                                      pm.getUser().getId(),
+                                      pm.getUser().getNickname(),
+                                      profileImageService.getProfileImageUrl(
+                                          pm.getUser().getFileName()),
+                                      pm.getPosition()))
+                          .collect(Collectors.toList());
 
-              return new ProjectResponse(
-                  project.getId(),
-                  project.getTitle(),
-                  project.getColor() != null ? project.getColor().name() : "E3EEFC",
-                  memberDtos,
-                  project.getWiki()
-              );
-            })
+                  return new ProjectResponse(
+                      project.getId(),
+                      project.getTitle(),
+                      project.getColor() != null ? project.getColor().name() : "E3EEFC",
+                      memberDtos,
+                      project.getWiki());
+                })
             .collect(Collectors.toList());
 
     log.info("Found {} projects for user: {}", responses.size(), userId);
@@ -233,21 +244,24 @@ public class ProjectService {
     List<ProjectMember> members = projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
 
     // 생성자 추출 (ADMIN 역할이면서 userId와 일치하는 사용자)
-    ProjectMember creator = members.stream()
-        .filter(pm -> pm.getRole() == Role.ADMIN && pm.getUser().getId().equals(userId))
-        .findFirst()
-        .orElseThrow(() -> new IllegalStateException("프로젝트 생성자가 존재하지 않습니다."));
+    ProjectMember creator =
+        members.stream()
+            .filter(pm -> pm.getRole() == Role.ADMIN && pm.getUser().getId().equals(userId))
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("프로젝트 생성자가 존재하지 않습니다."));
 
     // 생성자 제외한 멤버 리스트 생성
-    List<MemberDto> memberDtos = members.stream()
-        .filter(pm -> !pm.getUser().getId().equals(userId)) // 생성자 제외
-        .map(pm ->
-            new MemberDto(
-                pm.getUser().getId(),
-                pm.getUser().getNickname(),
-                profileImageService.getProfileImageUrl(pm.getUser().getFileName()),
-                pm.getPosition()))
-        .collect(Collectors.toList());
+    List<MemberDto> memberDtos =
+        members.stream()
+            .filter(pm -> !pm.getUser().getId().equals(userId)) // 생성자 제외
+            .map(
+                pm ->
+                    new MemberDto(
+                        pm.getUser().getId(),
+                        pm.getUser().getNickname(),
+                        profileImageService.getProfileImageUrl(pm.getUser().getFileName()),
+                        pm.getPosition()))
+            .collect(Collectors.toList());
 
     return new CreatorExcludedProjectResponse(
         project.getId(),
@@ -256,7 +270,6 @@ public class ProjectService {
         creator.getPosition(), // 생성자의 position만 포함
         memberDtos,
         project.getWiki());
-
   }
 
   @Transactional
@@ -291,7 +304,6 @@ public class ProjectService {
     // TODO: Send deletion notification
   }
 
-
   @Transactional
   public void updateProject(Long projectId, ProjectUpdateRequest request, Long userId) {
     Project project =
@@ -314,7 +326,8 @@ public class ProjectService {
     if (request.getAdded_members() != null) {
       for (ProjectUpdateRequest.AddedMember member : request.getAdded_members()) {
         User user =
-            userRepository.findByNicknameAndDeletedAtIsNull(member.getNickname())
+            userRepository
+                .findByNicknameAndDeletedAtIsNull(member.getNickname())
                 .orElseThrow(
                     () -> new IllegalArgumentException("User not found: " + member.getNickname()));
         updatedUsers.add(user);
@@ -329,23 +342,24 @@ public class ProjectService {
     }
 
     // 프로젝트 업데이트
-    project = project.toBuilder()
-        .title(request.getTitle() != null ? request.getTitle() : project.getTitle())
-        .wiki(request.getWiki() != null ? request.getWiki() : project.getWiki())
-        .color(request.getColor() != null ? Color.valueOf(request.getColor()) : project.getColor())
-        .updatedAt(LocalDateTime.now())
-        .build();
+    project =
+        project.toBuilder()
+            .title(request.getTitle() != null ? request.getTitle() : project.getTitle())
+            .wiki(request.getWiki() != null ? request.getWiki() : project.getWiki())
+            .color(
+                request.getColor() != null ? Color.valueOf(request.getColor()) : project.getColor())
+            .updatedAt(LocalDateTime.now())
+            .build();
     projectRepository.save(project);
 
     // 멤버 업데이트
 
     // 기존 멤버 목록
-    List<ProjectMember> existingMembers = projectMemberRepository.findByProjectAndDeletedAtIsNull(
-        project);
+    List<ProjectMember> existingMembers =
+        projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
 
-    Optional<ProjectMember> creator = existingMembers.stream()
-        .filter(pm -> pm.getUser().getId().equals(userId))
-        .findFirst();
+    Optional<ProjectMember> creator =
+        existingMembers.stream().filter(pm -> pm.getUser().getId().equals(userId)).findFirst();
     // 포지션이 있는 경우 생성자의 포지션 수정
     if (creator.isPresent() && request.getPosition() != null) {
       ProjectMember creatorMember = creator.get();
@@ -356,10 +370,14 @@ public class ProjectService {
     }
 
     // 요청에서 빠진 기존 멤버 삭제 처리
-    List<ProjectMember> toRemove = existingMembers.stream()
-        .filter(pm -> !pm.getUser().getId().equals(userId) &&
-            updatedUsers.stream().noneMatch(u -> u.getId().equals(pm.getUser().getId())))
-        .collect(Collectors.toList());
+    List<ProjectMember> toRemove =
+        existingMembers.stream()
+            .filter(
+                pm ->
+                    !pm.getUser().getId().equals(userId)
+                        && updatedUsers.stream()
+                            .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
+            .collect(Collectors.toList());
     toRemove.forEach(pm -> pm.setDeletedAt(LocalDateTime.now()));
     projectMemberRepository.saveAll(toRemove);
     // TODO: Send expulsion notification
@@ -367,9 +385,10 @@ public class ProjectService {
     log.info("updatedUsers" + updatedUsers);
     // 새로운 멤버 추가 및 포지션 업데이트
     for (User user : updatedUsers) {
-      Optional<ProjectMember> existing = existingMembers.stream()
-          .filter(pm -> pm.getUser().getId().equals(user.getId()))
-          .findFirst();
+      Optional<ProjectMember> existing =
+          existingMembers.stream()
+              .filter(pm -> pm.getUser().getId().equals(user.getId()))
+              .findFirst();
 
       String newPosition = updatedPositions.get(user.getId());
 
@@ -380,13 +399,14 @@ public class ProjectService {
           projectMemberRepository.save(existingMember);
         }
       } else {
-        ProjectMember newMember = ProjectMember.builder()
-            .project(project)
-            .user(user)
-            .position(newPosition)
-            .role(Role.PARTICIPANT)
-            .createdAt(LocalDateTime.now())
-            .build();
+        ProjectMember newMember =
+            ProjectMember.builder()
+                .project(project)
+                .user(user)
+                .position(newPosition)
+                .role(Role.PARTICIPANT)
+                .createdAt(LocalDateTime.now())
+                .build();
         projectMemberRepository.save(newMember);
       }
     }
@@ -395,14 +415,16 @@ public class ProjectService {
     if (request.getWiki() != null && !request.getWiki().trim().isEmpty()) {
       log.info("Updating wiki for project: {}", projectId);
       WikiRequest wikiRequest =
-          WikiRequest.builder().content(request.getWiki()).project_id(projectId)
-              .updated_at(LocalDateTime.now()).build();
+          WikiRequest.builder()
+              .content(request.getWiki())
+              .project_id(projectId)
+              .updated_at(LocalDateTime.now())
+              .build();
       fastApiService.createWiki(projectId, wikiRequest);
     }
 
     log.info("Project updated successfully: {}", projectId);
   }
-
 
   @Transactional
   public void createWiki(Long projectId, Long userId, WikiRequest request) {
