@@ -26,9 +26,9 @@ import lombok.NoArgsConstructor;
 @Table(
     name = "project_schedule",
     indexes = {
-        @Index(name = "IDX_PROJECT_SCHEDULE_DELETED_AT", columnList = "deletedAt"),
-        @Index(name = "IDX_PROJECT_SCHEDULE_MEMBER_ID", columnList = "member_id"),
-        @Index(name = "IDX_PROJECT_SCHEDULE_IS_COMPLETED", columnList = "isCompleted")
+      @Index(name = "IDX_PROJECT_SCHEDULE_DELETED_AT", columnList = "deletedAt"),
+      @Index(name = "IDX_PROJECT_SCHEDULE_MEMBER_ID", columnList = "member_id"),
+      @Index(name = "IDX_PROJECT_SCHEDULE_IS_COMPLETED", columnList = "isCompleted")
     })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

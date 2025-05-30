@@ -9,7 +9,6 @@ import com.ellu.looper.service.ScheduleService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -117,25 +116,24 @@ public class ScheduleController {
           scheduleService.getSchedulesByRange(userId, startDate, endDate);
 
       // 모든 일정 평탄화
-      List<ScheduleResponse> flattenedSchedules = allSchedules.values().stream()
-          .flatMap(List::stream)
-          .collect(Collectors.toList());
+      List<ScheduleResponse> flattenedSchedules =
+          allSchedules.values().stream().flatMap(List::stream).collect(Collectors.toList());
 
       return ResponseEntity.ok(ApiResponse.success("monthly_schedule", flattenedSchedules));
     } catch (Exception e) {
       System.out.println("e = " + e);
       return ResponseEntity.badRequest()
-          .body(Map.of(
-              "message", "validation_failed",
-              "data", Map.of(
-                  "errors", Map.of(
-                      "date", "Missing or invalid month parameter. Format must be YYYY-MM."
-                  )
-              )
-          ));
+          .body(
+              Map.of(
+                  "message",
+                  "validation_failed",
+                  "data",
+                  Map.of(
+                      "errors",
+                      Map.of(
+                          "date", "Missing or invalid month parameter. Format must be YYYY-MM."))));
     }
   }
-
 
   @GetMapping("/yearly")
   public ResponseEntity<?> yearly(@CurrentUser Long userId, @RequestParam String year) {
@@ -144,14 +142,10 @@ public class ScheduleController {
 
       Map<LocalDate, List<ScheduleResponse>> allSchedules =
           scheduleService.getSchedulesByRange(
-              userId,
-              LocalDate.of(y, 1, 1),
-              LocalDate.of(y, 12, 31)
-          );
+              userId, LocalDate.of(y, 1, 1), LocalDate.of(y, 12, 31));
 
-      List<ScheduleResponse> flattenedSchedules = allSchedules.values().stream()
-          .flatMap(List::stream)
-          .collect(Collectors.toList());
+      List<ScheduleResponse> flattenedSchedules =
+          allSchedules.values().stream().flatMap(List::stream).collect(Collectors.toList());
       return ResponseEntity.ok(ApiResponse.success("yearly_schedule", flattenedSchedules));
     } catch (Exception e) {
       return ResponseEntity.badRequest()

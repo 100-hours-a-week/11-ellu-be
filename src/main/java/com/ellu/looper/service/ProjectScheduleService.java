@@ -133,7 +133,10 @@ public class ProjectScheduleService {
     validateTimeOrder(request.start_time(), request.end_time());
 
     schedule.update(
-        request.title(), request.description(), request.start_time(), request.end_time(),
+        request.title(),
+        request.description(),
+        request.start_time(),
+        request.end_time(),
         request.completed());
 
     // TODO: Send schedule update notification

@@ -19,7 +19,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Service
 public class NotificationProducer {
-  private static final Logger log = LoggerFactory.getLogger(NotificationProducer.class.getSimpleName());
+  private static final Logger log =
+      LoggerFactory.getLogger(NotificationProducer.class.getSimpleName());
   private final ObjectMapper objectMapper;
   private KafkaProducer<String, String> producer;
 
@@ -45,36 +46,39 @@ public class NotificationProducer {
       for (Long userId : event.getTargetUserIds()) {
         String key = userId.toString();
         String value = objectMapper.writeValueAsString(event);
-        
+
         // Create producer record
-        ProducerRecord<String, String> producerRecord = 
+        ProducerRecord<String, String> producerRecord =
             new ProducerRecord<>("notification", key, value);
 
         // Send data asynchronously with callback
-        producer.send(producerRecord, new Callback() {
-          @Override
-          public void onCompletion(RecordMetadata metadata, Exception e) {
-            if (e == null) {
-              log.info("Successfully sent notification to user {} \n" +
-                  "Topic: {}\n" +
-                  "Partition: {}\n" +
-                  "Offset: {}\n" +
-                  "Timestamp: {}", 
-                  userId,
-                  metadata.topic(),
-                  metadata.partition(),
-                  metadata.offset(),
-                  metadata.timestamp());
-            } else {
-              log.error("Error while sending notification to user {}", userId, e);
-            }
-          }
-        });
+        producer.send(
+            producerRecord,
+            new Callback() {
+              @Override
+              public void onCompletion(RecordMetadata metadata, Exception e) {
+                if (e == null) {
+                  log.info(
+                      "Successfully sent notification to user {} \n"
+                          + "Topic: {}\n"
+                          + "Partition: {}\n"
+                          + "Offset: {}\n"
+                          + "Timestamp: {}",
+                      userId,
+                      metadata.topic(),
+                      metadata.partition(),
+                      metadata.offset(),
+                      metadata.timestamp());
+                } else {
+                  log.error("Error while sending notification to user {}", userId, e);
+                }
+              }
+            });
       }
-      
+
       // Flush to ensure all messages are sent
       producer.flush();
-      
+
     } catch (JsonProcessingException e) {
       log.error("Failed to serialize NotificationMessage", e);
       throw new RuntimeException("Failed to serialize NotificationMessage", e);
@@ -89,4 +93,3 @@ public class NotificationProducer {
     }
   }
 }
-

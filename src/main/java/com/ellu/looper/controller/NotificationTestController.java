@@ -18,9 +18,9 @@ public class NotificationTestController {
 
   @PostMapping("/test/notify")
   public ResponseEntity<String> sendTestNotification(@RequestParam String message) {
-    NotificationMessage notificationMessage = new NotificationMessage(
-        NotificationType.PROJECT_INVITED.toString(), 1L, 1L,
-        List.of(1L), message);
+    NotificationMessage notificationMessage =
+        new NotificationMessage(
+            NotificationType.PROJECT_INVITED.toString(), 1L, 1L, List.of(1L), message);
     notificationProducer.sendNotification(notificationMessage);
     return ResponseEntity.ok("Message sent: " + message);
   }

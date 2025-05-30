@@ -61,5 +61,4 @@ public class ProjectMember {
   public void softDelete() {
     this.deletedAt = LocalDateTime.now();
   }
-
 }

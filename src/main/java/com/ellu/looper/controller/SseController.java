@@ -21,4 +21,3 @@ public class SseController {
     return sseService.subscribe(userId);
   }
 }
-

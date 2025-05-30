@@ -5,7 +5,6 @@ import com.ellu.looper.service.SseService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Properties;
 import lombok.RequiredArgsConstructor;
@@ -23,8 +22,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class NotificationConsumer implements Runnable {
 
-  private static final Logger log = LoggerFactory.getLogger(
-      NotificationConsumer.class.getSimpleName());
+  private static final Logger log =
+      LoggerFactory.getLogger(NotificationConsumer.class.getSimpleName());
   private final ObjectMapper objectMapper;
   private final SseService sseEmitterService;
   private KafkaConsumer<String, String> consumer;
@@ -58,18 +57,20 @@ public class NotificationConsumer implements Runnable {
     final Thread mainThread = Thread.currentThread();
 
     // Adding the shutdown hook
-    Runtime.getRuntime().addShutdownHook(new Thread() {
-      public void run() {
-        log.info("Detected a shutdown, exit by calling consumer.wakeup()");
-        running = false;
-        consumer.wakeup();
-        try {
-          mainThread.join();
-        } catch (InterruptedException e) {
-          throw new RuntimeException(e);
-        }
-      }
-    });
+    Runtime.getRuntime()
+        .addShutdownHook(
+            new Thread() {
+              public void run() {
+                log.info("Detected a shutdown, exit by calling consumer.wakeup()");
+                running = false;
+                consumer.wakeup();
+                try {
+                  mainThread.join();
+                } catch (InterruptedException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            });
 
     // Start consuming in a new thread
     new Thread(this).start();
@@ -87,10 +88,12 @@ public class NotificationConsumer implements Runnable {
 
         for (ConsumerRecord<String, String> record : records) {
           try {
-            NotificationMessage event = objectMapper.readValue(record.value(),
-                NotificationMessage.class);
+            NotificationMessage event =
+                objectMapper.readValue(record.value(), NotificationMessage.class);
             processNotification(event);
-            log.info("Processed notification for partition: {}, offset: {}", record.partition(),
+            log.info(
+                "Processed notification for partition: {}, offset: {}",
+                record.partition(),
                 record.offset());
           } catch (Exception e) {
             log.error("Error processing notification: {}", e.getMessage(), e);
@@ -114,4 +117,3 @@ public class NotificationConsumer implements Runnable {
     }
   }
 }
-

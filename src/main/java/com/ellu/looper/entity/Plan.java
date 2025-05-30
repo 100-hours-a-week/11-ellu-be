@@ -57,5 +57,4 @@ public class Plan {
   public void softDelete() {
     this.deletedAt = LocalDateTime.now();
   }
-
 }
