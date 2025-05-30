@@ -76,6 +76,7 @@ public class ProjectService {
     if (request.getAdded_members() != null) {
       for (ProjectCreateRequest.AddedMember member : request.getAdded_members()) {
         String nickname = member.getNickname();
+        String position = member.getPosition();
 
         // 생성자 본인을 초대하는 경우
         if (creator.getNickname().equals(nickname)) {
@@ -143,29 +144,31 @@ public class ProjectService {
 
     log.info("Sending invitation notification to project members");
     // 초대 알림 보내기
-    sendInvitationNotification(addedUsers, creator, project);
+    sendInvitationNotification(addedUsers, creator, project, request.getAdded_members());
 
     log.info("Project created successfully with ID: {}", project.getId());
   }
 
-  private void sendInvitationNotification(List<User> addedUsers, User creator, Project project) {
+  private void sendInvitationNotification(List<User> addedUsers, User creator, Project project, List<ProjectCreateRequest.AddedMember> addedMemberRequests) {
     // Notification 생성
     NotificationTemplate inviteTemplate = notificationTemplateRepository
         .findByType(NotificationType.PROJECT_INVITED)
         .orElseThrow(() -> new IllegalArgumentException("초대 템플릿 없음"));
-
-    Map<String, Object> payload = new HashMap<>();
-    payload.put("creator", creator.getNickname());
-    payload.put("project", project.getTitle());
+    Map<String, String> nicknameToPosition = addedMemberRequests.stream()
+        .collect(Collectors.toMap(ProjectCreateRequest.AddedMember::getNickname, ProjectCreateRequest.AddedMember::getPosition));
 
     for (User user : addedUsers) {
+      Map<String, Object> payload = new HashMap<>();
+      payload.put("creator", creator.getNickname());
+      payload.put("project", project.getTitle());
+      payload.put("position", nicknameToPosition.get(user.getNickname()));
+
       Notification notification = Notification.builder()
           .sender(creator)
           .receiver(user)
           .project(project)
           .template(inviteTemplate)
           .payload(payload)
-          .isProcessed(false)
           .inviteStatus(String.valueOf(InviteStatus.PENDING))
           .createdAt(LocalDateTime.now())
           .build();
@@ -175,8 +178,7 @@ public class ProjectService {
       NotificationMessage message = new NotificationMessage(
           NotificationType.PROJECT_INVITED.toString(),
           project.getId(), creator.getId(), List.of(user.getId()),
-          notificationService.renderInvitationTemplate(
-              inviteTemplate.getTemplate(), notification));
+          notificationService.renderInvitationTemplate(inviteTemplate.getTemplate(), notification));
 
       log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
       notificationProducer.sendNotification(message);
@@ -449,7 +451,6 @@ public class ProjectService {
           .project(project)
           .template(inviteTemplate)
           .payload(payload)
-          .isProcessed(false)
           .createdAt(LocalDateTime.now())
           .build();
       notificationRepository.save(notification);

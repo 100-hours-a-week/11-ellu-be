@@ -53,9 +53,6 @@ public class Notification {
   @Type(JsonType.class)
   private Map<String, Object> payload;
 
-  @Column(name = "is_processed")
-  private Boolean isProcessed;
-
   @Column(name = "invite_status", length = 20)
   private String inviteStatus;
 

@@ -362,7 +362,6 @@ public class ProjectScheduleService {
           .project(project)
           .template(inviteTemplate)
           .payload(payload)
-          .isProcessed(false)
           .createdAt(LocalDateTime.now())
           .build();
       notificationRepository.save(notification);

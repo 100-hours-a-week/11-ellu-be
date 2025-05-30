@@ -20,9 +20,6 @@ public class NotificationDto {
   @JsonProperty("message")
   private String message;
 
-  @JsonProperty("is_processed")
-  private Boolean processed;
-
   @JsonProperty("invite_status")
   private String inviteStatus;
 

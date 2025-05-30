@@ -1,8 +1,13 @@
 package com.ellu.looper.notification.service;
 
+import com.ellu.looper.commons.enums.InviteStatus;
+import com.ellu.looper.commons.enums.Role;
 import com.ellu.looper.notification.dto.NotificationDto;
 import com.ellu.looper.notification.entity.Notification;
 import com.ellu.looper.notification.repository.NotificationRepository;
+import com.ellu.looper.project.entity.ProjectMember;
+import com.ellu.looper.project.repository.ProjectMemberRepository;
+import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationService {
 
   private final NotificationRepository notificationRepository;
+  private final ProjectMemberRepository projectMemberRepository;
 
   public List<NotificationDto> getNotifications(Long userId) {
     List<Notification> notifications = notificationRepository.findByReceiverIdAndDeletedAtIsNullOrderByCreatedAtDesc(
@@ -42,7 +48,6 @@ public class NotificationService {
               .id(n.getId())
               .senderNickname(n.getSender().getNickname())
               .message(message)
-              .processed(n.getIsProcessed())
               .inviteStatus(n.getInviteStatus())
               .createdAt(n.getCreatedAt())
               .build();
@@ -53,7 +58,8 @@ public class NotificationService {
   public String renderInvitationTemplate(String template, Notification notification) {
     return template
         .replace("{creator}", notification.getPayload().get("creator").toString())
-        .replace("{project}", notification.getPayload().get("project").toString());
+        .replace("{project}", notification.getPayload().get("project").toString())
+        .replace("{position}", notification.getPayload().get("position").toString());
   }
 
   public String renderProjectTemplate(String template, Notification notification) {
@@ -68,16 +74,41 @@ public class NotificationService {
   }
 
   @Transactional
-  public void markAsRead(Long notificationId, Long userId) {
-    Notification notification = notificationRepository.findById(notificationId)
-        .orElseThrow(() -> new IllegalArgumentException("알림 없음"));
+  public NotificationDto respondToInvitation(Long notificationId, Long userId, String status) {
+    Notification notification = notificationRepository.findByIdAndDeletedAtIsNull(notificationId)
+        .orElseThrow(() -> new IllegalArgumentException("Notification not found"));
 
     if (!notification.getReceiver().getId().equals(userId)) {
-      throw new AccessDeniedException("본인의 알림만 읽음 처리할 수 있습니다.");
+      throw new AccessDeniedException("Unauthorized to process this notification.");
     }
 
-    notification = notification.toBuilder().isProcessed(true).updatedAt(LocalDateTime.now())
+    if (!status.equalsIgnoreCase(InviteStatus.ACCEPTED.toString()) && !status.equalsIgnoreCase(InviteStatus.REJECTED.toString())) {
+      throw new IllegalArgumentException("Status must be 'ACCEPTED' or 'REJECTED'.");
+    }
+
+    notification = notification.toBuilder()
+        .inviteStatus(status.toUpperCase())
+        .updatedAt(LocalDateTime.now())
         .build();
+
     notificationRepository.save(notification);
+
+    if (status.equalsIgnoreCase(InviteStatus.ACCEPTED.toString())) {
+      boolean alreadyMember = projectMemberRepository.existsByProjectIdAndUserId(
+          notification.getProject().getId(), userId);
+      if (!alreadyMember) {
+        ProjectMember member = ProjectMember.builder()
+            .project(notification.getProject())
+            .user(notification.getReceiver())
+            .role(Role.PARTICIPANT)
+            .position(notification.getPayload().get("position").toString())
+            .build();
+        projectMemberRepository.save(member);
+      }
+    }
+
+    String message = renderInvitationTemplate(notification.getTemplate().getTemplate(), notification);
+    return new NotificationDto(notificationId, notification.getSender().getNickname(), message,  notification.getInviteStatus(), notification.getCreatedAt());
   }
+
 }
