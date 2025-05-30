@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -33,7 +34,9 @@ import lombok.NoArgsConstructor;
         @Index(name = "IDX_PROJECT_SCHEDULE_IS_COMPLETED", columnList = "isCompleted")
     })
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder(toBuilder = true)
 public class ProjectSchedule {
 
   @Id
@@ -91,26 +94,6 @@ public class ProjectSchedule {
 
   public void softDelete() {
     this.deletedAt = LocalDateTime.now();
-  }
-
-  @Builder(toBuilder = true)
-  public ProjectSchedule(
-      Project project,
-      User user,
-      String title,
-      String description,
-      String position,
-      LocalDateTime startTime,
-      LocalDateTime endTime,
-      boolean isCompleted) {
-    this.project = project;
-    this.user = user;
-    this.title = title;
-    this.description = description;
-    this.position = position;
-    this.startTime = startTime;
-    this.endTime = endTime;
-    this.isCompleted = isCompleted;
   }
 
   public void update(
