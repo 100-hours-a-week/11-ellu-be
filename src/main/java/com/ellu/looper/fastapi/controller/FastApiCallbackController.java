@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /*
-* AI 서버로부터 콜백을 받는 컨트롤러
-*/
+ * AI 서버로부터 콜백을 받는 컨트롤러
+ */
 @Slf4j
 @RestController
 @RequiredArgsConstructor
@@ -24,25 +24,27 @@ public class FastApiCallbackController {
 
   @PostMapping("/projects/{projectId}/preview")
   public ResponseEntity<?> receiveAiPreview(
-      @PathVariable Long projectId,
-      @RequestBody MeetingNoteResponse aiPreviewResponse) {
-    
+      @PathVariable Long projectId, @RequestBody MeetingNoteResponse aiPreviewResponse) {
+
     log.info("[FastApiCallbackController] Received callback for project: {}", projectId);
     log.info("[FastApiCallbackController] Response message: {}", aiPreviewResponse.getMessage());
-    
+
     if (aiPreviewResponse.getDetail() != null) {
-      aiPreviewResponse.getDetail().forEach(preview -> {
-        log.info("[FastApiCallbackController] Keyword: {}", preview.getKeyword());
-        log.info("[FastApiCallbackController] Subtasks: {}", preview.getSubtasks());
-      });
+      aiPreviewResponse
+          .getDetail()
+          .forEach(
+              preview -> {
+                log.info("[FastApiCallbackController] Keyword: {}", preview.getKeyword());
+                log.info("[FastApiCallbackController] Subtasks: {}", preview.getSubtasks());
+              });
     } else {
       log.warn("[FastApiCallbackController] No data received in the response");
     }
-    
+
     aiCallbackService.handleAiPreviewResponse(projectId, aiPreviewResponse);
-    
-    log.info("[FastApiCallbackController] Successfully processed callback for project: {}", projectId);
+
+    log.info(
+        "[FastApiCallbackController] Successfully processed callback for project: {}", projectId);
     return ResponseEntity.ok().build(); // AI에게 200 OK 응답
   }
 }
-

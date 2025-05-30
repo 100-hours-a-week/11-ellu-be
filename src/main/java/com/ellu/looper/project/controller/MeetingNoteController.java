@@ -37,9 +37,10 @@ public class MeetingNoteController {
 
     request.setNickname(userRepository.findById(userId).get().getNickname());
 
-    ProjectMember member = projectMemberRepository
-        .findByProjectIdAndUserId(projectId, userId)
-        .orElseThrow(() -> new IllegalArgumentException("Project member not found"));
+    ProjectMember member =
+        projectMemberRepository
+            .findByProjectIdAndUserId(projectId, userId)
+            .orElseThrow(() -> new IllegalArgumentException("Project member not found"));
     request.setPosition(member.getPosition());
 
     fastApiService.sendNoteToAI(

@@ -25,7 +25,8 @@ public class NotificationController {
 
   @GetMapping
   public ApiResponse<List<NotificationDto>> getNotifications(@CurrentUser Long userId) {
-    return ApiResponse.success("notifications_fetched",notificationService.getNotifications(userId));
+    return ApiResponse.success(
+        "notifications_fetched", notificationService.getNotifications(userId));
   }
 
   @PatchMapping("/{id}")

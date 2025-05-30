@@ -24,20 +24,24 @@ public class FastApiService {
   public void handleAiPreviewResponse(Long projectId, MeetingNoteResponse aiResponse) {
     log.info("[FastApiService] Handling AI preview response for project: {}", projectId);
     log.info("[FastApiService] Response message: {}", aiResponse.getMessage());
-    
+
     if (aiResponse.getDetail() != null) {
-      aiResponse.getDetail().forEach(preview -> {
-        log.info("[FastApiService] Keyword: {}", preview.getKeyword());
-        log.info("[FastApiService] Subtasks: {}", preview.getSubtasks());
-      });
+      aiResponse
+          .getDetail()
+          .forEach(
+              preview -> {
+                log.info("[FastApiService] Keyword: {}", preview.getKeyword());
+                log.info("[FastApiService] Subtasks: {}", preview.getSubtasks());
+              });
     } else {
       log.warn("[FastApiService] No data received in the response");
     }
-    
+
     // aiResponse는 AI 서버가 반환한 task preview 결과
     previewHolder.complete(projectId, aiResponse);
-    
-    log.info("[FastApiService] Successfully handled AI preview response for project: {}", projectId);
+
+    log.info(
+        "[FastApiService] Successfully handled AI preview response for project: {}", projectId);
   }
 
   // 예외 상황 처리
@@ -52,9 +56,9 @@ public class FastApiService {
     log.info("Sending note to AI server for project: {}", noteRequest.getProject_id());
     webClient
         .post()
-        .uri(uriBuilder -> uriBuilder
-            .path("/projects/{projectId}/notes")
-            .build(noteRequest.getProject_id()))
+        .uri(
+            uriBuilder ->
+                uriBuilder.path("/projects/{projectId}/notes").build(noteRequest.getProject_id()))
         .contentType(MediaType.APPLICATION_JSON)
         .bodyValue(noteRequest)
         .retrieve()
@@ -98,7 +102,6 @@ public class FastApiService {
             })
         .subscribe();
   }
-
 
   public void updateWiki(Long projectId, WikiRequest request) {
     log.info("Updating wiki for project: {}", projectId);

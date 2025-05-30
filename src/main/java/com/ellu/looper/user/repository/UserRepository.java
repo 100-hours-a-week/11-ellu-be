@@ -18,17 +18,22 @@ public interface UserRepository extends JpaRepository<User, Long> {
   Optional<User> findByNicknameAndDeletedAtIsNull(
       @NotBlank(message = "Nickname must not be empty") String nickname);
 
-  @Query(value = "SELECT id, nickname, file_name FROM member WHERE nickname_choseong LIKE CONCAT(:prefix, '%') ORDER BY nickname LIMIT 10", nativeQuery = true)
+  @Query(
+      value =
+          "SELECT id, nickname, file_name FROM member WHERE nickname_choseong LIKE CONCAT(:prefix, '%') ORDER BY nickname LIMIT 10",
+      nativeQuery = true)
   List<UserProjection> findTop10ByNicknameChoseongStartingWith(@Param("prefix") String prefix);
 
-  @Query(value = """
-      SELECT id, nickname, file_name 
-      FROM member 
-      WHERE nickname LIKE CONCAT(:query, '%') 
-      OR nickname_choseong LIKE CONCAT(:query, '%') 
+  @Query(
+      value =
+          """
+      SELECT id, nickname, file_name
+      FROM member
+      WHERE nickname LIKE CONCAT(:query, '%')
+      OR nickname_choseong LIKE CONCAT(:query, '%')
 
       ORDER BY nickname LIMIT 10
-      """, nativeQuery = true)
+      """,
+      nativeQuery = true)
   List<UserProjection> findTop10ByNicknameOrChoseongContaining(@Param("query") String query);
-
 }

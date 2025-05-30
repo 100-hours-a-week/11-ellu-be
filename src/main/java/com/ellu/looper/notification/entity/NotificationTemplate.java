@@ -5,10 +5,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "notification_template",
-    indexes = {
-        @Index(name = "IDX_NOTIFICATION_TEMPLATE_TEMPLATE", columnList = "template")
-    })
+@Table(
+    name = "notification_template",
+    indexes = {@Index(name = "IDX_NOTIFICATION_TEMPLATE_TEMPLATE", columnList = "template")})
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor

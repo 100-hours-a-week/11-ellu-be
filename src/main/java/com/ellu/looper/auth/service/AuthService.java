@@ -119,9 +119,12 @@ public class AuthService {
   }
 
   @Transactional
-  public TokenRefreshResponse refreshAccessToken(String oldRefreshToken, HttpServletResponse response) {
-    RefreshToken savedToken = refreshTokenRepository.findByRefreshToken(oldRefreshToken)
-        .orElseThrow(() -> new RuntimeException("invalid_refresh_token"));
+  public TokenRefreshResponse refreshAccessToken(
+      String oldRefreshToken, HttpServletResponse response) {
+    RefreshToken savedToken =
+        refreshTokenRepository
+            .findByRefreshToken(oldRefreshToken)
+            .orElseThrow(() -> new RuntimeException("invalid_refresh_token"));
 
     Long userId;
     boolean refreshTokenExpired = false;
@@ -144,27 +147,28 @@ public class AuthService {
       setTokenCookies(response, newRefreshToken);
     }
 
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new RuntimeException("User not found"));
+    User user =
+        userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
-    TokenRefreshResponse.UserInfo userInfo = new TokenRefreshResponse.UserInfo(
-        user.getId(), user.getNickname(), profileImageService.getProfileImageUrl(user.getFileName())
-    );
+    TokenRefreshResponse.UserInfo userInfo =
+        new TokenRefreshResponse.UserInfo(
+            user.getId(),
+            user.getNickname(),
+            profileImageService.getProfileImageUrl(user.getFileName()));
 
     return new TokenRefreshResponse(newAccessToken, userInfo);
   }
 
-
   public void setTokenCookies(HttpServletResponse response, String refreshToken) {
-    ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
-        .httpOnly(true)
-        .secure(true)
-        .sameSite("None")
-        .path("/")
-        .maxAge(JwtExpiration.REFRESH_TOKEN_EXPIRATION)
-        .build();
+    ResponseCookie refreshCookie =
+        ResponseCookie.from("refresh_token", refreshToken)
+            .httpOnly(true)
+            .secure(true)
+            .sameSite("None")
+            .path("/")
+            .maxAge(JwtExpiration.REFRESH_TOKEN_EXPIRATION)
+            .build();
     response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
-
   }
 
   public String extractRefreshTokenFromCookies(HttpServletRequest request) {

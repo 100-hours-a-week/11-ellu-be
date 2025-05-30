@@ -21,18 +21,19 @@ public class SseService {
     emitters.put(userId, emitter);
     log.info("USER WITH ID {} IS CONNECTED TO SSE", userId);
 
-    emitter.onCompletion(() -> {
-      emitters.remove(userId);
-      log.info("USER WITH ID {} IS DISCONNECTED TO SSE", userId);
-    });
-    emitter.onTimeout(() -> {
-      emitters.remove(userId);
-      log.info("USER WITH ID {} IS CONNECTION TIMEOUT", userId);
-    });
+    emitter.onCompletion(
+        () -> {
+          emitters.remove(userId);
+          log.info("USER WITH ID {} IS DISCONNECTED TO SSE", userId);
+        });
+    emitter.onTimeout(
+        () -> {
+          emitters.remove(userId);
+          log.info("USER WITH ID {} IS CONNECTION TIMEOUT", userId);
+        });
 
     return emitter;
   }
-
 
   public void sendNotification(Long userId, NotificationMessage dto) {
     SseEmitter emitter = emitters.get(userId);
@@ -42,9 +43,7 @@ public class SseService {
         // 로그 출력 추가
         log.info("Sending SSE notification to user {}: {}", userId, dto);
 
-        emitter.send(SseEmitter.event()
-            .name("notification")
-            .data(dto));
+        emitter.send(SseEmitter.event().name("notification").data(dto));
       } catch (IOException e) {
         log.warn("Failed to send SSE to user {}. Removing emitter.", userId, e);
         emitters.remove(userId);
@@ -53,7 +52,6 @@ public class SseService {
       log.info("No active emitter for user {}", userId);
     }
   }
-
 
   private NotificationDto notificationToDto(Notification notification) {
     return NotificationDto.builder()

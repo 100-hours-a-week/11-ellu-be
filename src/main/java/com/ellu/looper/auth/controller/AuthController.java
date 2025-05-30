@@ -28,8 +28,10 @@ public class AuthController {
 
   private final AuthService authService;
   private final HttpServletResponse httpServletResponse;
+
   @Value("${kakao.client-id}")
   private String clientId;
+
   @Value("${kakao.redirect-uri}")
   private String redirectUri;
 
@@ -101,7 +103,8 @@ public class AuthController {
     // RefreshToken을 쿠키로 설정
     authService.setTokenCookies(response, authResponse.getRefreshToken());
 
-    LoginResponse loginResponse = new LoginResponse(authResponse.getAccessToken(), authResponse.isNewUser());
+    LoginResponse loginResponse =
+        new LoginResponse(authResponse.getAccessToken(), authResponse.isNewUser());
 
     ResponseEntity<ApiResponse<LoginResponse>> responseEntity =
         ResponseEntity.ok(ApiResponse.success("로그인 성공", loginResponse));
@@ -129,13 +132,14 @@ public class AuthController {
     }
 
     authService.logout(refreshToken);
-    ResponseCookie deleteRefreshCookie = ResponseCookie.from("refresh_token", refreshToken)
-        .httpOnly(true)
-        .secure(true)
-        .sameSite("None")
-        .path("/")
-        .maxAge(0)
-        .build();
+    ResponseCookie deleteRefreshCookie =
+        ResponseCookie.from("refresh_token", refreshToken)
+            .httpOnly(true)
+            .secure(true)
+            .sameSite("None")
+            .path("/")
+            .maxAge(0)
+            .build();
 
     response.addHeader(HttpHeaders.SET_COOKIE, deleteRefreshCookie.toString());
 
@@ -150,9 +154,11 @@ public class AuthController {
   }
 
   @PostMapping("/auth/token/refresh")
-  public ResponseEntity<?> refresh(@CookieValue("refresh_token") String refreshToken,
+  public ResponseEntity<?> refresh(
+      @CookieValue("refresh_token") String refreshToken,
       @RequestHeader(value = "Authorization", required = false) String accessToken) {
-    TokenRefreshResponse response = authService.refreshAccessToken(refreshToken, httpServletResponse);
+    TokenRefreshResponse response =
+        authService.refreshAccessToken(refreshToken, httpServletResponse);
     return ResponseEntity.ok(new ApiResponse("token_refreshed", response));
   }
 }

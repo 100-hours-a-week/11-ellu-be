@@ -31,7 +31,7 @@ public class UserController {
   }
 
   @GetMapping
-  public ResponseEntity<?> searchNicknames(@CurrentUser Long userId, @RequestParam String query){
+  public ResponseEntity<?> searchNicknames(@CurrentUser Long userId, @RequestParam String query) {
     List<UserResponse> userResponseList = userService.searchNicknames(query);
     return ResponseEntity.ok(ApiResponse.success("search_completed", userResponseList));
   }

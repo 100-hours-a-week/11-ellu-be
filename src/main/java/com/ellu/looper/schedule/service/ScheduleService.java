@@ -139,7 +139,7 @@ public class ScheduleService {
     return all.stream().collect(Collectors.groupingBy(r -> r.startTime().toLocalDate()));
   }
 
- @Transactional(readOnly = true)
+  @Transactional(readOnly = true)
   public List<ScheduleResponse> getProjectSchedules(
       Long memberId, LocalDateTime start, LocalDateTime end) {
 

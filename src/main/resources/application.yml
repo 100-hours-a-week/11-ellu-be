@@ -47,13 +47,21 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info
+        include: health, info, metrics, prometheus
   endpoint:
     health:
       show-details: always  # 필요 시 의존성 상태를 자세히 표시
+    metrics:
+      access: read_only
+    prometheus:
+      access: read_only
   info:
     env:
       enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 info:
   app:

@@ -87,6 +87,16 @@ dependencies {
     // batch scheduler
 //    implementation 'net.javacrumbs.shedlock:shedlock-spring:6.6.1'
 //    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.6.1'
+
+    //메트릭 수집을 위한 플러그인
+    // Spring Boot Actuator
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    // Micrometer Prometheus registry
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+
+    // OpenTelemetry Spring Boot Starter
+    implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter:2.16.0")
 }
 
 bootBuildImage {
