@@ -84,6 +84,9 @@ dependencies {
     // hibernate types
     implementation 'com.vladmihalcea:hibernate-types-60:2.21.1'
 
+    // batch scheduler
+//    implementation 'net.javacrumbs.shedlock:shedlock-spring:6.6.1'
+//    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.6.1'
 }
 
 bootBuildImage {

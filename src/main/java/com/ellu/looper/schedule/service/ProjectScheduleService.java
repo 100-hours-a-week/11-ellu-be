@@ -245,6 +245,7 @@ public class ProjectScheduleService {
 
   @Transactional(readOnly = true)
   public List<ProjectScheduleResponse> getDailySchedules(Long projectId, LocalDate day) {
+// TODO: assignee.has_taken_schedule=true인 경우만 아래에 포함
     LocalDateTime start = day.atStartOfDay();
     LocalDateTime end = day.plusDays(1).atStartOfDay().minusNanos(1);
     List<ProjectSchedule> dailyProjectSchedules =
@@ -301,6 +302,7 @@ public class ProjectScheduleService {
     List<ProjectSchedule> schedules =
         scheduleRepository.findSchedulesBetween(projectId, start, end);
 
+// TODO: assignee.has_taken_schedule=true인 경우만 아래에 포함
     LinkedHashMap<String, List<ProjectScheduleResponse>> collect =
         schedules.stream()
             .collect(

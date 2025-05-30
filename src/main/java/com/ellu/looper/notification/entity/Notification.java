@@ -64,4 +64,8 @@ public class Notification {
 
   @Column(name = "deleted_at")
   private LocalDateTime deletedAt;
+
+  public void softDelete(LocalDateTime now) {
+    this.deletedAt = now;
+  }
 }
