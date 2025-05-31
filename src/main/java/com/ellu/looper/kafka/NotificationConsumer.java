@@ -1,7 +1,7 @@
 package com.ellu.looper.kafka;
 
 import com.ellu.looper.kafka.dto.NotificationMessage;
-import com.ellu.looper.service.SseService;
+import com.ellu.looper.sse.service.SseService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import java.time.Duration;
@@ -111,7 +111,7 @@ public class NotificationConsumer implements Runnable {
   }
 
   private void processNotification(NotificationMessage event) {
-    for (Long userId : event.getTargetUserIds()) {
+    for (Long userId : event.getReceiverId()) {
       // SSE 구독 중인 유저에게 전송
       sseEmitterService.sendNotification(userId, event);
     }

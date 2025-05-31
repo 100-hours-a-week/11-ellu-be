@@ -1,6 +1,6 @@
 package com.ellu.looper.config;
 
-import com.ellu.looper.service.ProfileImageService;
+import com.ellu.looper.user.service.ProfileImageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
