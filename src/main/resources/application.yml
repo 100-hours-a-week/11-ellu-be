@@ -30,7 +30,7 @@ cloud:
       bucket: ${S3_BUCKET:looper-dev-image-s3}
       profile-image-prefix: ${IMAGE_PREFIX:profile-images}
       initialize-profile-images: false
-  
+
 kakao:
   client-id: ${KAKAO_REST_API_KEY}
 
@@ -42,6 +42,18 @@ fastapi:
 
 kafka:
   bootstrap-servers: ${KAFKA_BASE_URL:127.0.0.1:9092}
+
+# 현재는 OpenTelemetry가 시스템에 영향을 주지 않도록 완전히 비활성화함
+otel:
+  instrumentation:
+    jdbc:
+      enabled: false  # Hibernate와 충돌 방지
+  traces:
+    exporter: none  # 분산 추적 미사용
+  metrics:
+    exporter: none  # Prometheus 등으로 전송 안 함
+  logs:
+    exporter: none  # OTLP 로그 수집 중단
 
 management:
   endpoints:
@@ -68,3 +80,7 @@ info:
     name: ${spring.application.name}
     version: 1.0.1
     description: Looper API 서버
+
+logging:
+  level:
+    io.opentelemetry: DEBUG

@@ -43,7 +43,7 @@ public class NotificationProducer {
 
   public void sendNotification(NotificationMessage event) {
     try {
-      for (Long userId : event.getTargetUserIds()) {
+      for (Long userId : event.getReceiverId()) {
         String key = userId.toString();
         String value = objectMapper.writeValueAsString(event);
 
