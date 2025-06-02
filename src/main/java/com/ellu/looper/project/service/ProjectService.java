@@ -76,7 +76,6 @@ public class ProjectService {
     if (request.getAdded_members() != null) {
       for (ProjectCreateRequest.AddedMember member : request.getAdded_members()) {
         String nickname = member.getNickname();
-        String position = member.getPosition();
 
         // 생성자 본인을 초대하는 경우
         if (creator.getNickname().equals(nickname)) {
@@ -153,7 +152,7 @@ public class ProjectService {
     // Notification 생성
     NotificationTemplate inviteTemplate = notificationTemplateRepository
         .findByType(NotificationType.PROJECT_INVITED)
-        .orElseThrow(() -> new IllegalArgumentException("초대 템플릿 없음"));
+        .orElseThrow(() -> new IllegalArgumentException("초대 알림 템플릿 없음"));
     Map<String, String> nicknameToPosition = addedMemberRequests.stream()
         .collect(Collectors.toMap(ProjectCreateRequest.AddedMember::getNickname, ProjectCreateRequest.AddedMember::getPosition));
 
@@ -162,7 +161,6 @@ public class ProjectService {
       payload.put("creator", creator.getNickname());
       payload.put("project", project.getTitle());
       payload.put("position", nicknameToPosition.get(user.getNickname()));
-
       Notification notification = Notification.builder()
           .sender(creator)
           .receiver(user)
@@ -177,6 +175,7 @@ public class ProjectService {
       // Kafka를 통해 알림 메시지 전송
       NotificationMessage message = new NotificationMessage(
           NotificationType.PROJECT_INVITED.toString(),
+          notification.getId(),
           project.getId(), creator.getId(), List.of(user.getId()),
           notificationService.renderInvitationTemplate(inviteTemplate.getTemplate(), notification));
 
@@ -434,7 +433,7 @@ public class ProjectService {
     // Notification 생성
     NotificationTemplate inviteTemplate = notificationTemplateRepository
         .findByType(type)
-        .orElseThrow(() -> new IllegalArgumentException("초대 템플릿 없음"));
+        .orElseThrow(() -> new IllegalArgumentException("프로젝트 알림 템플릿 없음"));
 
     Map<String, Object> payload = new HashMap<>();
     payload.put("project", project.getTitle());
@@ -457,8 +456,8 @@ public class ProjectService {
 
       // Kafka를 통해 알림 메시지 전송
       NotificationMessage message = new NotificationMessage(
-          type.toString(),
-          project.getId(), creator.getId(), List.of(user.getId()),
+          type.toString(), notification.getId(), project.getId(),
+          creator.getId(), List.of(user.getId()),
           notificationService.renderProjectTemplate(
               inviteTemplate.getTemplate(), notification));
 

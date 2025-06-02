@@ -132,14 +132,14 @@ public class ProjectScheduleService {
           projectMemberRepository.findByProjectIdAndPositionAndDeletedAtIsNull(projectId,
               dto.getPosition());
 
-      List<Assignee> assignees = matchedMembers.stream()
-          .map(member -> Assignee.builder()
-              .projectSchedule(finalSchedule)
-              .user(member.getUser())
-              .build())
-          .toList();
-
-      assigneeRepository.saveAll(assignees);
+//      List<Assignee> assignees = matchedMembers.stream()
+//          .map(member -> Assignee.builder()
+//              .projectSchedule(finalSchedule)
+//              .user(member.getUser())
+//              .build())
+//          .toList();
+//
+//      assigneeRepository.saveAll(assignees);
 
       responses.add(new ProjectScheduleResponse(
           schedule.getId(),
@@ -151,12 +151,12 @@ public class ProjectScheduleService {
           true,
           schedule.getProject().getColor(),
           schedule.getPosition(),
-          convertToAssigneeDtos(assignees)
+          null
       ));
 
       // Send schedule creation notification
-      sendScheduleNotification(NotificationType.SCHEDULE_CREATED, assignees, userId, project,
-          schedule);
+      sendScheduleNotification(NotificationType.SCHEDULE_CREATED,
+          matchedMembers.stream().map(ProjectMember::getUser).toList(), userId, project, schedule);
     }
     return responses;
   }
@@ -179,30 +179,35 @@ public class ProjectScheduleService {
         request.title(), request.description(), request.start_time(), request.end_time(),
         request.position(), request.completed());
 
+    Set<User> notificationTargets = new HashSet<>();
+
     // If assignee is newly added or removed, update assignee table
     if (request.position() != null) {
       List<Assignee> currentAssignees = assigneeRepository
           .findByProjectScheduleIdAndDeletedAtIsNull(scheduleId);
 
       // Soft delete existing assignees
-      currentAssignees.forEach(Assignee::softDelete);
-
+      for (Assignee assignee : currentAssignees) {
+        assignee.softDelete();
+        notificationTargets.add(assignee.getUser());
+      }
       // Add new assignees
       List<ProjectMember> matchingMembers = projectMemberRepository.findByProjectIdAndPosition(
           schedule.getProject().getId(), request.position());
 
-      for (ProjectMember member : matchingMembers) {
-        Assignee newAssignee = new Assignee(schedule, member.getUser());
-        assigneeRepository.save(newAssignee);
-      }
+      matchingMembers.forEach(member -> notificationTargets.add(member.getUser()));
+
+//      for (ProjectMember member : matchingMembers) {
+//        Assignee newAssignee = new Assignee(schedule, member.getUser());
+//        assigneeRepository.save(newAssignee);
+//      }
     }
 
-    List<Assignee> assignees = assigneeRepository.findByProjectScheduleIdAndDeletedAtIsNull(
-        scheduleId);
+    List<Assignee> assignees = assigneeRepository.findByProjectScheduleIdAndDeletedAtIsNull(scheduleId);
 
     // Send schedule update notification
-    sendScheduleNotification(NotificationType.SCHEDULE_UPDATED, assignees, userId,
-        schedule.getProject(), schedule);
+    sendScheduleNotification(NotificationType.SCHEDULE_UPDATED, new ArrayList<>(notificationTargets),
+        userId, schedule.getProject(), schedule);
 
     return new ProjectScheduleResponse(
         schedule.getId(),
@@ -238,14 +243,16 @@ public class ProjectScheduleService {
     schedule.softDelete();
 
     // Send schedule deletion notification
-    sendScheduleNotification(NotificationType.SCHEDULE_DELETED, assignees, userId,
+    List<User> receivers = assignees.stream()
+        .map(Assignee::getUser)
+        .collect(Collectors.toList());
+    sendScheduleNotification(NotificationType.SCHEDULE_DELETED, receivers, userId,
         schedule.getProject(), schedule);
 
   }
 
   @Transactional(readOnly = true)
   public List<ProjectScheduleResponse> getDailySchedules(Long projectId, LocalDate day) {
-// TODO: assignee.has_taken_schedule=true인 경우만 아래에 포함
     LocalDateTime start = day.atStartOfDay();
     LocalDateTime end = day.plusDays(1).atStartOfDay().minusNanos(1);
     List<ProjectSchedule> dailyProjectSchedules =
@@ -302,7 +309,6 @@ public class ProjectScheduleService {
     List<ProjectSchedule> schedules =
         scheduleRepository.findSchedulesBetween(projectId, start, end);
 
-// TODO: assignee.has_taken_schedule=true인 경우만 아래에 포함
     LinkedHashMap<String, List<ProjectScheduleResponse>> collect =
         schedules.stream()
             .collect(
@@ -336,7 +342,7 @@ public class ProjectScheduleService {
         .toList();
   }
 
-  private void sendScheduleNotification(NotificationType type, List<Assignee> assignees,
+  private void sendScheduleNotification(NotificationType type, List<User> receivers,
       Long userId, Project project, ProjectSchedule schedule) {
     User creator =
         userRepository
@@ -346,17 +352,13 @@ public class ProjectScheduleService {
     // Notification 생성
     NotificationTemplate inviteTemplate = notificationTemplateRepository
         .findByType(type)
-        .orElseThrow(() -> new IllegalArgumentException("초대 템플릿 없음"));
+        .orElseThrow(() -> new IllegalArgumentException("해당 스케줄 알림 타입에 대한 템플릿이 존재하지 않습니다."));
 
     Map<String, Object> payload = new HashMap<>();
     payload.put("project", project.getTitle());
     payload.put("schedule", schedule.getTitle());
 
-    for (Assignee assignee : assignees) {
-      User receiver =
-          userRepository
-              .findById(assignee.getUser().getId())
-              .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    for (User receiver : receivers) {
 
       Notification notification = Notification.builder()
           .sender(creator)
@@ -371,12 +373,18 @@ public class ProjectScheduleService {
       // Kafka를 통해 알림 메시지 전송
       NotificationMessage message = new NotificationMessage(
           type.toString(),
-          project.getId(), creator.getId(), List.of(assignee.getUser().getId()),
+          notification.getId(),
+          project.getId(), creator.getId(), List.of(receiver.getId()),
           notificationService.renderScheduleTemplate(
               inviteTemplate.getTemplate(), notification));
 
       log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
       notificationProducer.sendNotification(message);
     }
+  }
+
+  @Transactional
+  public void takeSchedules(List<Long> scheduleIds, Long userId) {
+
   }
 }

@@ -16,4 +16,6 @@ public interface AssigneeRepository extends JpaRepository<Assignee, Long> {
       "WHERE a.projectSchedule.project.id = :projectId " +
       "AND a.deletedAt IS NULL")
   List<Assignee> findByProjectIdThroughScheduleAndDeletedAtIsNull(@Param("projectId") Long projectId);
+
+  boolean existsByUserIdAndProjectScheduleIdAndDeletedAtIsNull(Long userId, Long scheduleId);
 }

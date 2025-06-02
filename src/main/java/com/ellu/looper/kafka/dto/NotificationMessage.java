@@ -9,7 +9,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class NotificationMessage {
-  private String type; // e.g., "INVITE"
+  private String type;
+  private Long notificationId;
   private Long projectId;
   private Long senderId;
   private List<Long> receiverId;
