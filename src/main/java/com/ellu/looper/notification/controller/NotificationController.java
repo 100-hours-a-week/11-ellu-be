@@ -32,6 +32,6 @@ public class NotificationController {
   @PatchMapping("/{id}")
   public ApiResponse<NotificationDto> respondToInvitation(@PathVariable Long id, @CurrentUser Long userId, @RequestBody @Valid InvitationProcessRequest request) {
     NotificationDto notificationDto = notificationService.respondToInvitation(id, userId, request.getInviteStatus());
-    return ApiResponse.success("invitation_response_processed", notificationDto);
+    return ApiResponse.success("invitation_processed", notificationDto);
   }
 }

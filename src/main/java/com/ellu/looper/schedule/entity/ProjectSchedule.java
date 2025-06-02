@@ -67,6 +67,7 @@ public class ProjectSchedule {
   private LocalDateTime endTime;
 
   @Column(name = "is_completed", nullable = false)
+  @Builder.Default
   private boolean isCompleted = false;
 
   @Column(name = "created_at", nullable = false, updatable = false)
@@ -79,6 +80,7 @@ public class ProjectSchedule {
   private LocalDateTime deletedAt;
 
   @OneToMany(mappedBy = "projectSchedule", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
   private List<Assignee> assignees = new ArrayList<>();
 
   @PrePersist

@@ -35,8 +35,9 @@ public class SecurityConfig {
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
                         "/ai-callback/**",
-                        "/sse/*",
-                        "/admin/*")
+                        "/sse/**",
+                        "/admin/**",
+                        "/connect/**")
                     .permitAll()
                     .requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll() // Preflight 요청 허용
