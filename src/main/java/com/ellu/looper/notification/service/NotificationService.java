@@ -130,7 +130,7 @@ public class NotificationService {
     if (status.equalsIgnoreCase(InviteStatus.ACCEPTED.toString())) {
       boolean alreadyMember = projectMemberRepository.existsByProjectIdAndUserId(
           notification.getProject().getId(), userId);
-      if (!alreadyMember) {
+      if (!alreadyMember) { // TODO: 이미 있는 사람이면 다시 추가 불가
         ProjectMember member = ProjectMember.builder()
             .project(notification.getProject())
             .user(notification.getReceiver())
