@@ -2,7 +2,7 @@ name: Docker Image For Development
 on: 
   push:
     branches:
-      - develop
+      - feat/#114-live-calendar
 
 env:
   REGISTRY: ghcr.io
