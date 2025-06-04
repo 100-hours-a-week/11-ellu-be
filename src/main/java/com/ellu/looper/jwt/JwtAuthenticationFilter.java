@@ -45,7 +45,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         Long userId = jwtProvider.extractUserId(token);
 
         // 정상 인증
-        JwtAuthenticationToken authentication = new JwtAuthenticationToken(userId, null, null);
+        JwtAuthenticationToken authentication = new JwtAuthenticationToken(userId);
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authentication);
         log.info("JwtAuthenticationFilter 실행됨. 인증된 유저 ID: {}", userId);
