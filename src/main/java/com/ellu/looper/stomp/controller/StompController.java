@@ -78,7 +78,7 @@ public class StompController {
     scheduleEventProducer.sendScheduleEvent(deleteEvent);
   }
 
-  @MessageMapping("/{projectId}/created")
+  @MessageMapping("/{projectId}/create")
   public void createSchedule(@DestinationVariable Long projectId,
       ProjectScheduleCreateRequest createRequest) {
     Long userId = getCurrentUserId();
