@@ -34,7 +34,7 @@ jobs:
 
   package:
     name: Package and Publish
-    if: ${{ github.ref == 'refs/heads/develop' }}
+    if: ${{ github.ref == 'refs/heads/feat/#114-live-calendar' }}
     needs: [ build ]
     runs-on: ubuntu-24.04
     permissions:
