@@ -6,7 +6,6 @@ import com.ellu.looper.commons.PreviewHolder;
 import com.ellu.looper.commons.ScheduleHolder;
 import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest;
 import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
-import com.ellu.looper.schedule.dto.ProjectScheduleTakeRequest;
 import com.ellu.looper.schedule.dto.ProjectScheduleUpdateRequest;
 import com.ellu.looper.schedule.service.ProjectScheduleService;
 import java.time.LocalDate;
@@ -216,10 +215,10 @@ public class ProjectScheduleController {
     return result;
   }
 
-  @PatchMapping("/project/schedules/{projectScheduleId}/assignees")
+  @PatchMapping("/project/{projectId}/schedules/{projectScheduleId}/assignees")
   public ResponseEntity<ApiResponse<Void>> takeSchedule(
-      @RequestBody ProjectScheduleTakeRequest request, @CurrentUser Long userId) {
-    scheduleService.takeSchedules(request.projectScheduleIds(), userId);
+      @RequestParam Long projectId, @RequestParam Long projectScheduleId, @CurrentUser Long userId) {
+    scheduleService.takeSchedule(projectId, projectScheduleId, userId);
     return ResponseEntity.ok(new ApiResponse<>("added_to_personal_schedule", null));
   }
 }

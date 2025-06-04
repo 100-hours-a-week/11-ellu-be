@@ -27,11 +27,10 @@ public class StompWebsocketConfig implements WebSocketMessageBrokerConfigurer {
 
   @Override
   public void configureMessageBroker(MessageBrokerRegistry registry) {
-    //  /publish/*로 메시지가 발행되면 @Controller 객체의 @MessageMapping 매서드로 라우팅
-    registry.setApplicationDestinationPrefixes("/publish");
+    //  /app/*로 메시지가 발행되면 @Controller 객체의 @MessageMapping 매서드로 라우팅
+    registry.setApplicationDestinationPrefixes("/app");
     //  /topic/* 형태로 메시지를 수신(subscribe)해야 함을 설정
     registry.enableSimpleBroker("/topic");
-    // TODO: enableStompBrokerRelay로 외부 메시지 브로커인 kafka 사용하도록 수정
   }
 
   /*

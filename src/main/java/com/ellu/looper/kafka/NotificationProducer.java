@@ -8,6 +8,7 @@ import java.util.Properties;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -31,10 +32,10 @@ public class NotificationProducer {
   public void initialize() {
     // Create producer properties
     Properties properties = new Properties();
-    properties.setProperty("bootstrap.servers", bootstrapServers);
-    properties.setProperty("key.serializer", StringSerializer.class.getName());
-    properties.setProperty("value.serializer", StringSerializer.class.getName());
-    properties.setProperty("batch.size", "400");
+    properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+    properties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+    properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+    properties.setProperty(ProducerConfig.BATCH_SIZE_CONFIG, "400");
 
     // Create producer
     producer = new KafkaProducer<>(properties);
