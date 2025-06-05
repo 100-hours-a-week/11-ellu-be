@@ -1,3 +1,28 @@
+# [1.1.0](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.0.0...v1.1.0) (2025-06-05)
+
+
+### Bug Fixes
+
+* meeting note dto id field 타입 수정 ([#56](https://github.com/100-hours-a-week/11-ellu-be/issues/56)) ([206ab89](https://github.com/100-hours-a-week/11-ellu-be/commit/206ab8936261424ed5aaf360be84b8cb6d4300a2))
+* timezone 설정 ([#113](https://github.com/100-hours-a-week/11-ellu-be/issues/113)) ([953442c](https://github.com/100-hours-a-week/11-ellu-be/commit/953442cadc8158ed73c6d4a2151bbe580e75b947))
+* 보안 필터에서 관리자 엔드포인트 화이트리스트 처리 ([#104](https://github.com/100-hours-a-week/11-ellu-be/issues/104)) ([2c7d641](https://github.com/100-hours-a-week/11-ellu-be/commit/2c7d641e40145f80d2613346c186bc43348d1125))
+* 비동기 처리 추가 및 개발 환경 쿠키 설정 추가 ([#63](https://github.com/100-hours-a-week/11-ellu-be/issues/63)) ([f4116a1](https://github.com/100-hours-a-week/11-ellu-be/commit/f4116a1f0f58c9603e83cc2e1dfc02975998eea6))
+
+
+### Features
+
+* added project invitation exception & slight change in nickname live suggest logic ([#83](https://github.com/100-hours-a-week/11-ellu-be/issues/83)) ([a9ecb35](https://github.com/100-hours-a-week/11-ellu-be/commit/a9ecb3573818b73b575eb62dee30ecca5ea55bd1))
+* project detail view dto & project update logic revised ([#85](https://github.com/100-hours-a-week/11-ellu-be/issues/85)) ([7305e0c](https://github.com/100-hours-a-week/11-ellu-be/commit/7305e0c7646587b5599483fe8020d28b18ef98e5))
+* sse 로깅 추가 ([#98](https://github.com/100-hours-a-week/11-ellu-be/issues/98)) ([119c896](https://github.com/100-hours-a-week/11-ellu-be/commit/119c896a5903913031757b51dae7ecd8a11e4031))
+* 메트릭 정보 endpoint 추가 ([86acd28](https://github.com/100-hours-a-week/11-ellu-be/commit/86acd28a6c5fd61c820e94701994ec0df6d509b6))
+* 프로젝트 색상 필드 처리([#71](https://github.com/100-hours-a-week/11-ellu-be/issues/71)) ([#72](https://github.com/100-hours-a-week/11-ellu-be/issues/72)) ([53b2e94](https://github.com/100-hours-a-week/11-ellu-be/commit/53b2e94976fdc66d19afafeaec9e9c1dd41bcd0c))
+* 프로젝트 초대 수락/거절 알림 ([#110](https://github.com/100-hours-a-week/11-ellu-be/issues/110)) ([07b0523](https://github.com/100-hours-a-week/11-ellu-be/commit/07b0523c868bae4d255c5ad43e68986f82a175c2))
+
+
+### Reverts
+
+* Revert "fix: meeting note dto id field 타입 수정" ([#58](https://github.com/100-hours-a-week/11-ellu-be/issues/58)) ([7906505](https://github.com/100-hours-a-week/11-ellu-be/commit/790650523cc22e1a6ae161ed01e723741e10d9a1)), closes [#56](https://github.com/100-hours-a-week/11-ellu-be/issues/56)
+
 # 1.0.0 (2025-05-11)
 
 
