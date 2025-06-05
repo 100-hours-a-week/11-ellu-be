@@ -13,8 +13,6 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-  jackson:
-    time-zone: Asia/Seoul
 
 server:
   forward-headers-strategy: framework
@@ -32,7 +30,7 @@ cloud:
       bucket: ${S3_BUCKET:looper-dev-image-s3}
       profile-image-prefix: ${IMAGE_PREFIX:profile-images}
       initialize-profile-images: false
-
+  
 kakao:
   client-id: ${KAKAO_REST_API_KEY}
 
@@ -42,47 +40,20 @@ jwt:
 fastapi:
   base-url: ${FASTAPI_BASE_URL:http://localhost:8000}
 
-kafka:
-  bootstrap-servers: ${KAFKA_BASE_URL:127.0.0.1:9092}
-
-# 현재는 OpenTelemetry가 시스템에 영향을 주지 않도록 완전히 비활성화함
-otel:
-  instrumentation:
-    jdbc:
-      enabled: false  # Hibernate와 충돌 방지
-  traces:
-    exporter: none  # 분산 추적 미사용
-  metrics:
-    exporter: none  # Prometheus 등으로 전송 안 함
-  logs:
-    exporter: none  # OTLP 로그 수집 중단
-
 management:
   endpoints:
     web:
       exposure:
-        include: health, info, metrics, prometheus
+        include: health, info
   endpoint:
     health:
       show-details: always  # 필요 시 의존성 상태를 자세히 표시
-    metrics:
-      access: read_only
-    prometheus:
-      access: read_only
   info:
     env:
       enabled: true
-  prometheus:
-    metrics:
-      export:
-        enabled: true
 
 info:
   app:
     name: ${spring.application.name}
     version: 1.0.1
     description: Looper API 서버
-
-logging:
-  level:
-    io.opentelemetry: DEBUG
