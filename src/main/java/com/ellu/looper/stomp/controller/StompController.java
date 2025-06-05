@@ -4,7 +4,6 @@ import com.ellu.looper.commons.enums.NotificationType;
 import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest;
 import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
 import com.ellu.looper.kafka.dto.ScheduleEventMessage;
-import com.ellu.looper.jwt.JwtAuthenticationToken;
 import com.ellu.looper.kafka.ScheduleEventProducer;
 import com.ellu.looper.schedule.dto.ProjectScheduleTakeRequest;
 import com.ellu.looper.schedule.dto.ProjectScheduleUpdateRequest;
@@ -13,11 +12,11 @@ import com.ellu.looper.schedule.repository.ProjectScheduleRepository;
 import com.ellu.looper.schedule.service.ProjectScheduleService;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
+import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 
 @Controller
@@ -41,9 +40,11 @@ public class StompController {
   @MessageMapping("/{projectId}/update")
   // client에서 특정 /app/{projectId} 형태로 메시지를 publish 시 MessageMapping 수신
   public void handleScheduleUpdate(@DestinationVariable Long projectId,
-      ProjectScheduleUpdateRequest scheduleUpdateRequest) {
-    // 인증된 사용자 정보 가져오기
-    Long userId = getCurrentUserId();
+      ProjectScheduleUpdateRequest scheduleUpdateRequest, Message<?> headers) {
+
+    SimpMessageHeaderAccessor accessor = SimpMessageHeaderAccessor.wrap(headers);
+
+    Long userId = (Long) accessor.getSessionAttributes().get("userId");
 
     // 일정 수정 처리, 내부적으로 Notification 메시지 발행
     ProjectScheduleResponse projectScheduleResponse = projectScheduleService.updateSchedule(
@@ -62,8 +63,11 @@ public class StompController {
 
   @MessageMapping("/{projectId}/delete")
   public void handleScheduleDelete(@DestinationVariable Long projectId,
-      Long scheduleId) {
-    Long userId = getCurrentUserId();
+      Long scheduleId, Message<?> headers) {
+
+    SimpMessageHeaderAccessor accessor = SimpMessageHeaderAccessor.wrap(headers);
+
+    Long userId = (Long) accessor.getSessionAttributes().get("userId");
 
     projectScheduleService.deleteSchedule(scheduleId, userId);
 
@@ -80,9 +84,11 @@ public class StompController {
 
   @MessageMapping("/{projectId}/create")
   public void createSchedule(@DestinationVariable Long projectId,
-      ProjectScheduleCreateRequest createRequest) {
-    Long userId = getCurrentUserId();
+      ProjectScheduleCreateRequest createRequest, Message<?> headers) {
 
+    SimpMessageHeaderAccessor accessor = SimpMessageHeaderAccessor.wrap(headers);
+
+    Long userId = (Long) accessor.getSessionAttributes().get("userId");
     List<ProjectScheduleResponse> createdList = projectScheduleService.createSchedules(
         projectId, userId, createRequest);
 
@@ -100,8 +106,11 @@ public class StompController {
   // assignee 등록 + 개인 스케줄 생성
   @MessageMapping("/{projectId}/take")
   public void takeSchedule(@DestinationVariable Long projectId,
-      ProjectScheduleTakeRequest takeRequest) {
-    Long userId = getCurrentUserId();
+      ProjectScheduleTakeRequest takeRequest, Message<?> headers) {
+
+    SimpMessageHeaderAccessor accessor = SimpMessageHeaderAccessor.wrap(headers);
+
+    Long userId = (Long) accessor.getSessionAttributes().get("userId");
 
     projectScheduleService.takeSchedule(projectId, takeRequest.projectScheduleId(), userId);
 
@@ -119,14 +128,6 @@ public class StompController {
         .build();
 
     scheduleEventProducer.sendScheduleEvent(event);
-  }
-
-  private Long getCurrentUserId() {
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    if (authentication instanceof JwtAuthenticationToken jwtAuthToken) {
-      return (Long) jwtAuthToken.getPrincipal();
-    }
-    throw new IllegalStateException("Unauthenticated WebSocket user.");
   }
 
   private ScheduleEventMessage.ScheduleDto toDto(ProjectScheduleResponse response) {
