@@ -34,11 +34,17 @@ public class SecurityConfig {
                         "/auth/kakao/callback",
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
-                        "/ai-callback/**")
+                        "/ai-callback/**",
+                        "/sse/**",
+                        "/admin/**",
+                        "/connect/**")
                     .permitAll()
                     .requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll() // Preflight 요청 허용
-                    .requestMatchers(HttpMethod.GET, "/projects/*/tasks/preview").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/projects/*/tasks/preview")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/projects/*/schedules")
+                    .permitAll()
                     .anyRequest()
                     .authenticated() // 나머지는 인증 필요
             )
@@ -52,10 +58,8 @@ public class SecurityConfig {
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
     configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-    configuration.setAllowedOriginPatterns(List.of(
-        "http://localhost:3000",
-        "https://looper.my"
-    ));
+    configuration.setAllowedOriginPatterns(
+        List.of("http://localhost:3000", "https://looper.my", "https://dev.looper.my"));
     configuration.setAllowedHeaders(List.of("*"));
     configuration.setAllowCredentials(true); // 쿠키 인증 허용 시 true
 

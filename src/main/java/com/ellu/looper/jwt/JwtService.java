@@ -1,7 +1,7 @@
 package com.ellu.looper.jwt;
 
-import com.ellu.looper.entity.RefreshToken;
-import com.ellu.looper.repository.RefreshTokenRepository;
+import com.ellu.looper.auth.entity.RefreshToken;
+import com.ellu.looper.auth.repository.RefreshTokenRepository;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

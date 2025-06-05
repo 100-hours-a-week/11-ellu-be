@@ -60,7 +60,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
       }
     }
-
     filterChain.doFilter(request, response);
   }
 
@@ -108,7 +107,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     refreshCookie.setSecure(true);
     refreshCookie.setPath("/");
     refreshCookie.setMaxAge((int) JwtExpiration.REFRESH_TOKEN_EXPIRATION);
-
     response.addCookie(refreshCookie);
   }
 }
