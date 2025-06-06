@@ -1,8 +1,8 @@
 package com.ellu.looper.sse.service;
 
+import com.ellu.looper.kafka.dto.NotificationMessage;
 import com.ellu.looper.notification.dto.NotificationDto;
 import com.ellu.looper.notification.entity.Notification;
-import com.ellu.looper.kafka.dto.NotificationMessage;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

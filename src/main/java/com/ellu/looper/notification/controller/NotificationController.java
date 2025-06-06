@@ -8,7 +8,6 @@ import com.ellu.looper.notification.service.NotificationService;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,8 +29,12 @@ public class NotificationController {
   }
 
   @PatchMapping("/{id}")
-  public ApiResponse<NotificationDto> respondToInvitation(@PathVariable Long id, @CurrentUser Long userId, @RequestBody @Valid InvitationProcessRequest request) {
-    NotificationDto notificationDto = notificationService.respondToInvitation(id, userId, request.getInviteStatus());
+  public ApiResponse<NotificationDto> respondToInvitation(
+      @PathVariable Long id,
+      @CurrentUser Long userId,
+      @RequestBody @Valid InvitationProcessRequest request) {
+    NotificationDto notificationDto =
+        notificationService.respondToInvitation(id, userId, request.getInviteStatus());
     return ApiResponse.success("invitation_processed", notificationDto);
   }
 }

@@ -18,26 +18,34 @@ import org.springframework.web.context.request.async.DeferredResult;
 @RequiredArgsConstructor
 public class ScheduleHolder {
 
-  private final Map<String, DeferredResult<ResponseEntity<?>>> waitingClients = new ConcurrentHashMap<>();
+  private final Map<String, DeferredResult<ResponseEntity<?>>> waitingClients =
+      new ConcurrentHashMap<>();
   private final ProjectScheduleService scheduleService;
 
-  public void register(Long projectId, Long userId, ProjectScheduleCreateRequest request,
+  public void register(
+      Long projectId,
+      Long userId,
+      ProjectScheduleCreateRequest request,
       DeferredResult<ResponseEntity<?>> result) {
     String key = generateKey(projectId, userId);
     log.info("[ScheduleHolder] Registering dto creation request for key: {}", key);
-    waitingClients.put(key, result);    // 비동기 처리 시작
-    CompletableFuture.runAsync(() -> {
-      try {
-        log.info("[ScheduleHolder] Starting async dto creation for key: {}", key);
-        List<ProjectScheduleResponse> schedules = scheduleService.createSchedules(projectId, userId,
-            request);
-        complete(projectId, userId, schedules);
-      } catch (Exception e) {
-        log.error("[ScheduleHolder] Error during async dto creation for key: {}, error: {}",
-            key, e.getMessage(), e);
-        completeWithError(projectId, userId, e);
-      }
-    });
+    waitingClients.put(key, result); // 비동기 처리 시작
+    CompletableFuture.runAsync(
+        () -> {
+          try {
+            log.info("[ScheduleHolder] Starting async dto creation for key: {}", key);
+            List<ProjectScheduleResponse> schedules =
+                scheduleService.createSchedules(projectId, userId, request);
+            complete(projectId, userId, schedules);
+          } catch (Exception e) {
+            log.error(
+                "[ScheduleHolder] Error during async dto creation for key: {}, error: {}",
+                key,
+                e.getMessage(),
+                e);
+            completeWithError(projectId, userId, e);
+          }
+        });
   }
 
   public void complete(Long projectId, Long userId, List<ProjectScheduleResponse> response) {
@@ -46,7 +54,8 @@ public class ScheduleHolder {
     DeferredResult<ResponseEntity<?>> result = waitingClients.remove(key);
     if (result != null && !result.isSetOrExpired()) {
       log.info("[ScheduleHolder] Setting successful result for key: {}", key);
-      result.setResult(ResponseEntity.ok(ApiResponse.success("project_schedule_created", response)));
+      result.setResult(
+          ResponseEntity.ok(ApiResponse.success("project_schedule_created", response)));
     } else {
       log.warn("[ScheduleHolder] No waiting client found or result already set for key: {}", key);
     }
@@ -54,8 +63,11 @@ public class ScheduleHolder {
 
   public void completeWithError(Long projectId, Long userId, Throwable error) {
     String key = generateKey(projectId, userId);
-    log.error("[ScheduleHolder] Completing with error for key: {}, error: {}", key,
-        error.getMessage(), error);
+    log.error(
+        "[ScheduleHolder] Completing with error for key: {}, error: {}",
+        key,
+        error.getMessage(),
+        error);
     DeferredResult<ResponseEntity<?>> result = waitingClients.remove(key);
     if (result != null) {
       result.setResult(

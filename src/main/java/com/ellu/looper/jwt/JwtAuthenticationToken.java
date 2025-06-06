@@ -9,7 +9,7 @@ public class JwtAuthenticationToken extends AbstractAuthenticationToken {
 
   private final Long userId;
 
-  public JwtAuthenticationToken(Long userId, Object credentials, Object principal) {
+  public JwtAuthenticationToken(Long userId) {
     super(AuthorityUtils.NO_AUTHORITIES);
     this.userId = userId;
     super.setAuthenticated(true); // 무조건 인증 처리

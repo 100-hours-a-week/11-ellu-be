@@ -17,6 +17,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(
@@ -33,6 +34,7 @@ public class Assignee {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  @Setter
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "project_schedule_id", nullable = false)
   private ProjectSchedule projectSchedule;
@@ -46,9 +48,6 @@ public class Assignee {
 
   @Column(name = "deleted_at")
   private LocalDateTime deletedAt;
-
-  @Column(name = "has_taken_schedule")
-  private Boolean hasTakenSchedule;
 
   @PrePersist
   protected void onCreate() {

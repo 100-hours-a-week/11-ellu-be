@@ -16,4 +16,3 @@ public class NotificationCleanupScheduler {
     notificationService.softDeleteOldNotifications();
   }
 }
-

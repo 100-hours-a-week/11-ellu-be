@@ -2,7 +2,6 @@ package com.ellu.looper.project.repository;
 
 import com.ellu.looper.project.entity.Project;
 import com.ellu.looper.project.entity.ProjectMember;
-import com.ellu.looper.user.entity.User;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
