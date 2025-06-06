@@ -117,6 +117,11 @@ public class ProjectScheduleService {
     List<ProjectScheduleResponse> responses = new ArrayList<>();
 
     for (ProjectScheduleCreateRequest.ProjectScheduleDto dto : request.getProject_schedules()) {
+      // match by project id and position
+      List<ProjectMember> matchedMembers =
+          projectMemberRepository.findByProjectIdAndPositionAndDeletedAtIsNull(projectId,
+              dto.getPosition());
+
       ProjectSchedule schedule = ProjectSchedule.builder()
           .project(project)
           .user(user)
@@ -125,27 +130,19 @@ public class ProjectScheduleService {
           .startTime(dto.getStartTime())
           .endTime(dto.getEndTime())
           .isCompleted(dto.getCompleted())
+          .position(dto.getPosition())
           .build();
+
+      for (ProjectMember member : matchedMembers) {
+        Assignee assignee = Assignee.builder()
+            .user(member.getUser())
+            .build();
+        schedule.addAssignee(assignee);
+      }
 
       schedule = projectScheduleRepository.save(schedule);
 
-      // match by project id and position
-      List<ProjectMember> matchedMembers =
-          projectMemberRepository.findByProjectIdAndPositionAndDeletedAtIsNull(projectId,
-              dto.getPosition());
-
-      responses.add(new ProjectScheduleResponse(
-          schedule.getId(),
-          schedule.getTitle(),
-          schedule.getDescription(),
-          schedule.getStartTime(),
-          schedule.getEndTime(),
-          schedule.isCompleted(),
-          true,
-          schedule.getProject().getColor(),
-          schedule.getPosition(),
-          null
-      ));
+      responses.add(toResponse(schedule));
 
       // Send schedule creation notification
       sendScheduleNotification(NotificationType.SCHEDULE_CREATED,
@@ -188,7 +185,17 @@ public class ProjectScheduleService {
       List<ProjectMember> matchingMembers = projectMemberRepository.findByProjectIdAndPosition(
           schedule.getProject().getId(), request.position());
 
-      matchingMembers.forEach(member -> notificationTargets.add(member.getUser()));
+      for (ProjectMember member : matchingMembers) {
+        Assignee newAssignee = Assignee.builder()
+            .projectSchedule(schedule)
+            .user(member.getUser())
+            .build();
+
+        schedule.addAssignee(newAssignee);
+        assigneeRepository.save(newAssignee);
+
+        notificationTargets.add(member.getUser());
+      }
     }
 
     List<Assignee> assignees = assigneeRepository.findByProjectScheduleIdAndDeletedAtIsNull(
@@ -391,7 +398,9 @@ public class ProjectScheduleService {
         .orElseThrow(() -> new IllegalArgumentException("Project Member not found"));
     if (schedule.getPosition() != projectMember.getPosition()) {
       throw new AccessDeniedException(
-          String.format("Access denied: user %d is not authorized to take schedule %d due to position mismatch.", userId, scheduleId));
+          String.format(
+              "Access denied: user %d is not authorized to take schedule %d due to position mismatch.",
+              userId, scheduleId));
     }
 
     // add this user to assignee table

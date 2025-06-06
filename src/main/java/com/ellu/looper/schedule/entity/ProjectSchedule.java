@@ -124,4 +124,9 @@ public class ProjectSchedule {
       this.isCompleted = isCompleted;
     }
   }
+
+  public void addAssignee(Assignee assignee) {
+    assignee.setProjectSchedule(this);
+    this.assignees.add(assignee);
+  }
 }
