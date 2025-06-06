@@ -1,12 +1,12 @@
 package com.ellu.looper.auth.controller;
 
-import com.ellu.looper.commons.ApiResponse;
-import com.ellu.looper.commons.CurrentUser;
 import com.ellu.looper.auth.dto.AuthResponse;
 import com.ellu.looper.auth.dto.LoginResponse;
-import com.ellu.looper.user.dto.NicknameRequest;
 import com.ellu.looper.auth.dto.TokenRefreshResponse;
 import com.ellu.looper.auth.service.AuthService;
+import com.ellu.looper.commons.ApiResponse;
+import com.ellu.looper.commons.CurrentUser;
+import com.ellu.looper.user.dto.NicknameRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

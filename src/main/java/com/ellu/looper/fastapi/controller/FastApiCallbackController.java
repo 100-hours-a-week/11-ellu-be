@@ -1,7 +1,7 @@
 package com.ellu.looper.fastapi.controller;
 
-import com.ellu.looper.project.dto.MeetingNoteResponse;
 import com.ellu.looper.fastapi.service.FastApiService;
+import com.ellu.looper.project.dto.MeetingNoteResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

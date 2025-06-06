@@ -38,8 +38,8 @@ public class NotificationService {
   @Transactional
   public void softDeleteOldNotifications() {
     LocalDateTime oneWeekAgo = LocalDateTime.now().minusWeeks(1);
-    List<Notification> oldNotifications = notificationRepository.findByCreatedAtBeforeAndDeletedAtIsNull(
-        oneWeekAgo);
+    List<Notification> oldNotifications =
+        notificationRepository.findByCreatedAtBeforeAndDeletedAtIsNull(oneWeekAgo);
 
     for (Notification notification : oldNotifications) {
       notification.softDelete(LocalDateTime.now());
@@ -51,34 +51,35 @@ public class NotificationService {
   }
 
   public List<NotificationDto> getNotifications(Long userId) {
-    List<Notification> notifications = notificationRepository.findByReceiverIdAndDeletedAtIsNullOrderByCreatedAtDesc(
-        userId);
+    List<Notification> notifications =
+        notificationRepository.findByReceiverIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId);
 
     return notifications.stream()
-        .map(n -> {
-          String message;
-          Long templateId = n.getTemplate().getId();
+        .map(
+            n -> {
+              String message;
+              Long templateId = n.getTemplate().getId();
 
-          if (templateId == 1L) {
-            message = renderInvitationTemplate(n.getTemplate().getTemplate(), n);
-          } else if (templateId == 2L || templateId == 3L) {
-            message = renderProjectTemplate(n.getTemplate().getTemplate(), n);
-          } else if (templateId == 4L || templateId == 5L || templateId == 6L) {
-            message = renderScheduleTemplate(n.getTemplate().getTemplate(), n);
-          } else if (templateId == 7L) {
-            message = renderInvitationResponseTemplate(n.getTemplate().getTemplate(), n);
-          } else {
-            message = "";
-          }
+              if (templateId == 1L) {
+                message = renderInvitationTemplate(n.getTemplate().getTemplate(), n);
+              } else if (templateId == 2L || templateId == 3L) {
+                message = renderProjectTemplate(n.getTemplate().getTemplate(), n);
+              } else if (templateId == 4L || templateId == 5L || templateId == 6L) {
+                message = renderScheduleTemplate(n.getTemplate().getTemplate(), n);
+              } else if (templateId == 7L) {
+                message = renderInvitationResponseTemplate(n.getTemplate().getTemplate(), n);
+              } else {
+                message = "";
+              }
 
-          return NotificationDto.builder()
-              .id(n.getId())
-              .senderNickname(n.getSender().getNickname())
-              .message(message)
-              .inviteStatus(n.getInviteStatus())
-              .createdAt(n.getCreatedAt())
-              .build();
-        })
+              return NotificationDto.builder()
+                  .id(n.getId())
+                  .senderNickname(n.getSender().getNickname())
+                  .message(message)
+                  .inviteStatus(n.getInviteStatus())
+                  .createdAt(n.getCreatedAt())
+                  .build();
+            })
         .collect(Collectors.toList());
   }
 
@@ -97,8 +98,7 @@ public class NotificationService {
   }
 
   public String renderProjectTemplate(String template, Notification notification) {
-    return template
-        .replace("{project}", notification.getPayload().get("project").toString());
+    return template.replace("{project}", notification.getPayload().get("project").toString());
   }
 
   public String renderScheduleTemplate(String template, Notification notification) {
@@ -109,79 +109,91 @@ public class NotificationService {
 
   @Transactional
   public NotificationDto respondToInvitation(Long notificationId, Long userId, String status) {
-    Notification notification = notificationRepository.findByIdAndDeletedAtIsNull(notificationId)
-        .orElseThrow(() -> new IllegalArgumentException("Notification not found"));
+    Notification notification =
+        notificationRepository
+            .findByIdAndDeletedAtIsNull(notificationId)
+            .orElseThrow(() -> new IllegalArgumentException("Notification not found"));
 
     if (!notification.getReceiver().getId().equals(userId)) {
       throw new AccessDeniedException("Unauthorized to process this notification.");
     }
 
-    if (!status.equalsIgnoreCase(InviteStatus.ACCEPTED.toString()) && !status.equalsIgnoreCase(
-        InviteStatus.REJECTED.toString())) {
+    if (!status.equalsIgnoreCase(InviteStatus.ACCEPTED.toString())
+        && !status.equalsIgnoreCase(InviteStatus.REJECTED.toString())) {
       throw new IllegalArgumentException("Status must be 'ACCEPTED' or 'REJECTED'.");
     }
 
-    notification = notification.toBuilder()
-        .inviteStatus(status.toUpperCase())
-        .updatedAt(LocalDateTime.now())
-        .build();
+    notification =
+        notification.toBuilder()
+            .inviteStatus(status.toUpperCase())
+            .updatedAt(LocalDateTime.now())
+            .build();
 
     notificationRepository.save(notification);
     if (status.equalsIgnoreCase(InviteStatus.ACCEPTED.toString())) {
-      boolean alreadyMember = projectMemberRepository.existsByProjectIdAndUserId(
-          notification.getProject().getId(), userId);
+      boolean alreadyMember =
+          projectMemberRepository.existsByProjectIdAndUserId(
+              notification.getProject().getId(), userId);
       if (!alreadyMember) {
-        ProjectMember member = ProjectMember.builder()
-            .project(notification.getProject())
-            .user(notification.getReceiver())
-            .role(Role.PARTICIPANT)
-            .position(notification.getPayload().get("position").toString())
-            .build();
+        ProjectMember member =
+            ProjectMember.builder()
+                .project(notification.getProject())
+                .user(notification.getReceiver())
+                .role(Role.PARTICIPANT)
+                .position(notification.getPayload().get("position").toString())
+                .build();
         projectMemberRepository.save(member);
         sendInvitationResponseNotification(member.getUser(), notification.getProject(), "수락");
       }
     } else if (status.equalsIgnoreCase(InviteStatus.REJECTED.name())) {
-      sendInvitationResponseNotification(notification.getReceiver(), notification.getProject(), "거부");
+      sendInvitationResponseNotification(
+          notification.getReceiver(), notification.getProject(), "거부");
     }
 
-    String message = renderInvitationTemplate(notification.getTemplate().getTemplate(),
-        notification);
-    return new NotificationDto(notificationId, notification.getSender().getNickname(), message,
-        notification.getInviteStatus(), notification.getCreatedAt());
+    String message =
+        renderInvitationTemplate(notification.getTemplate().getTemplate(), notification);
+    return new NotificationDto(
+        notificationId,
+        notification.getSender().getNickname(),
+        message,
+        notification.getInviteStatus(),
+        notification.getCreatedAt());
   }
 
   private void sendInvitationResponseNotification(User creator, Project project, String status) {
     // Notification 생성
-    NotificationTemplate inviteResponseTemplate = notificationTemplateRepository
-        .findByType(NotificationType.INVITATION_PROCESSED)
-        .orElseThrow(() -> new IllegalArgumentException("초대 수락/거부 알림 템플릿 없음"));
+    NotificationTemplate inviteResponseTemplate =
+        notificationTemplateRepository
+            .findByType(NotificationType.INVITATION_PROCESSED)
+            .orElseThrow(() -> new IllegalArgumentException("초대 수락/거부 알림 템플릿 없음"));
 
     User projectCreator = project.getMember();
     Map<String, Object> payload = new HashMap<>();
     payload.put("receiver", projectCreator.getNickname());
     payload.put("status", status);
     payload.put("project", project.getTitle());
-    Notification notification = Notification.builder()
-        .sender(creator)
-        .receiver(projectCreator)
-        .project(project)
-        .template(inviteResponseTemplate)
-        .payload(payload)
-        .createdAt(LocalDateTime.now())
-        .build();
+    Notification notification =
+        Notification.builder()
+            .sender(creator)
+            .receiver(projectCreator)
+            .project(project)
+            .template(inviteResponseTemplate)
+            .payload(payload)
+            .createdAt(LocalDateTime.now())
+            .build();
     notificationRepository.save(notification);
 
     // Kafka를 통해 알림 메시지 전송
-    NotificationMessage message = new NotificationMessage(
-        NotificationType.INVITATION_PROCESSED.toString(),
-        notification.getId(),
-        project.getId(), creator.getId(), List.of(projectCreator.getId()),
-        renderInvitationResponseTemplate(inviteResponseTemplate.getTemplate(), notification));
+    NotificationMessage message =
+        new NotificationMessage(
+            NotificationType.INVITATION_PROCESSED.toString(),
+            notification.getId(),
+            project.getId(),
+            creator.getId(),
+            List.of(projectCreator.getId()),
+            renderInvitationResponseTemplate(inviteResponseTemplate.getTemplate(), notification));
 
     log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
     notificationProducer.sendNotification(message);
-
   }
-
-
 }
