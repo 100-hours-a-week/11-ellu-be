@@ -21,84 +21,88 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Service
 public class ScheduleEventConsumer implements Runnable {
-    private static final Logger log = LoggerFactory.getLogger(ScheduleEventConsumer.class.getSimpleName());
-    private final ObjectMapper objectMapper;
-    private final SimpMessagingTemplate messagingTemplate;
-    private KafkaConsumer<String, String> consumer;
-    private volatile boolean running = true;
+  private static final Logger log =
+      LoggerFactory.getLogger(ScheduleEventConsumer.class.getSimpleName());
+  private final ObjectMapper objectMapper;
+  private final SimpMessagingTemplate messagingTemplate;
+  private KafkaConsumer<String, String> consumer;
+  private volatile boolean running = true;
 
-    @Value("${kafka.bootstrap-servers}")
-    private String bootstrapServers;
+  @Value("${kafka.bootstrap-servers}")
+  private String bootstrapServers;
 
-    @PostConstruct
-    public void init() {
-        log.info("ScheduleEventConsumer init() called");
-        this.start();
-    }
+  @PostConstruct
+  public void init() {
+    log.info("ScheduleEventConsumer init() called");
+    this.start();
+  }
 
-    public void start() {
-        String groupId = "schedule-service-group";
-        String topic = "schedule";
+  public void start() {
+    String groupId = "schedule-service-group";
+    String topic = "schedule";
 
-        Properties properties = new Properties();
-        properties.setProperty("bootstrap.servers", bootstrapServers);
-        properties.setProperty("key.deserializer", StringDeserializer.class.getName());
-        properties.setProperty("value.deserializer", StringDeserializer.class.getName());
-        properties.setProperty("group.id", groupId);
-        properties.setProperty("auto.offset.reset", "earliest");
+    Properties properties = new Properties();
+    properties.setProperty("bootstrap.servers", bootstrapServers);
+    properties.setProperty("key.deserializer", StringDeserializer.class.getName());
+    properties.setProperty("value.deserializer", StringDeserializer.class.getName());
+    properties.setProperty("group.id", groupId);
+    properties.setProperty("auto.offset.reset", "earliest");
 
-        consumer = new KafkaConsumer<>(properties);
+    consumer = new KafkaConsumer<>(properties);
 
-        final Thread mainThread = Thread.currentThread();
+    final Thread mainThread = Thread.currentThread();
 
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            public void run() {
+    Runtime.getRuntime()
+        .addShutdownHook(
+            new Thread() {
+              public void run() {
                 log.info("Detected a shutdown, exit by calling consumer.wakeup()");
                 running = false;
                 consumer.wakeup();
                 try {
-                    mainThread.join();
+                  mainThread.join();
                 } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+                  throw new RuntimeException(e);
                 }
-            }
-        });
+              }
+            });
 
-        new Thread(this).start();
-    }
+    new Thread(this).start();
+  }
 
-    @Override
-    public void run() {
-        try {
-            consumer.subscribe(Arrays.asList("schedule"));
+  @Override
+  public void run() {
+    try {
+      consumer.subscribe(Arrays.asList("schedule"));
 
-            while (running) {
-                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
+      while (running) {
+        ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
 
-                for (ConsumerRecord<String, String> record : records) {
-                    try {
-                        ScheduleEventMessage event = objectMapper.readValue(record.value(), ScheduleEventMessage.class);
-                        processScheduleEvent(event);
-                        log.info(
-                            "Processed schedule event for partition: {}, offset: {}",
-                            record.partition(),
-                            record.offset());
-                    } catch (Exception e) {
-                        log.error("Error processing schedule event: {}", e.getMessage(), e);
-                    }
-                }
-            }
-        } catch (WakeupException e) {
-            log.info("Consumer is starting to shut down");
-        } catch (Exception e) {
-            log.error("Unexpected exception in the consumer", e);
-        } finally {
-            consumer.close();
-            log.info("The consumer is now gracefully shut down");
+        for (ConsumerRecord<String, String> record : records) {
+          try {
+            ScheduleEventMessage event =
+                objectMapper.readValue(record.value(), ScheduleEventMessage.class);
+            processScheduleEvent(event);
+            log.info(
+                "Processed schedule event for partition: {}, offset: {}",
+                record.partition(),
+                record.offset());
+          } catch (Exception e) {
+            log.error("Error processing schedule event: {}", e.getMessage(), e);
+          }
         }
+      }
+    } catch (WakeupException e) {
+      log.info("Consumer is starting to shut down");
+    } catch (Exception e) {
+      log.error("Unexpected exception in the consumer", e);
+    } finally {
+      consumer.close();
+      log.info("The consumer is now gracefully shut down");
     }
+  }
 
-    private void processScheduleEvent(ScheduleEventMessage event) {
-        messagingTemplate.convertAndSend("/topic/" + event.getProjectId(), event);
-    }
-} 
+  private void processScheduleEvent(ScheduleEventMessage event) {
+    messagingTemplate.convertAndSend("/topic/" + event.getProjectId(), event);
+  }
+}

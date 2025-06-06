@@ -11,7 +11,6 @@ import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
-
 @Component
 @Slf4j
 public class StompHandler implements ChannelInterceptor {
@@ -46,5 +45,4 @@ public class StompHandler implements ChannelInterceptor {
     }
     return message;
   }
-
 }

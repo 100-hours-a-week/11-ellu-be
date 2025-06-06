@@ -1,17 +1,27 @@
 package com.ellu.looper.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+import com.ellu.looper.exception.ValidationException;
+import com.ellu.looper.project.entity.Project;
+import com.ellu.looper.project.repository.ProjectRepository;
 import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest;
 import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest.ProjectScheduleDto;
 import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
 import com.ellu.looper.schedule.dto.ProjectScheduleUpdateRequest;
-import com.ellu.looper.project.entity.Project;
 import com.ellu.looper.schedule.entity.ProjectSchedule;
+import com.ellu.looper.schedule.repository.ProjectScheduleRepository;
 import com.ellu.looper.schedule.service.ProjectScheduleService;
 import com.ellu.looper.user.entity.User;
-import com.ellu.looper.exception.ValidationException;
-import com.ellu.looper.project.repository.ProjectRepository;
-import com.ellu.looper.schedule.repository.ProjectScheduleRepository;
 import com.ellu.looper.user.repository.UserRepository;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.Year;
+import java.time.YearMonth;
+import java.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,29 +31,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.Year;
-import java.time.YearMonth;
-import java.util.*;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
 class ProjectScheduleServiceTest {
 
-  @Mock
-  private ProjectScheduleRepository scheduleRepository;
-  @Mock
-  private ProjectRepository projectRepository;
-  @Mock
-  private UserRepository userRepository;
+  @Mock private ProjectScheduleRepository scheduleRepository;
+  @Mock private ProjectRepository projectRepository;
+  @Mock private UserRepository userRepository;
 
-  @InjectMocks
-  private ProjectScheduleService service;
+  @InjectMocks private ProjectScheduleService service;
 
   private Project project;
   private User user;
@@ -58,15 +53,16 @@ class ProjectScheduleServiceTest {
 
     project = Project.builder().id(1L).build();
     user = User.builder().id(2L).build();
-    schedule = ProjectSchedule.builder()
-        .project(project)
-        .user(user)
-        .title("title")
-        .description("desc")
-        .startTime(now)
-        .endTime(future)
-        .isCompleted(false)
-        .build();
+    schedule =
+        ProjectSchedule.builder()
+            .project(project)
+            .user(user)
+            .title("title")
+            .description("desc")
+            .startTime(now)
+            .endTime(future)
+            .isCompleted(false)
+            .build();
   }
 
   @Test
@@ -89,8 +85,8 @@ class ProjectScheduleServiceTest {
   @Test
   @DisplayName("프로젝트 일정 생성 실패 - 유효하지 않은 시간")
   void createSchedules_InvalidTime() {
-    ProjectScheduleDto dto = new ProjectScheduleDto("New Schedule", "New Description", future, now,
-        false);
+    ProjectScheduleDto dto =
+        new ProjectScheduleDto("New Schedule", "New Description", future, now, false);
     ProjectScheduleCreateRequest req = new ProjectScheduleCreateRequest(List.of(dto));
 
     when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
@@ -107,9 +103,9 @@ class ProjectScheduleServiceTest {
     LocalDateTime now = LocalDateTime.now();
     LocalDateTime future = now.plusDays(1);
 
-    ProjectScheduleUpdateRequest req = new ProjectScheduleUpdateRequest(
-        "Updated Title", "Updated Description",
-        now.plusHours(2), future.plusHours(2), true);
+    ProjectScheduleUpdateRequest req =
+        new ProjectScheduleUpdateRequest(
+            "Updated Title", "Updated Description", now.plusHours(2), future.plusHours(2), true);
 
     User mockUser = mock(User.class);
     when(mockUser.getId()).thenReturn(2L);
@@ -138,18 +134,19 @@ class ProjectScheduleServiceTest {
     assertThat(resp.end_time()).isEqualTo(future.plusHours(2));
     assertThat(resp.is_completed()).isTrue();
 
-    verify(schedule).update(
-        "Updated Title", "Updated Description", now.plusHours(2), future.plusHours(2), true);
+    verify(schedule)
+        .update(
+            "Updated Title", "Updated Description", now.plusHours(2), future.plusHours(2), true);
   }
-
 
   @Test
   @DisplayName("프로젝트 일정 수정 실패 - 권한 없음")
   void updateSchedule_Unauthorized() {
     User otherUser = User.builder().id(99L).build();
     ProjectSchedule otherSchedule = ProjectSchedule.builder().user(otherUser).build();
-    ProjectScheduleUpdateRequest req = new ProjectScheduleUpdateRequest("title", "description",
-        LocalDateTime.now(), LocalDateTime.now().plusHours(1), false);
+    ProjectScheduleUpdateRequest req =
+        new ProjectScheduleUpdateRequest(
+            "title", "description", LocalDateTime.now(), LocalDateTime.now().plusHours(1), false);
 
     when(scheduleRepository.findByIdAndDeletedAtIsNull(11L)).thenReturn(Optional.of(otherSchedule));
 
@@ -277,5 +274,4 @@ class ProjectScheduleServiceTest {
     assertThat(may11).hasSize(1);
     assertThat(may11.get(0).title()).isEqualTo("Task C");
   }
-
 }
