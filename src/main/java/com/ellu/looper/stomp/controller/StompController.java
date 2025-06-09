@@ -20,6 +20,7 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Controller;
 
+@Slf4j
 @Controller
 public class StompController {
 
@@ -128,7 +129,7 @@ public class StompController {
     // 반영된 스케줄 정보 조회
     ProjectSchedule updatedSchedule =
         projectScheduleRepository
-            .findByIdAndDeletedAtIsNull(takeRequest.schedule_id())
+            .findWithDetailsById(takeRequest.schedule_id())
             .orElseThrow(() -> new EntityNotFoundException("Project schedule not found"));
 
     // Kafka로 스케줄 업데이트 이벤트 발행
@@ -139,6 +140,7 @@ public class StompController {
             .schedule(toDto(projectScheduleService.toResponse(updatedSchedule)))
             .build();
 
+    log.info("TRYING TO SEND KAFKA MESSAGE: {}", event.getSchedule());
     scheduleEventProducer.sendScheduleEvent(event);
   }
 
