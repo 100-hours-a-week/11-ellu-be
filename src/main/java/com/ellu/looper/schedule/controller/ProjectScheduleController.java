@@ -77,14 +77,14 @@ public class ProjectScheduleController {
     return result;
   }
 
-  @PatchMapping("/schedules/{scheduleId}")
-  public ResponseEntity<ApiResponse<ProjectScheduleResponse>> updateSchedule(
-      @PathVariable Long scheduleId,
-      @RequestBody ProjectScheduleUpdateRequest request,
-      @CurrentUser Long userId) {
-    ProjectScheduleResponse result = scheduleService.updateSchedule(scheduleId, userId, request);
-    return ResponseEntity.ok(new ApiResponse<>("schedule_updated", result));
-  }
+//  @PatchMapping("/schedules/{scheduleId}")
+//  public ResponseEntity<ApiResponse<ProjectScheduleResponse>> updateSchedule(
+//      @PathVariable Long scheduleId,
+//      @RequestBody ProjectScheduleUpdateRequest request,
+//      @CurrentUser Long userId) {
+//    ProjectScheduleResponse result = scheduleService.updateSchedule(scheduleId, userId, request);
+//    return ResponseEntity.ok(new ApiResponse<>("schedule_updated", result));
+//  }
 
   @DeleteMapping("/schedules/{scheduleId}")
   public ResponseEntity<Void> deleteSchedule(
