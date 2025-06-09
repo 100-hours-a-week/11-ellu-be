@@ -20,7 +20,6 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Controller;
 
-@Slf4j
 @Controller
 public class StompController {
 
@@ -140,7 +139,6 @@ public class StompController {
             .schedule(toDto(projectScheduleService.toResponse(updatedSchedule)))
             .build();
 
-    log.info("TRYING TO SEND KAFKA MESSAGE: {}", event.getSchedule());
     scheduleEventProducer.sendScheduleEvent(event);
   }
 

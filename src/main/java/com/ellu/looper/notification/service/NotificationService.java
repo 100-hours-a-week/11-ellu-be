@@ -58,15 +58,15 @@ public class NotificationService {
         .map(
             n -> {
               String message;
-              Long templateId = n.getTemplate().getId();
+              NotificationType type = n.getTemplate().getType();
 
-              if (templateId == 1L) {
+              if (type.equals(NotificationType.PROJECT_INVITED)) {
                 message = renderInvitationTemplate(n.getTemplate().getTemplate(), n);
-              } else if (templateId == 2L || templateId == 3L) {
+              } else if (type.equals(NotificationType.PROJECT_DELETED) || type.equals(NotificationType.PROJECT_EXPELLED)) {
                 message = renderProjectTemplate(n.getTemplate().getTemplate(), n);
-              } else if (templateId == 4L || templateId == 5L || templateId == 6L) {
+              } else if (type.equals(NotificationType.SCHEDULE_CREATED) || type.equals(NotificationType.SCHEDULE_UPDATED)|| type.equals(NotificationType.SCHEDULE_DELETED)) {
                 message = renderScheduleTemplate(n.getTemplate().getTemplate(), n);
-              } else if (templateId == 7L) {
+              } else if (type.equals(NotificationType.INVITATION_PROCESSED)) {
                 message = renderInvitationResponseTemplate(n.getTemplate().getTemplate(), n);
               } else {
                 message = "";
@@ -143,7 +143,7 @@ public class NotificationService {
                 .position(notification.getPayload().get("position").toString())
                 .build();
         projectMemberRepository.save(member);
-        sendInvitationResponseNotification(member.getUser(), notification.getProject(), "수락");
+        sendInvitationResponseNotification(notification.getReceiver(), notification.getProject(), "수락");
       }
     } else if (status.equalsIgnoreCase(InviteStatus.REJECTED.name())) {
       sendInvitationResponseNotification(
@@ -160,7 +160,7 @@ public class NotificationService {
         notification.getCreatedAt());
   }
 
-  private void sendInvitationResponseNotification(User receiver, Project project, String status) {
+  private void sendInvitationResponseNotification(User sender, Project project, String status) {
     // Notification 생성
     NotificationTemplate inviteResponseTemplate =
         notificationTemplateRepository
@@ -169,13 +169,13 @@ public class NotificationService {
 
     User projectCreator = project.getMember();
     Map<String, Object> payload = new HashMap<>();
-    payload.put("receiver", receiver.getNickname());
+    payload.put("receiver", sender.getNickname()); // 초대 알림을 받은 사람, 초대 응답을 보내는 사람
     payload.put("status", status);
     payload.put("project", project.getTitle());
     Notification notification =
         Notification.builder()
-            .sender(projectCreator)
-            .receiver(receiver)
+            .sender(sender)
+            .receiver(projectCreator)
             .project(project)
             .template(inviteResponseTemplate)
             .payload(payload)
@@ -189,8 +189,8 @@ public class NotificationService {
             NotificationType.INVITATION_PROCESSED.toString(),
             notification.getId(),
             project.getId(),
-            projectCreator.getId(),
-            List.of(receiver.getId()),
+            sender.getId(),
+            List.of(projectCreator.getId()),
             renderInvitationResponseTemplate(inviteResponseTemplate.getTemplate(), notification));
 
     log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
