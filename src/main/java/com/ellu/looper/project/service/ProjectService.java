@@ -470,12 +470,12 @@ public class ProjectService {
     Map<String, Object> payload = new HashMap<>();
     payload.put("project", project.getTitle());
 
-    for (ProjectMember user : toRemove) {
+    for (ProjectMember member : toRemove) {
       User receiver =
           userRepository
-              .findById(user.getId())
+              .findById(member.getUser().getId())
               .orElseThrow(() -> new IllegalArgumentException(
-                  "Project notification receiver with id " + user.getId() + " not found"));
+                  "Project notification receiver with id " + member.getUser().getId() + " not found"));
 
       Notification notification =
           Notification.builder()
@@ -495,7 +495,7 @@ public class ProjectService {
               notification.getId(),
               project.getId(),
               creator.getId(),
-              List.of(user.getId()),
+              List.of(member.getUser().getId()),
               notificationService.renderProjectTemplate(
                   inviteTemplate.getTemplate(), notification));
 
