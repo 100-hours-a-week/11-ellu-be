@@ -154,10 +154,7 @@ public class ProjectService {
   }
 
   private void sendInvitationNotification(
-      List<User> addedUsers,
-      User creator,
-      Project project,
-      List<AddedMember> addedMemberRequests) {
+      List<User> addedUsers, User creator, Project project, List<AddedMember> addedMemberRequests) {
     // Notification 생성
     NotificationTemplate inviteTemplate =
         notificationTemplateRepository
@@ -165,10 +162,7 @@ public class ProjectService {
             .orElseThrow(() -> new IllegalArgumentException("초대 알림 템플릿 없음"));
     Map<String, String> nicknameToPosition =
         addedMemberRequests.stream()
-            .collect(
-                Collectors.toMap(
-                    AddedMember::getNickname,
-                    AddedMember::getPosition));
+            .collect(Collectors.toMap(AddedMember::getNickname, AddedMember::getPosition));
 
     for (User user : addedUsers) {
       Map<String, Object> payload = new HashMap<>();
@@ -386,7 +380,9 @@ public class ProjectService {
         projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
 
     ProjectMember creator =
-        existingMembers.stream().filter(pm -> pm.getUser().getId().equals(userId)).findFirst()
+        existingMembers.stream()
+            .filter(pm -> pm.getUser().getId().equals(userId))
+            .findFirst()
             .orElseThrow(() -> new EntityNotFoundException("Project creator not found"));
     // 포지션이 있는 경우 생성자의 포지션 수정
     if (request.getPosition() != null) {
@@ -403,7 +399,7 @@ public class ProjectService {
                 pm ->
                     !pm.getUser().getId().equals(userId)
                         && updatedUsers.stream()
-                        .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
+                            .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
             .collect(Collectors.toList());
     toRemove.forEach(pm -> pm.setDeletedAt(LocalDateTime.now()));
     projectMemberRepository.saveAll(toRemove);
@@ -437,9 +433,13 @@ public class ProjectService {
       log.info("Sending invitation notification to newly invited project members");
 
       // AddedMember 객체로 변환
-      List<AddedMember> newlyAddedMembers = request.getAdded_members().stream()
-          .filter(member -> newlyInvitedUsers.stream().anyMatch(user -> user.getNickname().equals(member.getNickname())))
-          .collect(Collectors.toList());
+      List<AddedMember> newlyAddedMembers =
+          request.getAdded_members().stream()
+              .filter(
+                  member ->
+                      newlyInvitedUsers.stream()
+                          .anyMatch(user -> user.getNickname().equals(member.getNickname())))
+              .collect(Collectors.toList());
 
       sendInvitationNotification(newlyInvitedUsers, creator.getUser(), project, newlyAddedMembers);
     }
@@ -479,9 +479,12 @@ public class ProjectService {
       User receiver =
           userRepository
               .findById(member.getUser().getId())
-              .orElseThrow(() -> new IllegalArgumentException(
-                  "Project notification receiver with id " + member.getUser().getId()
-                      + " not found"));
+              .orElseThrow(
+                  () ->
+                      new IllegalArgumentException(
+                          "Project notification receiver with id "
+                              + member.getUser().getId()
+                              + " not found"));
 
       Notification notification =
           Notification.builder()

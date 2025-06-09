@@ -32,11 +32,11 @@ public interface ProjectScheduleRepository extends JpaRepository<ProjectSchedule
 
   List<ProjectSchedule> findByProjectAndDeletedAtIsNull(Project project);
 
-  @Query("SELECT ps FROM ProjectSchedule ps " +
-      "JOIN FETCH ps.project " +
-      "LEFT JOIN FETCH ps.assignees a " +
-      "LEFT JOIN FETCH a.user " +
-      "WHERE ps.id = :id AND ps.deletedAt IS NULL")
+  @Query(
+      "SELECT ps FROM ProjectSchedule ps "
+          + "JOIN FETCH ps.project "
+          + "LEFT JOIN FETCH ps.assignees a "
+          + "LEFT JOIN FETCH a.user "
+          + "WHERE ps.id = :id AND ps.deletedAt IS NULL")
   Optional<ProjectSchedule> findWithDetailsById(@Param("id") Long id);
-
 }

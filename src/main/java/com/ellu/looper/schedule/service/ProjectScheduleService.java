@@ -41,7 +41,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -407,12 +406,13 @@ public class ProjectScheduleService {
             .orElseThrow(() -> new IllegalArgumentException("Project Member not found"));
 
     // TODO: 본인 포지션 일정만 가져갈 있도록 권한 처리 완료 -> 웹소켓 에러 처리 후 권한 처리할 예정임
-//    if (schedule.getPosition() != projectMember.getPosition()) {
-//      throw new AccessDeniedException(
-//          String.format(
-//              "Access denied: user %d is not authorized to take schedule %d due to position mismatch.",
-//              userId, scheduleId));
-//    }
+    //    if (schedule.getPosition() != projectMember.getPosition()) {
+    //      throw new AccessDeniedException(
+    //          String.format(
+    //              "Access denied: user %d is not authorized to take schedule %d due to position
+    // mismatch.",
+    //              userId, scheduleId));
+    //    }
 
     // add this user to assignee table
     User user = projectMember.getUser();
