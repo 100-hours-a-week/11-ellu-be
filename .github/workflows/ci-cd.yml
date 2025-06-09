@@ -1,0 +1,173 @@
+name: Build and Push Backend to GAR
+
+on:
+  push:
+    branches: 
+      - stage
+      - main
+  pull_request:
+    branches: 
+      - stage
+      - main
+
+env:
+  PROJECT_ID_DEV: ${{ secrets.PROJECT_ID_DEV }}
+  GAR_LOCATION: asia-northeast3
+  GAR_NAME: looper
+  SERVICE: backend
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Cache Gradle packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Run tests
+      run: ./gradlew test
+
+    - name: Generate test report
+      uses: dorny/test-reporter@v1
+      if: success() || failure()
+      with:
+        name: Gradle Tests
+        path: build/test-results/test/*.xml
+        reporter: java-junit
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Google Auth
+      id: auth
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Configure Docker to use gcloud as a credential helper
+      run: |
+        gcloud auth configure-docker $GAR_LOCATION-docker.pkg.dev
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID_DEV }}/${{ env.GAR_NAME }}/${{ env.SERVICE }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64
+
+    - name: Print image URL
+      run: echo "Image pushed to ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID_DEV }}/${{ env.GAR_NAME }}/${{ env.SERVICE }}"
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/stage'
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Google Auth
+      id: auth
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Deploy to GCP VM
+      env:
+        POSTGRES_PASSWORD_DEV: ${{ secrets.POSTGRES_PASSWORD_DEV }}
+        S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
+        S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
+        KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
+        JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      run: |
+        # Get the latest image tag
+        IMAGE_TAG="${GITHUB_SHA:0:7}"
+        
+        # Get app instance name from terraform
+        APP_INSTANCE=$(gcloud compute instances list --filter="name~looper-dev-app" --format="value(name)" | head -1)
+        
+        # SSH into the VM and deploy
+        gcloud compute ssh $APP_INSTANCE \
+          --zone=asia-northeast3-a \
+          --project=${{ env.PROJECT_ID_DEV }} \
+          --tunnel-through-iap \
+          --command="
+            # Authenticate Docker with GAR
+            gcloud auth configure-docker $GAR_LOCATION-docker.pkg.dev
+            
+            # Navigate to application directory
+            cd /opt/looper
+            
+            # Update environment variables
+            export IMAGE_TAG=stage-${IMAGE_TAG}
+            export PROJECT_ID=${{ env.PROJECT_ID_DEV }}
+            export GAR_LOCATION=$GAR_LOCATION
+            export GAR_NAME=$GAR_NAME
+            export POSTGRES_PASSWORD='$POSTGRES_PASSWORD_DEV'
+            export S3_ACCESS_KEY='$S3_ACCESS_KEY'
+            export S3_SECRET_KEY='$S3_SECRET_KEY'
+            export KAKAO_REST_API_KEY='$KAKAO_REST_API_KEY'
+            export JWT_SECRET='$JWT_SECRET'
+            
+            # Pull latest images
+            docker-compose -f docker-compose.prod.yml pull looper-backend
+            
+            # Restart only backend service
+            docker-compose -f docker-compose.prod.yml up -d looper-backend
+            
+            # Clean up old images
+            docker image prune -f
+          "
