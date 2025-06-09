@@ -162,10 +162,6 @@ public class ProjectScheduleService {
             .findByIdAndDeletedAtIsNull(scheduleId)
             .orElseThrow(() -> new IllegalArgumentException("Schedule not found"));
 
-    if (!schedule.getUser().getId().equals(userId)) {
-      throw new AccessDeniedException("Unauthorized");
-    }
-
     validateTimeOrder(request.start_time(), request.end_time());
 
     schedule.update(
