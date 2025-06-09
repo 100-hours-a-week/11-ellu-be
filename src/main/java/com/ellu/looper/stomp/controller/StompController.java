@@ -12,7 +12,6 @@ import com.ellu.looper.schedule.repository.ProjectScheduleRepository;
 import com.ellu.looper.schedule.service.ProjectScheduleService;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -52,7 +51,8 @@ public class StompController {
 
     // 일정 수정 처리, 내부적으로 Notification 메시지 발행
     ProjectScheduleResponse projectScheduleResponse =
-        projectScheduleService.updateSchedule(scheduleUpdateRequest.schedule_id(), userId, scheduleUpdateRequest);
+        projectScheduleService.updateSchedule(
+            scheduleUpdateRequest.schedule_id(), userId, scheduleUpdateRequest);
 
     // Kafka schedule 토픽에 일정 변경 이벤트 발행 (다중 인스턴스 WebSocket 브로드캐스트용)
     ScheduleEventMessage updateEvent =
@@ -69,7 +69,8 @@ public class StompController {
   @MessageMapping("/{projectId}/delete")
   public void handleScheduleDelete(
       @DestinationVariable Long projectId,
-      ProjectScheduleTakeRequest deleteRequest, Message<?> headers) {
+      ProjectScheduleTakeRequest deleteRequest,
+      Message<?> headers) {
     Long scheduleId = deleteRequest.schedule_id();
 
     SimpMessageHeaderAccessor accessor = SimpMessageHeaderAccessor.wrap(headers);

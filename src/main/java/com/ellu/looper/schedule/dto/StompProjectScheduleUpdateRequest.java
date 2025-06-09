@@ -12,6 +12,4 @@ public record StompProjectScheduleUpdateRequest(
     @NotNull LocalDateTime start_time,
     @NotNull LocalDateTime end_time,
     @JsonProperty("is_completed") Boolean completed,
-    String position) {
-
-}
+    String position) {}

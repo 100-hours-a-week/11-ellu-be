@@ -62,9 +62,12 @@ public class NotificationService {
 
               if (type.equals(NotificationType.PROJECT_INVITED)) {
                 message = renderInvitationTemplate(n.getTemplate().getTemplate(), n);
-              } else if (type.equals(NotificationType.PROJECT_DELETED) || type.equals(NotificationType.PROJECT_EXPELLED)) {
+              } else if (type.equals(NotificationType.PROJECT_DELETED)
+                  || type.equals(NotificationType.PROJECT_EXPELLED)) {
                 message = renderProjectTemplate(n.getTemplate().getTemplate(), n);
-              } else if (type.equals(NotificationType.SCHEDULE_CREATED) || type.equals(NotificationType.SCHEDULE_UPDATED)|| type.equals(NotificationType.SCHEDULE_DELETED)) {
+              } else if (type.equals(NotificationType.SCHEDULE_CREATED)
+                  || type.equals(NotificationType.SCHEDULE_UPDATED)
+                  || type.equals(NotificationType.SCHEDULE_DELETED)) {
                 message = renderScheduleTemplate(n.getTemplate().getTemplate(), n);
               } else if (type.equals(NotificationType.INVITATION_PROCESSED)) {
                 message = renderInvitationResponseTemplate(n.getTemplate().getTemplate(), n);
@@ -132,7 +135,7 @@ public class NotificationService {
     notificationRepository.save(notification);
     if (status.equalsIgnoreCase(InviteStatus.ACCEPTED.toString())) {
       boolean alreadyMember =
-          projectMemberRepository.existsByProjectIdAndUserId(
+          projectMemberRepository.existsByProjectIdAndUserIdAndDeletedAtIsNull(
               notification.getProject().getId(), userId);
       if (!alreadyMember) {
         ProjectMember member =
@@ -143,7 +146,8 @@ public class NotificationService {
                 .position(notification.getPayload().get("position").toString())
                 .build();
         projectMemberRepository.save(member);
-        sendInvitationResponseNotification(notification.getReceiver(), notification.getProject(), "수락");
+        sendInvitationResponseNotification(
+            notification.getReceiver(), notification.getProject(), "수락");
       }
     } else if (status.equalsIgnoreCase(InviteStatus.REJECTED.name())) {
       sendInvitationResponseNotification(

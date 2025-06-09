@@ -17,5 +17,4 @@ public class ProjectUpdateRequest {
   private List<AddedMember> added_members;
 
   private String wiki;
-
 }
