@@ -160,7 +160,7 @@ public class NotificationService {
         notification.getCreatedAt());
   }
 
-  private void sendInvitationResponseNotification(User creator, Project project, String status) {
+  private void sendInvitationResponseNotification(User receiver, Project project, String status) {
     // Notification 생성
     NotificationTemplate inviteResponseTemplate =
         notificationTemplateRepository
@@ -169,13 +169,13 @@ public class NotificationService {
 
     User projectCreator = project.getMember();
     Map<String, Object> payload = new HashMap<>();
-    payload.put("receiver", projectCreator.getNickname());
+    payload.put("receiver", receiver.getNickname());
     payload.put("status", status);
     payload.put("project", project.getTitle());
     Notification notification =
         Notification.builder()
-            .sender(creator)
-            .receiver(projectCreator)
+            .sender(projectCreator)
+            .receiver(receiver)
             .project(project)
             .template(inviteResponseTemplate)
             .payload(payload)
@@ -189,8 +189,8 @@ public class NotificationService {
             NotificationType.INVITATION_PROCESSED.toString(),
             notification.getId(),
             project.getId(),
-            creator.getId(),
-            List.of(projectCreator.getId()),
+            projectCreator.getId(),
+            List.of(receiver.getId()),
             renderInvitationResponseTemplate(inviteResponseTemplate.getTemplate(), notification));
 
     log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
