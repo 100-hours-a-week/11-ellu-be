@@ -459,7 +459,7 @@ public class ProjectService {
     User creator =
         userRepository
             .findById(creatorId)
-            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            .orElseThrow(() -> new IllegalArgumentException("Project creator not found"));
 
     // Notification 생성
     NotificationTemplate inviteTemplate =
@@ -474,7 +474,7 @@ public class ProjectService {
       User receiver =
           userRepository
               .findById(user.getId())
-              .orElseThrow(() -> new IllegalArgumentException("User not found"));
+              .orElseThrow(() -> new IllegalArgumentException("Project notification receiver not found"));
 
       Notification notification =
           Notification.builder()
