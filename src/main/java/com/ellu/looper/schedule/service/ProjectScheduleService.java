@@ -233,9 +233,6 @@ public class ProjectScheduleService {
         projectScheduleRepository
             .findByIdAndDeletedAtIsNull(scheduleId)
             .orElseThrow(() -> new IllegalArgumentException("Schedule not found"));
-    if (!schedule.getUser().getId().equals(userId)) {
-      throw new AccessDeniedException("Unauthorized");
-    }
 
     //  delete schedule assignee
     List<Assignee> assignees =
