@@ -1,6 +1,5 @@
 package com.ellu.looper.project.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,13 +18,4 @@ public class ProjectUpdateRequest {
 
   private String wiki;
 
-  @Getter
-  @Builder(toBuilder = true)
-  public static class AddedMember {
-    @NotBlank(message = "Nickname must not be empty")
-    private String nickname;
-
-    @NotBlank(message = "Position must not be empty")
-    private String position;
-  }
 }

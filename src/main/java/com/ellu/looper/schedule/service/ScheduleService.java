@@ -117,9 +117,6 @@ public class ScheduleService {
     List<ScheduleResponse> responses =
         personalSchedules.stream().map(s -> toResponse(s, false)).collect(Collectors.toList());
 
-    List<ScheduleResponse> projectSchedules = getProjectDailySchedules(memberId, start, end);
-
-    responses.addAll(projectSchedules);
     return responses;
   }
 
@@ -131,11 +128,8 @@ public class ScheduleService {
     List<Schedule> personal = scheduleRepository.findSchedulesBetween(memberId, start, end);
     List<ScheduleResponse> responses = personal.stream().map(s -> toResponse(s, false)).toList();
 
-    List<ScheduleResponse> project =
-        getProjectSchedules(memberId, startDate.atStartOfDay(), endDate.plusDays(1).atStartOfDay());
     List<ScheduleResponse> all = new ArrayList<>();
     all.addAll(responses);
-    all.addAll(project);
     return all.stream().collect(Collectors.groupingBy(r -> r.startTime().toLocalDate()));
   }
 

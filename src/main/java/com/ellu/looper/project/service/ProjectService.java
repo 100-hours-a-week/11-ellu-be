@@ -12,6 +12,7 @@ import com.ellu.looper.notification.entity.NotificationTemplate;
 import com.ellu.looper.notification.repository.NotificationRepository;
 import com.ellu.looper.notification.repository.NotificationTemplateRepository;
 import com.ellu.looper.notification.service.NotificationService;
+import com.ellu.looper.project.dto.AddedMember;
 import com.ellu.looper.project.dto.CreatorExcludedProjectResponse;
 import com.ellu.looper.project.dto.ProjectCreateRequest;
 import com.ellu.looper.project.dto.ProjectResponse;
@@ -29,6 +30,7 @@ import com.ellu.looper.user.dto.MemberDto;
 import com.ellu.looper.user.entity.User;
 import com.ellu.looper.user.repository.UserRepository;
 import com.ellu.looper.user.service.ProfileImageService;
+import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -74,7 +76,7 @@ public class ProjectService {
     List<User> addedUsers = new ArrayList<>();
 
     if (request.getAdded_members() != null) {
-      for (ProjectCreateRequest.AddedMember member : request.getAdded_members()) {
+      for (AddedMember member : request.getAdded_members()) {
         String nickname = member.getNickname();
 
         // 생성자 본인을 초대하는 경우
@@ -155,7 +157,7 @@ public class ProjectService {
       List<User> addedUsers,
       User creator,
       Project project,
-      List<ProjectCreateRequest.AddedMember> addedMemberRequests) {
+      List<AddedMember> addedMemberRequests) {
     // Notification 생성
     NotificationTemplate inviteTemplate =
         notificationTemplateRepository
@@ -165,8 +167,8 @@ public class ProjectService {
         addedMemberRequests.stream()
             .collect(
                 Collectors.toMap(
-                    ProjectCreateRequest.AddedMember::getNickname,
-                    ProjectCreateRequest.AddedMember::getPosition));
+                    AddedMember::getNickname,
+                    AddedMember::getPosition));
 
     for (User user : addedUsers) {
       Map<String, Object> payload = new HashMap<>();
@@ -350,14 +352,13 @@ public class ProjectService {
     Map<Long, String> updatedPositions = new HashMap<>(); // userId -> position
 
     if (request.getAdded_members() != null) {
-      for (ProjectUpdateRequest.AddedMember member : request.getAdded_members()) {
+      for (AddedMember member : request.getAdded_members()) {
         User user =
             userRepository
                 .findByNicknameAndDeletedAtIsNull(member.getNickname())
                 .orElseThrow(
                     () -> new IllegalArgumentException("User not found: " + member.getNickname()));
         updatedUsers.add(user);
-        log.info("UPDATED" + updatedUsers);
         updatedPositions.put(user.getId(), member.getPosition());
       }
     }
@@ -384,14 +385,14 @@ public class ProjectService {
     List<ProjectMember> existingMembers =
         projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
 
-    Optional<ProjectMember> creator =
-        existingMembers.stream().filter(pm -> pm.getUser().getId().equals(userId)).findFirst();
+    ProjectMember creator =
+        existingMembers.stream().filter(pm -> pm.getUser().getId().equals(userId)).findFirst()
+            .orElseThrow(() -> new EntityNotFoundException("Project creator not found"));
     // 포지션이 있는 경우 생성자의 포지션 수정
-    if (creator.isPresent() && request.getPosition() != null) {
-      ProjectMember creatorMember = creator.get();
-      if (!request.getPosition().equals(creatorMember.getPosition())) {
-        creatorMember.setPosition(request.getPosition());
-        projectMemberRepository.save(creatorMember);
+    if (request.getPosition() != null) {
+      if (!request.getPosition().equals(creator.getPosition())) {
+        creator.setPosition(request.getPosition());
+        projectMemberRepository.save(creator);
       }
     }
 
@@ -410,8 +411,9 @@ public class ProjectService {
     // send expulsion notification
     sendProjectNotification(NotificationType.PROJECT_EXPELLED, toRemove, userId, project);
 
-    log.info("updatedUsers" + updatedUsers);
     // 새로운 멤버 추가 및 포지션 업데이트
+    List<User> newlyInvitedUsers = new ArrayList<>();
+
     for (User user : updatedUsers) {
       Optional<ProjectMember> existing =
           existingMembers.stream()
@@ -426,17 +428,20 @@ public class ProjectService {
           existingMember.setPosition(newPosition);
           projectMemberRepository.save(existingMember);
         }
-      } else {
-        ProjectMember newMember =
-            ProjectMember.builder()
-                .project(project)
-                .user(user)
-                .position(newPosition)
-                .role(Role.PARTICIPANT)
-                .createdAt(LocalDateTime.now())
-                .build();
-        projectMemberRepository.save(newMember);
+      } else { // newly invited members
+        newlyInvitedUsers.add(user);
       }
+    }
+    // 초대 알림 보내기
+    if (!newlyInvitedUsers.isEmpty()) {
+      log.info("Sending invitation notification to newly invited project members");
+
+      // AddedMember 객체로 변환
+      List<AddedMember> newlyAddedMembers = request.getAdded_members().stream()
+          .filter(member -> newlyInvitedUsers.stream().anyMatch(user -> user.getNickname().equals(member.getNickname())))
+          .collect(Collectors.toList());
+
+      sendInvitationNotification(newlyInvitedUsers, creator.getUser(), project, newlyAddedMembers);
     }
 
     // 위키 내용이 있다면 수정
@@ -475,7 +480,8 @@ public class ProjectService {
           userRepository
               .findById(member.getUser().getId())
               .orElseThrow(() -> new IllegalArgumentException(
-                  "Project notification receiver with id " + member.getUser().getId() + " not found"));
+                  "Project notification receiver with id " + member.getUser().getId()
+                      + " not found"));
 
       Notification notification =
           Notification.builder()
