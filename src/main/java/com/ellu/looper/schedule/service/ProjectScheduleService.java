@@ -16,7 +16,7 @@ import com.ellu.looper.project.repository.ProjectRepository;
 import com.ellu.looper.schedule.dto.AssigneeDto;
 import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest;
 import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
-import com.ellu.looper.schedule.dto.ProjectScheduleUpdateRequest;
+import com.ellu.looper.schedule.dto.StompProjectScheduleUpdateRequest;
 import com.ellu.looper.schedule.entity.Assignee;
 import com.ellu.looper.schedule.entity.ProjectSchedule;
 import com.ellu.looper.schedule.entity.Schedule;
@@ -156,7 +156,7 @@ public class ProjectScheduleService {
 
   @Transactional
   public ProjectScheduleResponse updateSchedule(
-      Long scheduleId, Long userId, ProjectScheduleUpdateRequest request) {
+      Long scheduleId, Long userId, StompProjectScheduleUpdateRequest request) {
     ProjectSchedule schedule =
         projectScheduleRepository
             .findByIdAndDeletedAtIsNull(scheduleId)
@@ -175,7 +175,7 @@ public class ProjectScheduleService {
         request.end_time(),
         request.position(),
         request.completed());
-
+    log.info("업데이트 완료됨");
     Set<User> notificationTargets = new HashSet<>();
 
     // If assignee is newly added or removed, update assignee table
@@ -214,7 +214,6 @@ public class ProjectScheduleService {
         userId,
         schedule.getProject(),
         schedule);
-
     return new ProjectScheduleResponse(
         schedule.getId(),
         schedule.getTitle(),
