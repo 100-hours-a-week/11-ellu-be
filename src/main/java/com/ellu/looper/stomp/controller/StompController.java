@@ -6,12 +6,13 @@ import com.ellu.looper.kafka.dto.ScheduleEventMessage;
 import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest;
 import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
 import com.ellu.looper.schedule.dto.ProjectScheduleTakeRequest;
-import com.ellu.looper.schedule.dto.ProjectScheduleUpdateRequest;
+import com.ellu.looper.schedule.dto.StompProjectScheduleUpdateRequest;
 import com.ellu.looper.schedule.entity.ProjectSchedule;
 import com.ellu.looper.schedule.repository.ProjectScheduleRepository;
 import com.ellu.looper.schedule.service.ProjectScheduleService;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -38,11 +39,11 @@ public class StompController {
     this.projectScheduleRepository = projectScheduleRepository;
   }
 
-  @MessageMapping("/{scheduleId}/update")
-  // client에서 특정 /app/{scheduleId} 형태로 메시지를 publish 시 MessageMapping 수신
+  @MessageMapping("/{projectId}/update")
+  // client에서 특정 /app/{projectId} 형태로 메시지를 publish 시 MessageMapping 수신
   public void handleScheduleUpdate(
-      @DestinationVariable Long scheduleId,
-      ProjectScheduleUpdateRequest scheduleUpdateRequest,
+      @DestinationVariable Long projectId,
+      StompProjectScheduleUpdateRequest scheduleUpdateRequest,
       Message<?> headers) {
 
     SimpMessageHeaderAccessor accessor = SimpMessageHeaderAccessor.wrap(headers);
@@ -51,12 +52,12 @@ public class StompController {
 
     // 일정 수정 처리, 내부적으로 Notification 메시지 발행
     ProjectScheduleResponse projectScheduleResponse =
-        projectScheduleService.updateSchedule(scheduleId, userId, scheduleUpdateRequest);
+        projectScheduleService.updateSchedule(scheduleUpdateRequest.schedule_id(), userId, scheduleUpdateRequest);
 
     // Kafka schedule 토픽에 일정 변경 이벤트 발행 (다중 인스턴스 WebSocket 브로드캐스트용)
     ScheduleEventMessage updateEvent =
         ScheduleEventMessage.builder()
-            .projectId(null)
+            .projectId(String.valueOf(projectId))
             .type(NotificationType.SCHEDULE_UPDATED.name())
             .schedule(toDto(projectScheduleResponse))
             .build();
