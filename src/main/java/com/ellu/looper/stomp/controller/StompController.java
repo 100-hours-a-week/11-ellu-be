@@ -67,7 +67,9 @@ public class StompController {
 
   @MessageMapping("/{projectId}/delete")
   public void handleScheduleDelete(
-      @DestinationVariable Long projectId, Long scheduleId, Message<?> headers) {
+      @DestinationVariable Long projectId,
+      ProjectScheduleTakeRequest deleteRequest, Message<?> headers) {
+    Long scheduleId = deleteRequest.schedule_id();
 
     SimpMessageHeaderAccessor accessor = SimpMessageHeaderAccessor.wrap(headers);
 
@@ -120,12 +122,12 @@ public class StompController {
 
     Long userId = (Long) accessor.getSessionAttributes().get("userId");
 
-    projectScheduleService.takeSchedule(projectId, takeRequest.projectScheduleId(), userId);
+    projectScheduleService.takeSchedule(projectId, takeRequest.schedule_id(), userId);
 
     // 반영된 스케줄 정보 조회
     ProjectSchedule updatedSchedule =
         projectScheduleRepository
-            .findByIdAndDeletedAtIsNull(takeRequest.projectScheduleId())
+            .findByIdAndDeletedAtIsNull(takeRequest.schedule_id())
             .orElseThrow(() -> new EntityNotFoundException("Project schedule not found"));
 
     // Kafka로 스케줄 업데이트 이벤트 발행
