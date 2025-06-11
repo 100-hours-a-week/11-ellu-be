@@ -15,6 +15,12 @@ spring:
       ddl-auto: update
   jackson:
     time-zone: Asia/Seoul
+  kafka:
+    bootstrap-servers: ${KAFKA_BASE_URL:127.0.0.1:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
 
 server:
   forward-headers-strategy: framework
@@ -41,9 +47,6 @@ jwt:
 
 fastapi:
   base-url: ${FASTAPI_BASE_URL:http://localhost:8000}
-
-kafka:
-  bootstrap-servers: ${KAFKA_BASE_URL:127.0.0.1:9092}
 
 # 현재는 OpenTelemetry가 시스템에 영향을 주지 않도록 완전히 비활성화함
 otel:

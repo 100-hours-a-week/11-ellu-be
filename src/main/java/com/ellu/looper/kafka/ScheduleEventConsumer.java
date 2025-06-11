@@ -28,7 +28,7 @@ public class ScheduleEventConsumer implements Runnable {
   private KafkaConsumer<String, String> consumer;
   private volatile boolean running = true;
 
-  @Value("${kafka.bootstrap-servers}")
+  @Value("${spring.kafka.bootstrap-servers}")
   private String bootstrapServers;
 
   @PostConstruct
