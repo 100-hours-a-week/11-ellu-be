@@ -12,6 +12,7 @@ import com.ellu.looper.schedule.repository.ProjectScheduleRepository;
 import com.ellu.looper.schedule.service.ProjectScheduleService;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -20,23 +21,13 @@ import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Controller;
 
 @Controller
+@RequiredArgsConstructor
 public class StompController {
 
   private final SimpMessageSendingOperations messageTemplate;
   private final ProjectScheduleService projectScheduleService;
   private final ScheduleEventProducer scheduleEventProducer;
   private final ProjectScheduleRepository projectScheduleRepository;
-
-  public StompController(
-      SimpMessageSendingOperations messageTemplate,
-      ProjectScheduleService projectScheduleService,
-      ScheduleEventProducer scheduleEventProducer,
-      ProjectScheduleRepository projectScheduleRepository) {
-    this.messageTemplate = messageTemplate;
-    this.projectScheduleService = projectScheduleService;
-    this.scheduleEventProducer = scheduleEventProducer;
-    this.projectScheduleRepository = projectScheduleRepository;
-  }
 
   @MessageMapping("/{projectId}/update")
   // client에서 특정 /app/{projectId} 형태로 메시지를 publish 시 MessageMapping 수신
