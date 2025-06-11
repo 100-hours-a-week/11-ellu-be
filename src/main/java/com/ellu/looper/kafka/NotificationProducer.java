@@ -28,6 +28,9 @@ public class NotificationProducer {
   @Value("${spring.kafka.bootstrap-servers}")
   private String bootstrapServers;
 
+  @Value("${kafka.topics.notification}")
+  private String NOTIFICATION_TOPIC;
+
   @PostConstruct
   public void initialize() {
     // Create producer properties
@@ -52,7 +55,7 @@ public class NotificationProducer {
 
         // Create producer record
         ProducerRecord<String, String> producerRecord =
-            new ProducerRecord<>("notification", key, value);
+            new ProducerRecord<>(NOTIFICATION_TOPIC, key, value);
 
         // Send data asynchronously with callback
         producer.send(

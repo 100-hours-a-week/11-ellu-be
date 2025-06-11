@@ -80,6 +80,19 @@ management:
       export:
         enabled: true
 
+kafka:
+  topics:
+    chatbot:
+      user-input: chatbot-user-input
+      response: chatbot-response
+    schedule:
+      schedule
+    notification:
+      notification
+  consumer:
+    group-id: chat-group
+
+
 info:
   app:
     name: ${spring.application.name}
