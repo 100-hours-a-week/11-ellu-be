@@ -26,7 +26,7 @@ public class ScheduleEventProducer {
   private KafkaProducer<String, String> producer;
   private static final String TOPIC = "schedule";
 
-  @Value("${kafka.bootstrap-servers}")
+  @Value("${spring.kafka.bootstrap-servers}")
   private String bootstrapServers;
 
   @PostConstruct

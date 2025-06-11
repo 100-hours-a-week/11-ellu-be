@@ -25,7 +25,7 @@ public class NotificationProducer {
   private final ObjectMapper objectMapper;
   private KafkaProducer<String, String> producer;
 
-  @Value("${kafka.bootstrap-servers}")
+  @Value("${spring.kafka.bootstrap-servers}")
   private String bootstrapServers;
 
   @PostConstruct
