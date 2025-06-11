@@ -38,6 +38,7 @@ public class ScheduleEventProducer {
     properties.setProperty(
         ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
     properties.setProperty(ProducerConfig.BATCH_SIZE_CONFIG, "400");
+    properties.setProperty(ProducerConfig.LINGER_MS_CONFIG, "20");
 
     producer = new KafkaProducer<>(properties);
     log.info("Schedule Kafka Producer initialized");
@@ -74,7 +75,6 @@ public class ScheduleEventProducer {
             }
           });
 
-      producer.flush();
     } catch (JsonProcessingException e) {
       log.error("Failed to serialize ScheduleEventMessage", e);
       throw new RuntimeException("Failed to serialize ScheduleEventMessage", e);
