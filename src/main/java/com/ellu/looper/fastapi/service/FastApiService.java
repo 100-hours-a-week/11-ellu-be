@@ -1,5 +1,6 @@
 package com.ellu.looper.fastapi.service;
 
+import com.ellu.looper.chat.dto.MessageRequest;
 import com.ellu.looper.commons.PreviewHolder;
 import com.ellu.looper.project.dto.MeetingNoteRequest;
 import com.ellu.looper.project.dto.MeetingNoteResponse;
@@ -11,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 
 @Slf4j
 @Service
@@ -124,5 +126,14 @@ public class FastApiService {
                   error.getMessage());
             })
         .subscribe();
+  }
+
+  public Flux<String> streamChatResponse(MessageRequest request) {
+    return webClient
+        .post()
+        .uri("/chat/stream")
+        .bodyValue(request)
+        .retrieve()
+        .bodyToFlux(String.class);
   }
 }
