@@ -24,7 +24,9 @@ public class ScheduleEventProducer {
       LoggerFactory.getLogger(ScheduleEventProducer.class.getSimpleName());
   private final ObjectMapper objectMapper;
   private KafkaProducer<String, String> producer;
-  private static final String TOPIC = "schedule";
+
+  @Value("${kafka.topics.schedule}")
+  private String SCHEDULE_TOPIC;
 
   @Value("${spring.kafka.bootstrap-servers}")
   private String bootstrapServers;
@@ -49,7 +51,7 @@ public class ScheduleEventProducer {
       String key = event.getProjectId();
       String value = objectMapper.writeValueAsString(event);
 
-      ProducerRecord<String, String> producerRecord = new ProducerRecord<>(TOPIC, key, value);
+      ProducerRecord<String, String> producerRecord = new ProducerRecord<>(SCHEDULE_TOPIC, key, value);
 
       producer.send(
           producerRecord,

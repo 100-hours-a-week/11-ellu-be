@@ -31,6 +31,9 @@ public class ScheduleEventConsumer implements Runnable {
   @Value("${spring.kafka.bootstrap-servers}")
   private String bootstrapServers;
 
+  @Value("${kafka.topics.schedule}")
+  public String SCHEDULE_TOPIC;
+
   @PostConstruct
   public void init() {
     log.info("ScheduleEventConsumer init() called");
@@ -39,7 +42,6 @@ public class ScheduleEventConsumer implements Runnable {
 
   public void start() {
     String groupId = "schedule-service-group";
-    String topic = "schedule";
 
     Properties properties = new Properties();
     properties.setProperty("bootstrap.servers", bootstrapServers);
@@ -73,7 +75,7 @@ public class ScheduleEventConsumer implements Runnable {
   @Override
   public void run() {
     try {
-      consumer.subscribe(Arrays.asList("schedule"));
+      consumer.subscribe(Arrays.asList(SCHEDULE_TOPIC));
 
       while (running) {
         ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
