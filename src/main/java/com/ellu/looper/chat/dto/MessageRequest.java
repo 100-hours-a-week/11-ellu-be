@@ -9,6 +9,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MessageRequest {
-  @NotBlank
-  private String message;
+  @NotBlank private String message;
 }

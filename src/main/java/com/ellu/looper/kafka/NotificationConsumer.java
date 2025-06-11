@@ -33,7 +33,7 @@ public class NotificationConsumer implements Runnable {
   private String bootstrapServers;
 
   @Value("${kafka.topics.notification}")
-  public  String NOTIFICATION_TOPIC;
+  public String NOTIFICATION_TOPIC;
 
   @PostConstruct
   public void init() {

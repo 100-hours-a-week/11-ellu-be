@@ -51,7 +51,8 @@ public class ScheduleEventProducer {
       String key = event.getProjectId();
       String value = objectMapper.writeValueAsString(event);
 
-      ProducerRecord<String, String> producerRecord = new ProducerRecord<>(SCHEDULE_TOPIC, key, value);
+      ProducerRecord<String, String> producerRecord =
+          new ProducerRecord<>(SCHEDULE_TOPIC, key, value);
 
       producer.send(
           producerRecord,

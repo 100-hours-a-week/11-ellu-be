@@ -14,7 +14,9 @@ public class ChatConsumer {
   private final FastApiService fastApiService;
   private final ChatProducer chatProducer;
 
-  @KafkaListener(topics = "${kafka.topics.chatbot.user-input}", groupId = "${kafka.consumer.group-id}")
+  @KafkaListener(
+      topics = "${kafka.topics.chatbot.user-input}",
+      groupId = "${kafka.consumer.group-id}")
   public void consumeUserMessage(String userId, MessageRequest message) {
     log.info("Received message from user {}: {}", userId, message);
 
