@@ -38,6 +38,7 @@ public class NotificationProducer {
     properties.setProperty(
         ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
     properties.setProperty(ProducerConfig.BATCH_SIZE_CONFIG, "400");
+    properties.setProperty(ProducerConfig.LINGER_MS_CONFIG, "20");
 
     // Create producer
     producer = new KafkaProducer<>(properties);
@@ -78,9 +79,6 @@ public class NotificationProducer {
               }
             });
       }
-
-      // Flush to ensure all messages are sent
-      producer.flush();
 
     } catch (JsonProcessingException e) {
       log.error("Failed to serialize NotificationMessage", e);
