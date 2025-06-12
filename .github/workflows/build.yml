@@ -2,7 +2,7 @@ name: Docker Image For Development
 on: 
   push:
     branches:
-      - feat/#114-live-calendar
+      - develop
 
 env:
   REGISTRY: ghcr.io
@@ -34,7 +34,7 @@ jobs:
 
   package:
     name: Package and Publish
-    if: ${{ github.ref == 'refs/heads/feat/#114-live-calendar' }}
+    if: ${{ github.ref == 'refs/heads/feat/develop' }}
     needs: [ build ]
     runs-on: ubuntu-24.04
     permissions:
