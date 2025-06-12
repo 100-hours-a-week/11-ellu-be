@@ -148,53 +148,9 @@ public class ProjectService {
 
     log.info("Sending invitation notification to project members");
     // 초대 알림 보내기
-    sendInvitationNotification(addedUsers, creator, project, request.getAdded_members());
+    notificationService.sendInvitationNotification(addedUsers, creator, project, request.getAdded_members());
 
     log.info("Project created successfully with ID: {}", project.getId());
-  }
-
-  private void sendInvitationNotification(
-      List<User> addedUsers, User creator, Project project, List<AddedMember> addedMemberRequests) {
-    // Notification 생성
-    NotificationTemplate inviteTemplate =
-        notificationTemplateRepository
-            .findByType(NotificationType.PROJECT_INVITED)
-            .orElseThrow(() -> new IllegalArgumentException("초대 알림 템플릿 없음"));
-    Map<String, String> nicknameToPosition =
-        addedMemberRequests.stream()
-            .collect(Collectors.toMap(AddedMember::getNickname, AddedMember::getPosition));
-
-    for (User user : addedUsers) {
-      Map<String, Object> payload = new HashMap<>();
-      payload.put("creator", creator.getNickname());
-      payload.put("project", project.getTitle());
-      payload.put("position", nicknameToPosition.get(user.getNickname()));
-      Notification notification =
-          Notification.builder()
-              .sender(creator)
-              .receiver(user)
-              .project(project)
-              .template(inviteTemplate)
-              .payload(payload)
-              .inviteStatus(String.valueOf(InviteStatus.PENDING))
-              .createdAt(LocalDateTime.now())
-              .build();
-      notificationRepository.save(notification);
-
-      // Kafka를 통해 알림 메시지 전송
-      NotificationMessage message =
-          new NotificationMessage(
-              NotificationType.PROJECT_INVITED.toString(),
-              notification.getId(),
-              project.getId(),
-              creator.getId(),
-              List.of(user.getId()),
-              notificationService.renderInvitationTemplate(
-                  inviteTemplate.getTemplate(), notification));
-
-      log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
-      notificationProducer.sendNotification(message);
-    }
   }
 
   @Transactional(readOnly = true)
@@ -323,7 +279,7 @@ public class ProjectService {
     projectMemberRepository.saveAll(members);
 
     // send deletion notification
-    sendProjectNotification(NotificationType.PROJECT_DELETED, members, userId, project);
+    notificationService.sendProjectNotification(NotificationType.PROJECT_DELETED, members, userId, project);
   }
 
   @Transactional
@@ -405,7 +361,7 @@ public class ProjectService {
     projectMemberRepository.saveAll(toRemove);
 
     // send expulsion notification
-    sendProjectNotification(NotificationType.PROJECT_EXPELLED, toRemove, userId, project);
+    notificationService.sendProjectNotification(NotificationType.PROJECT_EXPELLED, toRemove, userId, project);
 
     // 새로운 멤버 추가 및 포지션 업데이트
     List<User> newlyInvitedUsers = new ArrayList<>();
@@ -441,7 +397,7 @@ public class ProjectService {
                           .anyMatch(user -> user.getNickname().equals(member.getNickname())))
               .collect(Collectors.toList());
 
-      sendInvitationNotification(newlyInvitedUsers, creator.getUser(), project, newlyAddedMembers);
+      notificationService.sendInvitationNotification(newlyInvitedUsers, creator.getUser(), project, newlyAddedMembers);
     }
 
     // 위키 내용이 있다면 수정
@@ -457,60 +413,6 @@ public class ProjectService {
     }
 
     log.info("Project updated successfully: {}", projectId);
-  }
-
-  private void sendProjectNotification(
-      NotificationType type, List<ProjectMember> toRemove, Long creatorId, Project project) {
-    User creator =
-        userRepository
-            .findById(creatorId)
-            .orElseThrow(() -> new IllegalArgumentException("Project creator not found"));
-
-    // Notification 생성
-    NotificationTemplate inviteTemplate =
-        notificationTemplateRepository
-            .findByType(type)
-            .orElseThrow(() -> new IllegalArgumentException("프로젝트 알림 템플릿 없음"));
-
-    Map<String, Object> payload = new HashMap<>();
-    payload.put("project", project.getTitle());
-
-    for (ProjectMember member : toRemove) {
-      User receiver =
-          userRepository
-              .findById(member.getUser().getId())
-              .orElseThrow(
-                  () ->
-                      new IllegalArgumentException(
-                          "Project notification receiver with id "
-                              + member.getUser().getId()
-                              + " not found"));
-
-      Notification notification =
-          Notification.builder()
-              .sender(creator)
-              .receiver(receiver)
-              .project(project)
-              .template(inviteTemplate)
-              .payload(payload)
-              .createdAt(LocalDateTime.now())
-              .build();
-      notificationRepository.save(notification);
-
-      // Kafka를 통해 알림 메시지 전송
-      NotificationMessage message =
-          new NotificationMessage(
-              type.toString(),
-              notification.getId(),
-              project.getId(),
-              creator.getId(),
-              List.of(member.getUser().getId()),
-              notificationService.renderProjectTemplate(
-                  inviteTemplate.getTemplate(), notification));
-
-      log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
-      notificationProducer.sendNotification(message);
-    }
   }
 
   @Transactional

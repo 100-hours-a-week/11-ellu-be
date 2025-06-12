@@ -68,7 +68,9 @@ public class AdminController {
             NotificationType.SCHEDULE_DELETED,
             "{project}프로젝트의 {schedule} 일정이 삭제되었습니다.",
             NotificationType.INVITATION_PROCESSED,
-            "회원님이 {receiver}님께 보낸 {project} 프로젝트 초대 요청이 {status}되었습니다.");
+            "회원님이 {receiver}님께 보낸 {project} 프로젝트 초대 요청이 {status}되었습니다.",
+            NotificationType.PROJECT_WIKI_READY,
+            "{project} 프로젝트가 준비되었습니다. 이제 회의록을 업로드해서 일정을 추출하고, 캘린더에 반영해 팀원들과 공유해 보세요.");
 
     List<NotificationTemplate> savedTemplates = new ArrayList<>();
 

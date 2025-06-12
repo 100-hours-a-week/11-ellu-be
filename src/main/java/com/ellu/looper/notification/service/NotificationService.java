@@ -10,10 +10,12 @@ import com.ellu.looper.notification.entity.Notification;
 import com.ellu.looper.notification.entity.NotificationTemplate;
 import com.ellu.looper.notification.repository.NotificationRepository;
 import com.ellu.looper.notification.repository.NotificationTemplateRepository;
+import com.ellu.looper.project.dto.AddedMember;
 import com.ellu.looper.project.entity.Project;
 import com.ellu.looper.project.entity.ProjectMember;
 import com.ellu.looper.project.repository.ProjectMemberRepository;
 import com.ellu.looper.user.entity.User;
+import com.ellu.looper.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +36,7 @@ public class NotificationService {
   private final ProjectMemberRepository projectMemberRepository;
   private final NotificationTemplateRepository notificationTemplateRepository;
   private final NotificationProducer notificationProducer;
+  private final UserRepository userRepository;
 
   @Transactional
   public void softDeleteOldNotifications() {
@@ -63,7 +66,8 @@ public class NotificationService {
               if (type.equals(NotificationType.PROJECT_INVITED)) {
                 message = renderInvitationTemplate(n.getTemplate().getTemplate(), n);
               } else if (type.equals(NotificationType.PROJECT_DELETED)
-                  || type.equals(NotificationType.PROJECT_EXPELLED)) {
+                  || type.equals(NotificationType.PROJECT_EXPELLED)
+                  || type.equals(NotificationType.PROJECT_WIKI_READY)) {
                 message = renderProjectTemplate(n.getTemplate().getTemplate(), n);
               } else if (type.equals(NotificationType.SCHEDULE_CREATED)
                   || type.equals(NotificationType.SCHEDULE_UPDATED)
@@ -108,6 +112,103 @@ public class NotificationService {
     return template
         .replace("{schedule}", notification.getPayload().get("schedule").toString())
         .replace("{project}", notification.getPayload().get("project").toString());
+  }
+
+  @Transactional
+  public void sendProjectNotification(
+      NotificationType type, List<ProjectMember> toRemove, Long creatorId, Project project) {
+    User creator =
+        userRepository
+            .findById(creatorId)
+            .orElseThrow(() -> new IllegalArgumentException("Project creator not found"));
+
+    // Notification 생성
+    NotificationTemplate inviteTemplate =
+        notificationTemplateRepository
+            .findByType(type)
+            .orElseThrow(() -> new IllegalArgumentException("프로젝트 알림 템플릿 없음"));
+
+    Map<String, Object> payload = new HashMap<>();
+    payload.put("project", project.getTitle());
+
+    for (ProjectMember member : toRemove) {
+      User receiver =
+          userRepository
+              .findById(member.getUser().getId())
+              .orElseThrow(
+                  () ->
+                      new IllegalArgumentException(
+                          "Project notification receiver with id "
+                              + member.getUser().getId()
+                              + " not found"));
+
+      Notification notification =
+          Notification.builder()
+              .sender(creator)
+              .receiver(receiver)
+              .project(project)
+              .template(inviteTemplate)
+              .payload(payload)
+              .createdAt(LocalDateTime.now())
+              .build();
+      notificationRepository.save(notification);
+
+      // Kafka를 통해 알림 메시지 전송
+      NotificationMessage message =
+          new NotificationMessage(
+              type.toString(),
+              notification.getId(),
+              project.getId(),
+              creator.getId(),
+              List.of(member.getUser().getId()),
+              renderProjectTemplate(inviteTemplate.getTemplate(), notification));
+
+      log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
+      notificationProducer.sendNotification(message);
+    }
+  }
+
+  public void sendInvitationNotification(
+      List<User> addedUsers, User creator, Project project, List<AddedMember> addedMemberRequests) {
+    // Notification 생성
+    NotificationTemplate inviteTemplate =
+        notificationTemplateRepository
+            .findByType(NotificationType.PROJECT_INVITED)
+            .orElseThrow(() -> new IllegalArgumentException("초대 알림 템플릿 없음"));
+    Map<String, String> nicknameToPosition =
+        addedMemberRequests.stream()
+            .collect(Collectors.toMap(AddedMember::getNickname, AddedMember::getPosition));
+
+    for (User user : addedUsers) {
+      Map<String, Object> payload = new HashMap<>();
+      payload.put("creator", creator.getNickname());
+      payload.put("project", project.getTitle());
+      payload.put("position", nicknameToPosition.get(user.getNickname()));
+      Notification notification =
+          Notification.builder()
+              .sender(creator)
+              .receiver(user)
+              .project(project)
+              .template(inviteTemplate)
+              .payload(payload)
+              .inviteStatus(String.valueOf(InviteStatus.PENDING))
+              .createdAt(LocalDateTime.now())
+              .build();
+      notificationRepository.save(notification);
+
+      // Kafka를 통해 알림 메시지 전송
+      NotificationMessage message =
+          new NotificationMessage(
+              NotificationType.PROJECT_INVITED.toString(),
+              notification.getId(),
+              project.getId(),
+              creator.getId(),
+              List.of(user.getId()),
+              renderInvitationTemplate(inviteTemplate.getTemplate(), notification));
+
+      log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
+      notificationProducer.sendNotification(message);
+    }
   }
 
   @Transactional
