@@ -1,52 +1,22 @@
-name: Backend Service - Stage Deployment
+name: Docker Image For Stage
 on: 
   push:
     branches:
       - stage
 
 env:
-  GAR_PROJECT_ID: ${{ secrets.GAR_PROJECT_ID }}
-  PROJECT_ID: ${{ secrets.PROJECT_ID_DEV }}
+  PROJECT_ID: capable-range-455705-h4
   GAR_LOCATION: asia-northeast3
-  GAR_REPOSITORY: looper
-  ZONE: asia-northeast3-a
+  REPOSITORY: looper
   SERVICE: backend
-  REGISTRY: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GAR_PROJECT_ID }}/${{ env.GAR_REPOSITORY }}
+  REGISTRY: asia-northeast3-docker.pkg.dev/capable-range-455705-h4/looper
   IMAGE_NAME: backend
   VERSION: ${{ github.sha }}
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: gradle
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Run tests
-        run: ./gradlew test
-
-      - name: Generate test report
-        uses: dorny/test-reporter@v1
-        if: success() || failure()
-        with:
-          name: Gradle Tests
-          path: build/test-results/test/*.xml
-          reporter: java-junit
-
   publish:
-    name: Build and Push to GAR
-    needs: test
+    name: Publish
+    if: ${{ github.ref == 'refs/heads/stage' }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -55,11 +25,11 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21
           cache: gradle
 
       - name: Google Auth
@@ -73,109 +43,16 @@ jobs:
       - name: Configure Docker for GCP
         run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Build container image with Gradle
-        run: ./gradlew bootBuildImage --imageName ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+      - name: Build container image
+        run: |
+          chmod +x gradlew 
+          ./gradlew bootBuildImage --imageName ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
 
       - name: Tag latest
-        run: docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        run: |
+          docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
       - name: Publish container image
         run: |
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-
-      - name: Print image URL
-        run: echo "Image pushed to ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}"
-
-  deploy:
-    name: Deploy to DEV Environment
-    needs: publish
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
-
-      - name: Google Auth
-        uses: 'google-github-actions/auth@v2'
-        with:
-          credentials_json: '${{ secrets.GCP_SA_KEY }}'
-
-      - name: Set up Cloud SDK
-        uses: 'google-github-actions/setup-gcloud@v2'
-
-      - name: Deploy to GCP VM
-        run: |
-          echo "🚀 Starting Backend deployment to DEV environment..."
-          
-          # Get app instance name from dev project
-          APP_INSTANCE=$(gcloud compute instances list --project=${{ env.PROJECT_ID }} --filter="name~looper-dev-app" --format="value(name)" | head -1)
-          
-          if [ -z "$APP_INSTANCE" ]; then
-            echo "❌ No application instance found!"
-            exit 1
-          fi
-          
-          echo "📍 Found instance: $APP_INSTANCE"
-          
-          # SSH into the VM and deploy
-          gcloud compute ssh $APP_INSTANCE \
-            --zone=${{ env.ZONE }} \
-            --project=${{ env.PROJECT_ID }} \
-            --tunnel-through-iap \
-            --command="
-              set -e
-              echo '🔐 Authenticating Docker with GAR...'
-              gcloud auth configure-docker $GAR_LOCATION-docker.pkg.dev
-              
-              echo '📂 Navigating to application directory...'
-              cd /opt/looper
-              
-              echo '⚙️ Setting environment variables...'
-              export IMAGE_TAG=${{ env.VERSION }}
-              export PROJECT_ID=${{ env.GAR_PROJECT_ID }}
-              export GAR_LOCATION=$GAR_LOCATION
-              export GAR_NAME=$GAR_REPOSITORY
-              
-              echo '📥 Pulling latest Backend service image...'
-              docker-compose -f docker-compose.prod.yml pull looper-backend
-              
-              echo '🔄 Restarting Backend service...'
-              docker-compose -f docker-compose.prod.yml up -d looper-backend
-              
-              echo '⏳ Waiting for service to be ready...'
-              sleep 30
-              
-              echo '🏥 Checking service health...'
-              if curl -f http://localhost:8080/actuator/health > /dev/null 2>&1; then
-                echo '✅ Backend service is healthy!'
-              else
-                echo '⚠️ Backend service health check failed, but deployment completed'
-              fi
-              
-              echo '🧹 Cleaning up old images...'
-              docker image prune -f
-              
-              echo '✨ Backend deployment completed successfully!'
-            "
-          
-          echo "🎉 Backend DEV deployment finished!"
-
-      - name: Deployment Summary
-        run: |
-          echo "## 🚀 Backend Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Status**: Completed" >> $GITHUB_STEP_SUMMARY
-          echo "📦 **Image**: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "🎯 **Environment**: DEV" >> $GITHUB_STEP_SUMMARY
-          echo "📅 **Deployed**: $(date)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
-          echo "- Monitor service logs" >> $GITHUB_STEP_SUMMARY
-          echo "- Test API endpoints" >> $GITHUB_STEP_SUMMARY
-          echo "- Verify database connectivity" >> $GITHUB_STEP_SUMMARY
