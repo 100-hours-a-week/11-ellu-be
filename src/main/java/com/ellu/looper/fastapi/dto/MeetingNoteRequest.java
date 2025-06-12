@@ -1,4 +1,4 @@
-package com.ellu.looper.project.dto;
+package com.ellu.looper.fastapi.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

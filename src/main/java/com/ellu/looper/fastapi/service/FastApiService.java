@@ -2,10 +2,18 @@ package com.ellu.looper.fastapi.service;
 
 import com.ellu.looper.chat.dto.MessageRequest;
 import com.ellu.looper.commons.PreviewHolder;
-import com.ellu.looper.project.dto.MeetingNoteRequest;
-import com.ellu.looper.project.dto.MeetingNoteResponse;
+import com.ellu.looper.commons.enums.NotificationType;
+import com.ellu.looper.fastapi.dto.MeetingNoteRequest;
+import com.ellu.looper.fastapi.dto.MeetingNoteResponse;
+import com.ellu.looper.fastapi.dto.WikiEmbeddingResponse;
+import com.ellu.looper.notification.service.NotificationService;
 import com.ellu.looper.project.dto.WikiRequest;
+import com.ellu.looper.project.entity.Project;
+import com.ellu.looper.project.entity.ProjectMember;
+import com.ellu.looper.project.repository.ProjectMemberRepository;
+import com.ellu.looper.project.repository.ProjectRepository;
 import java.time.Duration;
+import java.util.List;
 import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,11 +29,13 @@ public class FastApiService {
 
   private final WebClient webClient;
   private final PreviewHolder previewHolder;
+  private final NotificationService notificationService;
+  private final ProjectRepository projectRepository;
+  private final ProjectMemberRepository projectMemberRepository;
 
   // AI 서버로부터 응답을 전달받아 처리
   public void handleAiPreviewResponse(Long projectId, MeetingNoteResponse aiResponse) {
     log.info("[FastApiService] Handling AI preview response for project: {}", projectId);
-    log.info("[FastApiService] Response message: {}", aiResponse.getMessage());
 
     if (aiResponse.getDetail() != null) {
       aiResponse
@@ -44,6 +54,29 @@ public class FastApiService {
 
     log.info(
         "[FastApiService] Successfully handled AI preview response for project: {}", projectId);
+  }
+
+  public void handleWikiEmbeddingCompletion(
+      Long projectId, WikiEmbeddingResponse wikiEmbeddingResponse) {
+    log.info("[FastApiService] Handling wiki embedding response for project: {}", projectId);
+    if (wikiEmbeddingResponse.getStatus().equals("embedding_done")) {
+      Project project =
+          projectRepository
+              .findByIdAndDeletedAtIsNull(projectId)
+              .orElseThrow(() -> new IllegalArgumentException("Project not found"));
+
+      List<ProjectMember> members =
+          projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
+
+      notificationService.sendProjectNotification(
+          NotificationType.PROJECT_WIKI_READY, members, null, project);
+
+    } else {
+      log.warn("[FastApiService] Wiki embedding not completed yet.");
+    }
+    log.info(
+        "[FastApiService] Successfully handled wiki completion response for project: {}",
+        projectId);
   }
 
   // 예외 상황 처리
