@@ -1,7 +1,8 @@
 package com.ellu.looper.fastapi.controller;
 
+import com.ellu.looper.fastapi.dto.MeetingNoteResponse;
+import com.ellu.looper.fastapi.dto.WikiEmbeddingResponse;
 import com.ellu.looper.fastapi.service.FastApiService;
-import com.ellu.looper.project.dto.MeetingNoteResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +46,23 @@ public class FastApiCallbackController {
 
     log.info(
         "[FastApiCallbackController] Successfully processed callback for project: {}", projectId);
+    return ResponseEntity.ok().build(); // AI에게 200 OK 응답
+  }
+
+  @PostMapping("/wiki")
+  public ResponseEntity<?> receiveWikiCompletion(
+      @RequestBody WikiEmbeddingResponse wikiEmbeddingResponse) {
+    Long projectId = wikiEmbeddingResponse.getProject_id();
+    log.info(
+        "[FastApiCallbackController] Received callback for project with id {} for wiki embedding completion",
+        projectId);
+    log.info("[FastApiCallbackController] Response status: {}", wikiEmbeddingResponse.getStatus());
+
+    aiCallbackService.handleWikiEmbeddingCompletion(projectId, wikiEmbeddingResponse);
+
+    log.info(
+        "[FastApiCallbackController] Successfully processed wiki embedding completion callback for project with id {}",
+        projectId);
     return ResponseEntity.ok().build(); // AI에게 200 OK 응답
   }
 }
