@@ -1,4 +1,4 @@
-package com.ellu.looper.project.dto;
+package com.ellu.looper.fastapi.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
