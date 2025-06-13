@@ -15,7 +15,6 @@ import org.hibernate.annotations.Type;
     name = "notification",
     indexes = {
       @Index(name = "IDX_NOTIFICATION_DELETED_AT", columnList = "deleted_at"),
-      @Index(name = "IDX_NOTIFICATION_IS_PROCESSED", columnList = "is_processed"),
       @Index(name = "IDX_NOTIFICATION_INVITE_STATUS", columnList = "invite_status")
     })
 @Getter
