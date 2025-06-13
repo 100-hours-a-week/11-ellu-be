@@ -1,14 +1,10 @@
 package com.ellu.looper.project.service;
 
 import com.ellu.looper.commons.enums.Color;
-import com.ellu.looper.commons.enums.InviteStatus;
 import com.ellu.looper.commons.enums.NotificationType;
 import com.ellu.looper.commons.enums.Role;
 import com.ellu.looper.fastapi.service.FastApiService;
 import com.ellu.looper.kafka.NotificationProducer;
-import com.ellu.looper.kafka.dto.NotificationMessage;
-import com.ellu.looper.notification.entity.Notification;
-import com.ellu.looper.notification.entity.NotificationTemplate;
 import com.ellu.looper.notification.repository.NotificationRepository;
 import com.ellu.looper.notification.repository.NotificationTemplateRepository;
 import com.ellu.looper.notification.service.NotificationService;
@@ -148,7 +144,8 @@ public class ProjectService {
 
     log.info("Sending invitation notification to project members");
     // 초대 알림 보내기
-    notificationService.sendInvitationNotification(addedUsers, creator, project, request.getAdded_members());
+    notificationService.sendInvitationNotification(
+        addedUsers, creator, project, request.getAdded_members());
 
     log.info("Project created successfully with ID: {}", project.getId());
   }
@@ -279,7 +276,8 @@ public class ProjectService {
     projectMemberRepository.saveAll(members);
 
     // send deletion notification
-    notificationService.sendProjectNotification(NotificationType.PROJECT_DELETED, members, userId, project);
+    notificationService.sendProjectNotification(
+        NotificationType.PROJECT_DELETED, members, userId, project);
   }
 
   @Transactional
@@ -361,7 +359,8 @@ public class ProjectService {
     projectMemberRepository.saveAll(toRemove);
 
     // send expulsion notification
-    notificationService.sendProjectNotification(NotificationType.PROJECT_EXPELLED, toRemove, userId, project);
+    notificationService.sendProjectNotification(
+        NotificationType.PROJECT_EXPELLED, toRemove, userId, project);
 
     // 새로운 멤버 추가 및 포지션 업데이트
     List<User> newlyInvitedUsers = new ArrayList<>();
@@ -397,7 +396,8 @@ public class ProjectService {
                           .anyMatch(user -> user.getNickname().equals(member.getNickname())))
               .collect(Collectors.toList());
 
-      notificationService.sendInvitationNotification(newlyInvitedUsers, creator.getUser(), project, newlyAddedMembers);
+      notificationService.sendInvitationNotification(
+          newlyInvitedUsers, creator.getUser(), project, newlyAddedMembers);
     }
 
     // 위키 내용이 있다면 수정

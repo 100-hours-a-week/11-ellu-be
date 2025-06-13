@@ -23,8 +23,10 @@ public class KafkaStreamsConfig {
 
   @Value("${spring.kafka.bootstrap-servers}")
   private String bootstrapServers;
+
   @Value("${spring.kafka.streams.application-id}")
   private String applicationId;
+
   @Value("${kafka.topics.chatbot.response}")
   private String responseTopic;
 
