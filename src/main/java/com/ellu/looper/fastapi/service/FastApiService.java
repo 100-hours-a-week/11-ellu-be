@@ -6,6 +6,7 @@ import com.ellu.looper.commons.enums.NotificationType;
 import com.ellu.looper.fastapi.dto.MeetingNoteRequest;
 import com.ellu.looper.fastapi.dto.MeetingNoteResponse;
 import com.ellu.looper.fastapi.dto.WikiEmbeddingResponse;
+import com.ellu.looper.kafka.PreviewResultProducer;
 import com.ellu.looper.notification.service.NotificationService;
 import com.ellu.looper.project.dto.WikiRequest;
 import com.ellu.looper.project.entity.Project;
@@ -32,6 +33,7 @@ public class FastApiService {
   private final NotificationService notificationService;
   private final ProjectRepository projectRepository;
   private final ProjectMemberRepository projectMemberRepository;
+  private final PreviewResultProducer previewResultProducer;
 
   // AI 서버로부터 응답을 전달받아 처리
   public void handleAiPreviewResponse(Long projectId, MeetingNoteResponse aiResponse) {
@@ -49,8 +51,8 @@ public class FastApiService {
       log.warn("[FastApiService] No data received in the response");
     }
 
-    // aiResponse는 AI 서버가 반환한 task preview 결과
-    previewHolder.complete(projectId, aiResponse);
+    // 분산 처리를 위해 Kafka에 메시지 발행
+    previewResultProducer.sendPreviewResult(projectId, aiResponse);
 
     log.info(
         "[FastApiService] Successfully handled AI preview response for project: {}", projectId);
