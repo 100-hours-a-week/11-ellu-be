@@ -23,11 +23,15 @@ public class KafkaStreamsConfig {
 
   @Value("${spring.kafka.bootstrap-servers}")
   private String bootstrapServers;
+  @Value("${spring.kafka.streams.application-id}")
+  private String applicationId;
+  @Value("${kafka.topics.chatbot.response}")
+  private String responseTopic;
 
   @Bean(name = KafkaStreamsDefaultConfiguration.DEFAULT_STREAMS_CONFIG_BEAN_NAME)
   public KafkaStreamsConfiguration kStreamsConfig() {
     Map<String, Object> props = new HashMap<>();
-    props.put(APPLICATION_ID_CONFIG, "chat-response-streams");
+    props.put(APPLICATION_ID_CONFIG, applicationId);
     props.put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
     props.put(DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
     props.put(DEFAULT_VALUE_SERDE_CLASS_CONFIG, JsonSerde.class.getName());
@@ -40,7 +44,7 @@ public class KafkaStreamsConfig {
   public KStream<String, ChatProducer.ChatResponseToken> chatResponseStream(
       StreamsBuilder streamsBuilder) {
     return streamsBuilder.stream(
-        "chatbot-response",
+        responseTopic,
         Consumed.with(Serdes.String(), new JsonSerde<>(ChatProducer.ChatResponseToken.class)));
   }
 }

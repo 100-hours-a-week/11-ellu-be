@@ -2,7 +2,7 @@ name: Docker Image For Development
 on: 
   push:
     branches:
-      - develop
+      - fix/kafka-config
 
 env:
   REGISTRY: ghcr.io
@@ -34,7 +34,7 @@ jobs:
 
   package:
     name: Package and Publish
-    if: ${{ github.ref == 'refs/heads/feat/develop' }}
+    if: ${{ github.ref == 'refs/heads/fix/kafka-config' }}
     needs: [ build ]
     runs-on: ubuntu-24.04
     permissions:
