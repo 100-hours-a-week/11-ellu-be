@@ -104,6 +104,6 @@ info:
     version: 1.0.1
     description: Looper API 서버
 
-logging:
-  level:
-    io.opentelemetry: DEBUG
+#logging:
+#  level:
+#    io.opentelemetry: DEBUG
