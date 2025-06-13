@@ -164,11 +164,6 @@ public class FastApiService {
   }
 
   public Flux<String> streamChatResponse(MessageRequest request) {
-    return webClient
-        .post()
-        .uri("/chat/stream")
-        .bodyValue(request)
-        .retrieve()
-        .bodyToFlux(String.class);
+    return webClient.post().uri("/ai/chats").bodyValue(request).retrieve().bodyToFlux(String.class);
   }
 }
