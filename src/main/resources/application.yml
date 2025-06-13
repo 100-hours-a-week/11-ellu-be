@@ -23,6 +23,7 @@ spring:
     streams:
       bootstrap-servers: ${KAFKA_BASE_URL:looper-kafka:29092}
 
+
 server:
   forward-headers-strategy: framework
 
