@@ -41,10 +41,9 @@ public class Schedule {
   @JoinColumn(name = "member_id", nullable = false)
   private User user;
 
-  //  // Plan과의 연관관계 (nullable)
-  //  @ManyToOne(fetch = FetchType.LAZY)
-  //  @JoinColumn(name = "plan_id")
-  //  private Plan plan;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "plan_id")
+  private Plan plan;
 
   @Column(nullable = false, length = 50)
   private String title;

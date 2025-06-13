@@ -2,6 +2,7 @@ package com.ellu.looper.schedule.controller;
 
 import com.ellu.looper.commons.ApiResponse;
 import com.ellu.looper.commons.CurrentUser;
+import com.ellu.looper.schedule.dto.PlanCreateRequest;
 import com.ellu.looper.schedule.dto.ScheduleCreateRequest;
 import com.ellu.looper.schedule.dto.ScheduleResponse;
 import com.ellu.looper.schedule.dto.ScheduleUpdateRequest;
@@ -40,6 +41,14 @@ public class ScheduleController {
     ScheduleResponse response = scheduleService.createSchedule(userId, request);
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(Map.of("message", "schedule_created", "data", response));
+  }
+
+  @PostMapping("/plan")
+  public ResponseEntity<?> createPlan(
+      @CurrentUser Long userId, @RequestBody PlanCreateRequest request) {
+    List<ScheduleResponse> response = scheduleService.createPlan(userId, request);
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(Map.of("message", "plan_created", "data", response));
   }
 
   @PatchMapping("/{id}")

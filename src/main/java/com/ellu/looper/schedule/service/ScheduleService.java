@@ -2,11 +2,14 @@ package com.ellu.looper.schedule.service;
 
 import com.ellu.looper.exception.ValidationException;
 import com.ellu.looper.project.repository.ProjectRepository;
+import com.ellu.looper.schedule.dto.PlanCreateRequest;
 import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
 import com.ellu.looper.schedule.dto.ScheduleCreateRequest;
 import com.ellu.looper.schedule.dto.ScheduleResponse;
 import com.ellu.looper.schedule.dto.ScheduleUpdateRequest;
+import com.ellu.looper.schedule.entity.Plan;
 import com.ellu.looper.schedule.entity.Schedule;
+import com.ellu.looper.schedule.repository.PlanRepository;
 import com.ellu.looper.schedule.repository.ScheduleRepository;
 import com.ellu.looper.user.entity.User;
 import com.ellu.looper.user.repository.UserRepository;
@@ -29,6 +32,7 @@ public class ScheduleService {
   private final ScheduleRepository scheduleRepository;
   private final UserRepository memberRepository;
   private final ProjectRepository projectRepository;
+  private final PlanRepository planRepository;
   private final ProjectScheduleService projectScheduleService;
 
   private void validateTimeOrder(LocalDateTime startTime, LocalDateTime endTime) {
@@ -70,6 +74,64 @@ public class ScheduleService {
             .build();
     Schedule saved = scheduleRepository.save(schedule);
     return toResponse(saved, false);
+  }
+
+  @Transactional
+  public List<ScheduleResponse> createPlan(Long userId, PlanCreateRequest request) {
+    User user =
+        memberRepository
+            .findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid user ID"));
+
+    Map<String, String> errors = new HashMap<>();
+
+    int index = 0;
+    for (PlanCreateRequest.ProjectScheduleDto dto : request.getChatbot_schedules()) {
+      String prefix = "chatbot_schedules[" + index + "]";
+
+      if (dto.getTitle() == null || dto.getTitle().isBlank()) {
+        errors.put(prefix + ".title", "Title is required");
+      }
+
+      if (dto.getStartTime() == null) {
+        errors.put(prefix + ".start_time", "Start time is required");
+      }
+
+      if (dto.getEndTime() == null) {
+        errors.put(prefix + ".end_time", "End time is required");
+      }
+
+      if (dto.getStartTime() != null
+          && dto.getEndTime() != null
+          && !dto.getStartTime().isBefore(dto.getEndTime())) {
+        errors.put(prefix + ".time", "End time must be after start time");
+      }
+      index++;
+    }
+
+    if (!errors.isEmpty()) {
+      throw new ValidationException(errors);
+    }
+
+    List<ScheduleResponse> responses = new ArrayList<>();
+    Plan plan = Plan.builder().user(user).title(request.getPlan_title()).build();
+    plan = planRepository.save(plan);
+
+    for (PlanCreateRequest.ProjectScheduleDto dto : request.getChatbot_schedules()) {
+      Schedule schedule =
+          Schedule.builder()
+              .title(dto.getTitle())
+              .user(user)
+              .startTime(dto.getStartTime())
+              .endTime(dto.getEndTime())
+              .plan(plan)
+              .build();
+      scheduleRepository.save(schedule);
+
+      responses.add(toResponse(schedule, false));
+    }
+
+    return responses;
   }
 
   @Transactional
