@@ -22,6 +22,7 @@ public class PreviewResultConsumer {
   public void consumePreviewResult(String projectId, MeetingNoteResponse response) {
     log.info("[PreviewResultConsumer] Received preview result for project: {}", projectId);
     previewHolder.complete(Long.parseLong(projectId), response);
-    log.info("[PreviewResultConsumer] Successfully processed preview result for project: {}", projectId);
+    log.info(
+        "[PreviewResultConsumer] Successfully processed preview result for project: {}", projectId);
   }
-} 
+}

@@ -22,4 +22,4 @@ public class PreviewResultProducer {
     kafkaTemplate.send(previewResultTopic, projectId.toString(), response);
     log.info("[PreviewResultProducer] Successfully sent preview result for project: {}", projectId);
   }
-} 
+}
