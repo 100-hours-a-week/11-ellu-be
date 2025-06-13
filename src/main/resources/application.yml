@@ -16,12 +16,12 @@ spring:
   jackson:
     time-zone: Asia/Seoul
   kafka:
-    bootstrap-servers: ${KAFKA_BASE_URL:looper-kafka:29092}
+    bootstrap-servers: ${KAFKA_BASE_URL:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     streams:
-      bootstrap-servers: ${KAFKA_BASE_URL:looper-kafka:29092}
+      bootstrap-servers: ${KAFKA_BASE_URL:localhost:9092}
       application-id: looper-streams-app
 
 server:
@@ -95,6 +95,7 @@ kafka:
       preview-result
   consumer:
     group-id: chat-group
+    preview-group-id: preview-consumer-group
 
 
 info:

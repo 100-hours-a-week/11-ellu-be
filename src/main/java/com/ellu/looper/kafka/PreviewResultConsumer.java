@@ -18,7 +18,7 @@ public class PreviewResultConsumer {
   @Value("${kafka.topics.preview}")
   private String previewResultTopic;
 
-  @KafkaListener(topics = "${kafka.topics.preview}", groupId = "${kafka.consumer.group-id}")
+  @KafkaListener(topics = "${kafka.topics.preview}", groupId = "${kafka.consumer.preview-group-id}")
   public void consumePreviewResult(String projectId, MeetingNoteResponse response) {
     log.info("[PreviewResultConsumer] Received preview result for project: {}", projectId);
     previewHolder.complete(Long.parseLong(projectId), response);
