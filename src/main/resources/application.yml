@@ -91,6 +91,8 @@ kafka:
       schedule
     notification:
       notification
+    preview:
+      preview-result
   consumer:
     group-id: chat-group
 
