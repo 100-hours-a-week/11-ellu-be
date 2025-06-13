@@ -21,7 +21,7 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     streams:
-      bootstrap-servers: looper-kafka:29092
+      bootstrap-servers: ${KAFKA_BASE_URL:looper-kafka:29092}
 
 server:
   forward-headers-strategy: framework
