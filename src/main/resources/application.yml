@@ -16,11 +16,12 @@ spring:
   jackson:
     time-zone: Asia/Seoul
   kafka:
-    bootstrap-servers: ${KAFKA_BASE_URL:127.0.0.1:9092}
+    bootstrap-servers: ${KAFKA_BASE_URL:looper-kafka:29092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-
+    streams:
+      bootstrap-servers: looper-kafka:29092
 
 server:
   forward-headers-strategy: framework
