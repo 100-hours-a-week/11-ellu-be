@@ -1,4 +1,4 @@
-package com.ellu.looper.kafka;
+package com.ellu.looper.kafka.config;
 
 
 import org.apache.kafka.clients.admin.NewTopic;
@@ -18,12 +18,12 @@ public class KafkaTopicConfig {
 
   @Bean
   public NewTopic chatTopic() {
-    return new NewTopic("test1", 3, (short) 1);
+    return new NewTopic(USER_INPUT_TOPIC, 3, (short) 1);
   }
 
   @Bean
   public NewTopic responseTopic() {
-    return new NewTopic("test2", 3, (short) 1);
+    return new NewTopic(RESPONSE_TOPIC, 3, (short) 1);
   }
 
 }
