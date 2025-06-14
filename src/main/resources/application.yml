@@ -20,6 +20,11 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+#      properties:
+#        spring.json.trusted.packages: com.ellu.looper.chat.dto
     streams:
       bootstrap-servers: ${KAFKA_BASE_URL:localhost:9092}
       application-id: looper-streams-app

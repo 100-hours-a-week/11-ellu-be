@@ -2,8 +2,10 @@ package com.ellu.looper.kafka;
 
 import com.ellu.looper.chat.dto.MessageRequest;
 import com.ellu.looper.fastapi.service.FastApiService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -11,31 +13,37 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class ChatConsumer {
+
+  private final ObjectMapper objectMapper;
   private final FastApiService fastApiService;
   private final ChatProducer chatProducer;
 
   @KafkaListener(
       topics = "${kafka.topics.chatbot.user-input}",
       groupId = "${kafka.consumer.group-id}")
-  public void consumeUserMessage(String userId, MessageRequest message) {
-    log.info("Received message from user {}: {}", userId, message);
+  public void consumeUserMessage(ConsumerRecord<String, String> record) {
+    try {
+      String key = record.key(); // userId
+      String value = record.value(); // JSON
+      Long userId = Long.parseLong(key);
 
-    fastApiService
-        .streamChatResponse(message)
-        .doOnNext(
-            token -> {
-              chatProducer.sendResponseToken(Long.parseLong(userId), token, false);
-            })
-        .doOnComplete(
-            () -> {
-              chatProducer.sendResponseToken(Long.parseLong(userId), "", true);
-            })
-        .doOnError(
-            error -> {
-              log.error("Error processing chat message: {}", error.getMessage());
-              chatProducer.sendResponseToken(
-                  Long.parseLong(userId), "Error: " + error.getMessage(), true);
-            })
-        .subscribe();
+      MessageRequest message = objectMapper.readValue(value, MessageRequest.class);
+
+      log.info("Received message from user {}: {}", userId, message.getMessage());
+
+      fastApiService
+          .streamChatResponse(message)
+          .doOnNext(token -> chatProducer.sendResponseToken(userId, token, false))
+          .doOnComplete(() -> chatProducer.sendResponseToken(userId, "", true))
+          .doOnError(error -> {
+            log.error("Error processing chat message: {}", error.getMessage());
+            chatProducer.sendResponseToken(userId, "Error: " + error.getMessage(), true);
+          })
+          .subscribe();
+
+    } catch (Exception e) {
+      log.error("Failed to process user message", e);
+    }
   }
+
 }
