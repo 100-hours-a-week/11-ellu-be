@@ -43,6 +43,6 @@ public class WikiController {
 
     return ResponseEntity.ok(
         ApiResponse.success(
-            "wiki_updated", Map.of("wiki", request.getContent(), "project_id", projectId)));
+            "wiki_updated", Map.of("wiki", request.getUrl(), "project_id", projectId)));
   }
 }

@@ -24,7 +24,10 @@ public class MeetingNoteResponse {
   @NoArgsConstructor
   @Getter
   public static class SchedulePreview {
-    @JsonProperty("keyword")
+    @JsonProperty("position")
+    private String position;
+
+    @JsonProperty("task")
     private String keyword;
 
     @JsonProperty("subtasks")
