@@ -14,6 +14,7 @@ import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
 @Service
@@ -23,6 +24,7 @@ public class StompService {
   private final ScheduleEventProducer scheduleEventProducer;
   private final ProjectScheduleRepository projectScheduleRepository;
 
+  @Transactional
   public void updateSchedule(
       Long projectId, StompProjectScheduleUpdateRequest scheduleUpdateRequest, Long userId) {
 
@@ -44,6 +46,7 @@ public class StompService {
 
   }
 
+  @Transactional
   public void deleteSchedule(
       Long projectId, Long scheduleId, ProjectScheduleTakeRequest deleteRequest, Long userId) {
     projectScheduleService.deleteSchedule(scheduleId, userId);
@@ -58,6 +61,7 @@ public class StompService {
     scheduleEventProducer.sendScheduleEvent(deleteEvent);
   }
 
+  @Transactional
   public void createSchedule(
       Long projectId, ProjectScheduleCreateRequest createRequest, Long userId) {
     List<ProjectScheduleResponse> createdList =
@@ -75,6 +79,7 @@ public class StompService {
     }
   }
 
+  @Transactional
   public void takeSchedule(Long projectId, ProjectScheduleTakeRequest takeRequest, Long userId) {
     projectScheduleService.takeSchedule(projectId, takeRequest.schedule_id(), userId);
 

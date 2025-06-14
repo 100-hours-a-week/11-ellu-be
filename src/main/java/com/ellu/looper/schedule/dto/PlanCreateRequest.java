@@ -33,6 +33,8 @@ public class PlanCreateRequest {
     @NotBlank(message = "title is required")
     private String title;
 
+    private String description;
+
     @NotNull(message = "start_time is required")
     @JsonProperty("start_time")
     private LocalDateTime startTime;

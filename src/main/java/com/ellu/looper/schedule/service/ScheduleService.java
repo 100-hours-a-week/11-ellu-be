@@ -124,6 +124,8 @@ public class ScheduleService {
               .user(user)
               .startTime(dto.getStartTime())
               .endTime(dto.getEndTime())
+              .isAiRecommended(true)
+              .description(dto.getDescription())
               .plan(plan)
               .build();
       scheduleRepository.save(schedule);
