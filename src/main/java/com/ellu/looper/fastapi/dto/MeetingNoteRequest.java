@@ -1,5 +1,6 @@
 package com.ellu.looper.fastapi.dto;
 
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,5 +14,5 @@ public class MeetingNoteRequest {
   private Long project_id;
   private String content;
   private String nickname;
-  private String position;
+  private List<String> position;
 }

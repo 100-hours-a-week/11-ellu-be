@@ -16,6 +16,8 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
   // 특정 프로젝트의 멤버들 조회 (soft-delete 제외)
   List<ProjectMember> findByProjectAndDeletedAtIsNull(Project project);
 
+  List<ProjectMember> findByProjectIdAndDeletedAtIsNull(Long projectId);
+
   Optional<ProjectMember> findByProjectIdAndUserId(Long projectId, Long userId);
 
   List<ProjectMember> findByProjectIdAndPositionAndDeletedAtIsNull(Long projectId, String position);
