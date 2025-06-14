@@ -135,7 +135,7 @@ public class ProjectService {
       log.info("Saving wiki in vectorDB for project: {}", project.getId());
       WikiRequest wikiRequest =
           WikiRequest.builder()
-              .content(request.getWiki())
+              .url(request.getWiki())
               .project_id(project.getId())
               .updated_at(LocalDateTime.now())
               .build();
@@ -405,7 +405,7 @@ public class ProjectService {
       log.info("Updating wiki for project: {}", projectId);
       WikiRequest wikiRequest =
           WikiRequest.builder()
-              .content(request.getWiki())
+              .url(request.getWiki())
               .project_id(projectId)
               .updated_at(LocalDateTime.now())
               .build();

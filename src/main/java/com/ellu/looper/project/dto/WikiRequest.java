@@ -13,8 +13,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class WikiRequest {
-  @NotBlank(message = "Content must not be empty")
-  private String content;
+  @NotBlank(message = "URL must not be empty")
+  private String url;
 
   private Long project_id;
 
