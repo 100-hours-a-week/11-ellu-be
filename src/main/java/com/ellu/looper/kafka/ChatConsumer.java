@@ -33,17 +33,24 @@ public class ChatConsumer {
 
       fastApiService
           .streamChatResponse(message)
-          .doOnNext(token -> chatProducer.sendResponseToken(userId, token, false))
-          .doOnComplete(() -> chatProducer.sendResponseToken(userId, "", true))
-          .doOnError(error -> {
-            log.error("Error processing chat message: {}", error.getMessage());
-            chatProducer.sendResponseToken(userId, "Error: " + error.getMessage(), true);
-          })
+          .doOnNext(
+              fullJson -> {
+                log.debug("FastAPI Response: {}", fullJson);
+                chatProducer.sendChatbotResponse(userId, fullJson);
+              })
+          .doOnComplete(
+              () -> {
+                log.info("Chatbot response stream completed for user {}", userId);
+              })
+          .doOnError(
+              error -> {
+                log.error("Error processing chat message: {}", error.getMessage());
+                chatProducer.sendResponseToken(userId, "Error: " + error.getMessage(), true);
+              })
           .subscribe();
 
     } catch (Exception e) {
       log.error("Failed to process user message", e);
     }
   }
-
 }

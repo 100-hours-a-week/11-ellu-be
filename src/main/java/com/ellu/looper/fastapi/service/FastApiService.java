@@ -164,6 +164,14 @@ public class FastApiService {
   }
 
   public Flux<String> streamChatResponse(MessageRequest request) {
-    return webClient.post().uri("/ai/chats").bodyValue(request).retrieve().bodyToFlux(String.class);
+    return webClient
+        .post()
+        .uri("/ai/chats")
+        .contentType(MediaType.APPLICATION_JSON)
+        .accept(MediaType.TEXT_EVENT_STREAM)
+        .bodyValue(request)
+        .retrieve()
+        .bodyToFlux(String.class)
+        .doOnError(error -> log.error("Error streaming chat response: {}", error.getMessage()));
   }
 }
