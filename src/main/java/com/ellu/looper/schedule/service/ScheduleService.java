@@ -128,9 +128,9 @@ public class ScheduleService {
               .description(dto.getDescription())
               .plan(plan)
               .build();
-      scheduleRepository.save(schedule);
+      Schedule saved = scheduleRepository.save(schedule);
 
-      responses.add(toResponse(schedule, false));
+      responses.add(toResponse(saved, false));
     }
 
     return responses;
