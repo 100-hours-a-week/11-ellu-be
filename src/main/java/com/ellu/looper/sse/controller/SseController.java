@@ -23,7 +23,7 @@ public class SseController {
     return sseService.subscribe(userId);
   }
 
-  @GetMapping(value = "/chat/stream/{userId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  @GetMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public SseEmitter streamChat(@CurrentUser Long userId) {
     return sseEmitterService.createEmitter(userId.toString());
   }

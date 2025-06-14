@@ -32,16 +32,25 @@ public class ChatProducer {
     }
   }
 
-  public void sendResponseToken(Long userId, String token, boolean done) {
-    try {
-      ChatResponseToken response = new ChatResponseToken(token, done);
-      String payload = objectMapper.writeValueAsString(response);
-      kafkaTemplate.send(RESPONSE_TOPIC, userId.toString(), payload);
-    } catch (Exception e) {
-      log.error("Failed to serialize ChatResponseToken", e);
-      throw new RuntimeException("Serialization failed", e);
-    }
+  public record ChatResponseToken(String token, boolean done) {}
+
+  public record ChatResponseWrapper(String message, ChatResponseToken data) {}
+
+  public void sendChatbotResponse(Long userId, String rawJson) {
+    kafkaTemplate.send(RESPONSE_TOPIC, userId.toString(), rawJson);
   }
 
-  public record ChatResponseToken(String token, boolean done) {}
+  public void sendResponseToken(Long userId, String token, boolean done) {
+    try {
+      ChatResponseToken data = new ChatResponseToken(token, done);
+      ChatResponseWrapper wrapper = new ChatResponseWrapper("chatbot_response", data);
+
+      String payload = objectMapper.writeValueAsString(wrapper);
+
+      kafkaTemplate.send(RESPONSE_TOPIC, userId.toString(), payload);
+    } catch (Exception e) {
+      log.error("Failed to send token", e);
+      throw new RuntimeException(e);
+    }
+  }
 }
