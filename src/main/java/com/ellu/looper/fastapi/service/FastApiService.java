@@ -44,7 +44,7 @@ public class FastApiService {
           .getDetail()
           .forEach(
               preview -> {
-                log.info("[FastApiService] Keyword: {}", preview.getKeyword());
+                log.info("[FastApiService] Task: {}", preview.getTask());
                 log.info("[FastApiService] Subtasks: {}", preview.getSubtasks());
               });
     } else {

@@ -35,7 +35,7 @@ public class FastApiCallbackController {
           .getDetail()
           .forEach(
               preview -> {
-                log.info("[FastApiCallbackController] Keyword: {}", preview.getKeyword());
+                log.info("[FastApiCallbackController] Task: {}", preview.getTask());
                 log.info("[FastApiCallbackController] Subtasks: {}", preview.getSubtasks());
               });
     } else {
