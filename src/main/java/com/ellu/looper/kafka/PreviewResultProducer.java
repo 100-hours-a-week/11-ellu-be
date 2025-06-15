@@ -19,7 +19,16 @@ public class PreviewResultProducer {
 
   public void sendPreviewResult(Long projectId, MeetingNoteResponse response) {
     log.info("[PreviewResultProducer] Sending preview result for project: {}", projectId);
-    kafkaTemplate.send(previewResultTopic, projectId.toString(), response);
-    log.info("[PreviewResultProducer] Successfully sent preview result for project: {}", projectId);
+    try {
+      kafkaTemplate.send(previewResultTopic, projectId.toString(), response);
+      log.info(
+          "[PreviewResultProducer] Successfully sent preview result for project: {}", projectId);
+    } catch (Exception e) {
+      log.error(
+          "[PreviewResultProducer] Failed to send preview result for project: {}, error: {}",
+          projectId,
+          e.getMessage(),
+          e);
+    }
   }
 }

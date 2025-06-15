@@ -17,24 +17,49 @@ public class PreviewHolder {
   public void register(Long projectId, DeferredResult<ResponseEntity<?>> result) {
     log.info("[PreviewHolder] Registering waiting client for project: {}", projectId);
     waitingClients.put(projectId, result);
+
+    // 에러 핸들러
+    result.onError(
+        (Throwable t) -> {
+          log.error(
+              "[PreviewHolder] Error occurred for project: {}, error: {}",
+              projectId,
+              t.getMessage());
+          waitingClients.remove(projectId, result);
+          result.setResult(
+              ResponseEntity.status(500)
+                  .body(Map.of("message", "internal_server_error", "detail", t.getMessage())));
+        });
   }
 
   public void remove(Long projectId) {
     log.info("[PreviewHolder] Removing waiting client for project: {}", projectId);
-    waitingClients.remove(projectId);
+    DeferredResult<ResponseEntity<?>> result = waitingClients.remove(projectId);
+    if (result != null && !result.isSetOrExpired()) {
+      result.setResult(
+          ResponseEntity.status(410)
+              .body(
+                  Map.of(
+                      "message", "gone",
+                      "detail", "The request was cancelled")));
+    }
   }
 
   public void complete(Long projectId, Object aiResponse) {
     log.info("[PreviewHolder] Completing response for project: {}", projectId);
     DeferredResult<ResponseEntity<?>> result = waitingClients.remove(projectId);
-    if (result != null && !result.isSetOrExpired()) {
-      log.info("[PreviewHolder] Setting result for project: {}", projectId);
-      result.setResult(ResponseEntity.ok(aiResponse));
-    } else {
-      log.warn(
-          "[PreviewHolder] No waiting client found or result already set for project: {}",
-          projectId);
+    if (result == null) {
+      log.warn("[PreviewHolder] No waiting client found for project: {}", projectId);
+      return;
     }
+
+    if (result.isSetOrExpired()) {
+      log.warn("[PreviewHolder] Result already set or expired for project: {}", projectId);
+      return;
+    }
+
+    log.info("[PreviewHolder] Setting result for project: {}", projectId);
+    result.setResult(ResponseEntity.ok(aiResponse));
   }
 
   public void completeWithError(Long projectId, Throwable error) {
@@ -43,10 +68,13 @@ public class PreviewHolder {
         projectId,
         error.getMessage());
     DeferredResult<ResponseEntity<?>> result = waitingClients.remove(projectId);
-    if (result != null) {
+    if (result != null && !result.isSetOrExpired()) {
       result.setResult(
           ResponseEntity.status(500)
-              .body(Map.of("message", "internal_server_error", "data", null)));
+              .body(Map.of("message", "internal_server_error", "detail", error.getMessage())));
+    } else {
+      log.warn(
+          "[PreviewHolder] No active client found for error response on project: {}", projectId);
     }
   }
 }
