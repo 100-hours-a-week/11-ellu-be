@@ -6,6 +6,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -19,7 +22,8 @@ public class PreviewResultConsumer {
   private String previewResultTopic;
 
   @KafkaListener(topics = "${kafka.topics.preview}", groupId = "${kafka.consumer.preview-group-id}")
-  public void consumePreviewResult(String projectId, MeetingNoteResponse response) {
+  public void consumePreviewResult(
+      @Header(KafkaHeaders.RECEIVED_KEY) String projectId, @Payload MeetingNoteResponse response) {
     log.info("[PreviewResultConsumer] Received preview result for project: {}", projectId);
     previewHolder.complete(Long.parseLong(projectId), response);
     log.info(
