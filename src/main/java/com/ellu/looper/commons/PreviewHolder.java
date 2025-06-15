@@ -15,8 +15,21 @@ public class PreviewHolder {
       new ConcurrentHashMap<>();
 
   public void register(Long projectId, DeferredResult<ResponseEntity<?>> result) {
-    log.info("[PreviewHolder] Registering waiting client for project: {}", projectId);
-    waitingClients.put(projectId, result);
+    // 이미 존재하는 클라이언트가 있다면 로그만 남기고 제거
+    DeferredResult<ResponseEntity<?>> existingClient = waitingClients.put(projectId, result);
+    if (existingClient != null) {
+      if (existingClient.isSetOrExpired()) {
+        log.warn("[PreviewHolder] Replacing expired client for project: {}", projectId);
+      } else {
+        log.warn("[PreviewHolder] Replacing existing active client for project: {}", projectId);
+        existingClient.setResult(
+            ResponseEntity.status(409)
+                .body(
+                    Map.of(
+                        "message", "conflict",
+                        "detail", "Another request for the same project is being processed")));
+      }
+    }
 
     // 에러 핸들러
     result.onError(
