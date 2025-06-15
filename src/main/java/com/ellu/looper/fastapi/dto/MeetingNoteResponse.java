@@ -28,7 +28,7 @@ public class MeetingNoteResponse {
     private String position;
 
     @JsonProperty("task")
-    private String keyword;
+    private String task;
 
     @JsonProperty("subtasks")
     private List<String> subtasks;
