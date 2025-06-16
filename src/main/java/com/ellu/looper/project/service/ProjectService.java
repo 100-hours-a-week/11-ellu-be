@@ -204,7 +204,7 @@ public class ProjectService {
             .orElseThrow(() -> new IllegalArgumentException("Project not found"));
 
     if (!project.getMember().getId().equals(userId)) {
-      throw new SecurityException("Only project creator can view this project");
+      return new CreatorExcludedProjectResponse(project.getId(), project.getTitle(), project.getColor().name(), null, null, null);
     }
 
     List<ProjectMember> members = projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
