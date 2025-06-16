@@ -48,7 +48,7 @@ public class MeetingNoteController {
 
     fastApiService.sendNoteToAI(
         request,
-        aiResponse -> previewHolder.complete(projectId, aiResponse),
+        null,
         error -> previewHolder.completeWithError(projectId, error));
 
     return ResponseEntity.status(201)
