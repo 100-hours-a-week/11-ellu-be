@@ -53,7 +53,8 @@ jwt:
   secret: ${JWT_SECRET}
 
 fastapi:
-  base-url: ${FASTAPI_BASE_URL:http://localhost:8000}
+  summary-url: ${FASTAPI_SUMMARY_URL:http://localhost:8000}
+  chatbot-url: ${FASTAPI_CHATBOT_URL:http://localhost:8002}
 
 # 현재는 OpenTelemetry가 시스템에 영향을 주지 않도록 완전히 비활성화함
 otel:
