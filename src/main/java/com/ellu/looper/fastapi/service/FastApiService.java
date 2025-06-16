@@ -91,20 +91,23 @@ public class FastApiService {
         .retrieve()
         .bodyToMono(MeetingNoteResponse.class)
         .timeout(Duration.ofMinutes(10)) // AI 서버와 통신 timeout
-        .doOnSuccess(
+        .subscribe(
+            // 성공 시
             response -> {
-              log.info(
-                  "Successfully sent note to AI server for project: {}",
+              log.info("Successfully sent note to AI server for project: {}. Response will be handled by FastAPI callback.",
                   noteRequest.getProject_id());
-            })
-        .doOnError(
+            },
+            // 에러 발생 시
             error -> {
               log.error(
                   "Failed to send note to AI server for project: {}, error: {}",
                   noteRequest.getProject_id(),
                   error.getMessage());
-            })
-        .subscribe(onSuccess, onError);
+              if (onError != null) {
+                onError.accept(error);
+              }
+            }
+        );
   }
 
   public void createWiki(Long projectId, WikiRequest request) {
