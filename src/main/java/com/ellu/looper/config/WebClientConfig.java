@@ -8,11 +8,19 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Configuration
 public class WebClientConfig {
 
-  @Value("${fastapi.base-url}")
-  private String fastApiBaseUrl;
+  @Value("${fastapi.summary-url}")
+  private String fastApiSummaryBaseUrl;
 
-  @Bean(name = "fastApiWebClient")
-  public WebClient fastApiWebClient() {
-    return WebClient.builder().baseUrl(fastApiBaseUrl).build();
+  @Value("${fastapi.chatbot-url}")
+  private String fastApiChatbotBaseUrl;
+
+  @Bean(name = "fastApiSummaryWebClient")
+  public WebClient fastApiSummaryWebClient() {
+    return WebClient.builder().baseUrl(fastApiSummaryBaseUrl).build();
+  }
+
+  @Bean(name = "fastApiChatbotWebClient")
+  public WebClient fastApiChatbotWebClient() {
+    return WebClient.builder().baseUrl(fastApiChatbotBaseUrl).build();
   }
 }

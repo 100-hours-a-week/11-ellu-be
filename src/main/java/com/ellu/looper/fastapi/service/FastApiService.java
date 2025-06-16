@@ -15,8 +15,8 @@ import com.ellu.looper.project.repository.ProjectRepository;
 import java.time.Duration;
 import java.util.List;
 import java.util.function.Consumer;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -24,14 +24,29 @@ import reactor.core.publisher.Flux;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class FastApiService {
 
-  private final WebClient webClient;
+  private final WebClient fastApiSummaryWebClient;
+  private final WebClient fastApiChatbotWebClient;
   private final PreviewHolder previewHolder;
   private final NotificationService notificationService;
   private final ProjectRepository projectRepository;
   private final ProjectMemberRepository projectMemberRepository;
+
+  public FastApiService(
+      @Qualifier("fastApiSummaryWebClient") WebClient fastApiSummaryWebClient,
+      @Qualifier("fastApiChatbotWebClient") WebClient fastApiChatbotWebClient,
+      PreviewHolder previewHolder,
+      NotificationService notificationService,
+      ProjectRepository projectRepository,
+      ProjectMemberRepository projectMemberRepository) {
+    this.fastApiSummaryWebClient = fastApiSummaryWebClient;
+    this.fastApiChatbotWebClient = fastApiChatbotWebClient;
+    this.previewHolder = previewHolder;
+    this.notificationService = notificationService;
+    this.projectRepository = projectRepository;
+    this.projectMemberRepository = projectMemberRepository;
+  }
 
   public void handleWikiEmbeddingCompletion(
       Long projectId, WikiEmbeddingResponse wikiEmbeddingResponse) {
@@ -66,7 +81,7 @@ public class FastApiService {
       Consumer<MeetingNoteResponse> onSuccess,
       Consumer<Throwable> onError) {
     log.info("Sending note to AI server for project: {}", noteRequest.getProject_id());
-    webClient
+    fastApiSummaryWebClient
         .post()
         .uri(
             uriBuilder ->
@@ -94,7 +109,7 @@ public class FastApiService {
 
   public void createWiki(Long projectId, WikiRequest request) {
     log.info("Creating wiki for project: {}", projectId);
-    webClient
+    fastApiSummaryWebClient
         .post()
         .uri("/ai/wiki")
         .bodyValue(request)
@@ -117,7 +132,7 @@ public class FastApiService {
 
   public void updateWiki(Long projectId, WikiRequest request) {
     log.info("Updating wiki for project: {}", projectId);
-    webClient
+    fastApiSummaryWebClient
         .patch()
         .uri("/ai/wiki")
         .bodyValue(request)
@@ -139,7 +154,7 @@ public class FastApiService {
   }
 
   public Flux<String> streamChatResponse(MessageRequest request) {
-    return webClient
+    return fastApiChatbotWebClient
         .post()
         .uri("/ai/chats")
         .contentType(MediaType.APPLICATION_JSON)
