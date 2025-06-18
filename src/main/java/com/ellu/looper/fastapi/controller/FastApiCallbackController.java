@@ -49,7 +49,7 @@ public class FastApiCallbackController {
 
     log.info(
         "[FastApiCallbackController] Successfully processed callback for project: {}", projectId);
-    return ResponseEntity.ok().build(); // AI에게 200 OK 응답
+    return ResponseEntity.ok("acknowledged"); // AI에게 200 OK 응답
   }
 
   @PostMapping("/wiki")
