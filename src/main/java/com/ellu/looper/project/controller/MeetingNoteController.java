@@ -2,7 +2,7 @@ package com.ellu.looper.project.controller;
 
 import com.ellu.looper.commons.ApiResponse;
 import com.ellu.looper.commons.CurrentUser;
-import com.ellu.looper.commons.PreviewHolder;
+import com.ellu.looper.schedule.service.PreviewHolder;
 import com.ellu.looper.fastapi.dto.MeetingNoteRequest;
 import com.ellu.looper.fastapi.service.FastApiService;
 import com.ellu.looper.project.entity.ProjectMember;
