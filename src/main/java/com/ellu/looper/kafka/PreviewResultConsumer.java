@@ -1,6 +1,6 @@
 package com.ellu.looper.kafka;
 
-import com.ellu.looper.commons.PreviewHolder;
+import com.ellu.looper.schedule.service.PreviewHolder;
 import com.ellu.looper.fastapi.dto.MeetingNoteResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
