@@ -1,4 +1,4 @@
-package com.ellu.looper.commons;
+package com.ellu.looper.schedule.service;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

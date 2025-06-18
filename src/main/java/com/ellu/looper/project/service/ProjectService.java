@@ -4,9 +4,6 @@ import com.ellu.looper.commons.enums.Color;
 import com.ellu.looper.commons.enums.NotificationType;
 import com.ellu.looper.commons.enums.Role;
 import com.ellu.looper.fastapi.service.FastApiService;
-import com.ellu.looper.kafka.NotificationProducer;
-import com.ellu.looper.notification.repository.NotificationRepository;
-import com.ellu.looper.notification.repository.NotificationTemplateRepository;
 import com.ellu.looper.notification.service.NotificationService;
 import com.ellu.looper.project.dto.AddedMember;
 import com.ellu.looper.project.dto.CreatorExcludedProjectResponse;
@@ -54,9 +51,6 @@ public class ProjectService {
   private final FastApiService fastApiService;
   private final ProfileImageService profileImageService;
   private final NotificationService notificationService;
-  private final NotificationRepository notificationRepository;
-  private final NotificationTemplateRepository notificationTemplateRepository;
-  private final NotificationProducer notificationProducer;
   private final AssigneeRepository assigneeRepository;
 
   @Transactional
@@ -130,17 +124,17 @@ public class ProjectService {
 
     projectMemberRepository.saveAll(projectMembers);
 
-//    // wiki 저장하는 FastAPI 호출
-//    if (request.getWiki() != null && !request.getWiki().trim().isEmpty()) {
-//      log.info("Saving wiki in vectorDB for project: {}", project.getId());
-//      WikiRequest wikiRequest =
-//          WikiRequest.builder()
-//              .url(request.getWiki())
-//              .project_id(project.getId())
-//              .updated_at(LocalDateTime.now())
-//              .build();
-//      fastApiService.createWiki(project.getId(), wikiRequest);
-//    }
+    // wiki 저장하는 FastAPI 호출
+    if (request.getWiki() != null && !request.getWiki().trim().isEmpty()) {
+      log.info("Saving wiki in vectorDB for project: {}", project.getId());
+      WikiRequest wikiRequest =
+          WikiRequest.builder()
+              .url(request.getWiki())
+              .project_id(project.getId())
+              .updated_at(LocalDateTime.now())
+              .build();
+      fastApiService.createWiki(project.getId(), wikiRequest);
+    }
 
     log.info("Sending invitation notification to project members");
     // 초대 알림 보내기
@@ -400,17 +394,17 @@ public class ProjectService {
           newlyInvitedUsers, creator.getUser(), project, newlyAddedMembers);
     }
 
-    // 위키 내용이 있다면 수정
-//    if (request.getWiki() != null && !request.getWiki().trim().isEmpty()) {
-//      log.info("Updating wiki for project: {}", projectId);
-//      WikiRequest wikiRequest =
-//          WikiRequest.builder()
-//              .url(request.getWiki())
-//              .project_id(projectId)
-//              .updated_at(LocalDateTime.now())
-//              .build();
-//      fastApiService.createWiki(projectId, wikiRequest);
-//    }
+//     위키 내용이 있다면 수정
+    if (request.getWiki() != null && !request.getWiki().trim().isEmpty()) {
+      log.info("Updating wiki for project: {}", projectId);
+      WikiRequest wikiRequest =
+          WikiRequest.builder()
+              .url(request.getWiki())
+              .project_id(projectId)
+              .updated_at(LocalDateTime.now())
+              .build();
+      fastApiService.createWiki(projectId, wikiRequest);
+    }
 
     log.info("Project updated successfully: {}", projectId);
   }

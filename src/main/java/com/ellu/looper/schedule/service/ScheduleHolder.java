@@ -1,8 +1,8 @@
-package com.ellu.looper.commons;
+package com.ellu.looper.schedule.service;
 
+import com.ellu.looper.commons.ApiResponse;
 import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest;
 import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
-import com.ellu.looper.schedule.service.ProjectScheduleService;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;

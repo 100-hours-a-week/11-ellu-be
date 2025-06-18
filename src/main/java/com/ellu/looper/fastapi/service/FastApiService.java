@@ -1,7 +1,6 @@
 package com.ellu.looper.fastapi.service;
 
 import com.ellu.looper.chat.dto.MessageRequest;
-import com.ellu.looper.commons.PreviewHolder;
 import com.ellu.looper.commons.enums.NotificationType;
 import com.ellu.looper.fastapi.dto.MeetingNoteRequest;
 import com.ellu.looper.fastapi.dto.MeetingNoteResponse;
@@ -12,6 +11,8 @@ import com.ellu.looper.project.entity.Project;
 import com.ellu.looper.project.entity.ProjectMember;
 import com.ellu.looper.project.repository.ProjectMemberRepository;
 import com.ellu.looper.project.repository.ProjectRepository;
+import com.ellu.looper.schedule.service.PreviewHolder;
+import com.ellu.looper.user.repository.UserRepository;
 import java.time.Duration;
 import java.util.List;
 import java.util.function.Consumer;
@@ -39,7 +40,7 @@ public class FastApiService {
       PreviewHolder previewHolder,
       NotificationService notificationService,
       ProjectRepository projectRepository,
-      ProjectMemberRepository projectMemberRepository) {
+      ProjectMemberRepository projectMemberRepository, UserRepository userRepository) {
     this.fastApiSummaryWebClient = fastApiSummaryWebClient;
     this.fastApiChatbotWebClient = fastApiChatbotWebClient;
     this.previewHolder = previewHolder;
@@ -51,7 +52,7 @@ public class FastApiService {
   public void handleWikiEmbeddingCompletion(
       Long projectId, WikiEmbeddingResponse wikiEmbeddingResponse) {
     log.info("[FastApiService] Handling wiki embedding response for project: {}", projectId);
-    if (wikiEmbeddingResponse.getStatus().equals("embedding_done")) {
+    if (wikiEmbeddingResponse.getStatus().equals("completed")) {
       Project project =
           projectRepository
               .findByIdAndDeletedAtIsNull(projectId)
@@ -61,7 +62,7 @@ public class FastApiService {
           projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
 
       notificationService.sendProjectNotification(
-          NotificationType.PROJECT_WIKI_READY, members, null, project);
+          NotificationType.PROJECT_WIKI_READY, members, project.getMember().getId(), project);
 
     } else {
       log.warn("[FastApiService] Wiki embedding not completed yet.");
