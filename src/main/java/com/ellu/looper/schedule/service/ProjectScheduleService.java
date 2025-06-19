@@ -170,7 +170,6 @@ public class ProjectScheduleService {
         request.end_time(),
         request.position(),
         request.completed());
-    log.info("업데이트 완료됨");
     Set<User> notificationTargets = new HashSet<>();
 
     // If assignee is newly added or removed, update assignee table
