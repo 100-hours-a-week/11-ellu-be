@@ -1,5 +1,6 @@
 package com.ellu.looper.schedule.service;
 
+import com.ellu.looper.commons.enums.Color;
 import com.ellu.looper.exception.ValidationException;
 import com.ellu.looper.project.repository.ProjectRepository;
 import com.ellu.looper.schedule.dto.PlanCreateRequest;
@@ -122,6 +123,7 @@ public class ScheduleService {
           Schedule.builder()
               .title(dto.getTitle())
               .user(user)
+              .color(Color.valueOf(request.getColor()))
               .startTime(dto.getStartTime())
               .endTime(dto.getEndTime())
               .isAiRecommended(true)
@@ -269,7 +271,7 @@ public class ScheduleService {
         .projectSchedule(isProject)
         .startTime(s.getStartTime())
         .endTime(s.getEndTime())
-        .color(null)
+        .color(s.getColor())
         .build();
   }
 }
