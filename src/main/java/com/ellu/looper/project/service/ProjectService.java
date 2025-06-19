@@ -198,7 +198,8 @@ public class ProjectService {
             .orElseThrow(() -> new IllegalArgumentException("Project not found"));
 
     if (!project.getMember().getId().equals(userId)) {
-      return new CreatorExcludedProjectResponse(project.getId(), project.getTitle(), project.getColor().name(), null, null, null);
+      return new CreatorExcludedProjectResponse(
+          project.getId(), project.getTitle(), project.getColor().name(), null, null, null);
     }
 
     List<ProjectMember> members = projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
@@ -394,7 +395,7 @@ public class ProjectService {
           newlyInvitedUsers, creator.getUser(), project, newlyAddedMembers);
     }
 
-//     위키 내용이 있다면 수정
+    //     위키 내용이 있다면 수정
     if (request.getWiki() != null && !request.getWiki().trim().isEmpty()) {
       log.info("Updating wiki for project: {}", projectId);
       WikiRequest wikiRequest =

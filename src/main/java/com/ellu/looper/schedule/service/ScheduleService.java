@@ -1,6 +1,5 @@
 package com.ellu.looper.schedule.service;
 
-import com.ellu.looper.commons.enums.Color;
 import com.ellu.looper.exception.ValidationException;
 import com.ellu.looper.project.repository.ProjectRepository;
 import com.ellu.looper.schedule.dto.PlanCreateRequest;
@@ -22,12 +21,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ScheduleService {
 
   private final ScheduleRepository scheduleRepository;
@@ -110,20 +111,21 @@ public class ScheduleService {
       index++;
     }
 
+    log.info("validation passed");
     if (!errors.isEmpty()) {
       throw new ValidationException(errors);
     }
+    log.info("here we are");
 
     List<ScheduleResponse> responses = new ArrayList<>();
     Plan plan = Plan.builder().user(user).title(request.getPlan_title()).build();
     plan = planRepository.save(plan);
-
+    log.info("Plan created");
     for (PlanCreateRequest.ProjectScheduleDto dto : request.getChatbot_schedules()) {
       Schedule schedule =
           Schedule.builder()
               .title(dto.getTitle())
               .user(user)
-              .color(Color.valueOf(request.getColor()))
               .startTime(dto.getStartTime())
               .endTime(dto.getEndTime())
               .isAiRecommended(true)
@@ -131,6 +133,7 @@ public class ScheduleService {
               .plan(plan)
               .build();
       Schedule saved = scheduleRepository.save(schedule);
+      log.info("schedule saved");
 
       responses.add(toResponse(saved, false));
     }
