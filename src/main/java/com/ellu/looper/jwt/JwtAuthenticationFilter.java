@@ -48,7 +48,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         JwtAuthenticationToken authentication = new JwtAuthenticationToken(userId);
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        log.info("JwtAuthenticationFilter 실행됨. 인증된 유저 ID: {}", userId);
 
       } catch (JwtException e) {
         if ("Token expired".equals(e.getMessage())) {

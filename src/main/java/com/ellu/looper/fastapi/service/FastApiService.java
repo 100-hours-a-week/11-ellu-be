@@ -40,7 +40,8 @@ public class FastApiService {
       PreviewHolder previewHolder,
       NotificationService notificationService,
       ProjectRepository projectRepository,
-      ProjectMemberRepository projectMemberRepository, UserRepository userRepository) {
+      ProjectMemberRepository projectMemberRepository,
+      UserRepository userRepository) {
     this.fastApiSummaryWebClient = fastApiSummaryWebClient;
     this.fastApiChatbotWebClient = fastApiChatbotWebClient;
     this.previewHolder = previewHolder;
@@ -95,7 +96,8 @@ public class FastApiService {
         .subscribe(
             // 성공 시
             response -> {
-              log.info("Successfully sent note to AI server for project: {}. Response will be handled by FastAPI callback.",
+              log.info(
+                  "Successfully sent note to AI server for project: {}. Response will be handled by FastAPI callback.",
                   noteRequest.getProject_id());
             },
             // 에러 발생 시
@@ -107,8 +109,7 @@ public class FastApiService {
               if (onError != null) {
                 onError.accept(error);
               }
-            }
-        );
+            });
   }
 
   public void createWiki(Long projectId, WikiRequest request) {

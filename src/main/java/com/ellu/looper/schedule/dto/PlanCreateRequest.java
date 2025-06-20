@@ -24,6 +24,8 @@ public class PlanCreateRequest {
 
   @NotNull private String plan_title;
 
+  private String color;
+
   @Getter
   @Builder
   @NoArgsConstructor

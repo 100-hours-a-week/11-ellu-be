@@ -1,5 +1,6 @@
 package com.ellu.looper.schedule.service;
 
+import com.ellu.looper.commons.enums.Color;
 import com.ellu.looper.commons.enums.NotificationType;
 import com.ellu.looper.exception.ValidationException;
 import com.ellu.looper.kafka.NotificationProducer;
@@ -26,6 +27,7 @@ import com.ellu.looper.schedule.repository.ScheduleRepository;
 import com.ellu.looper.user.entity.User;
 import com.ellu.looper.user.repository.UserRepository;
 import com.ellu.looper.user.service.ProfileImageService;
+import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -170,7 +172,6 @@ public class ProjectScheduleService {
         request.end_time(),
         request.position(),
         request.completed());
-    log.info("업데이트 완료됨");
     Set<User> notificationTargets = new HashSet<>();
 
     // If assignee is newly added or removed, update assignee table
@@ -405,14 +406,10 @@ public class ProjectScheduleService {
             .findByProjectIdAndUserId(projectId, userId)
             .orElseThrow(() -> new IllegalArgumentException("Project Member not found"));
 
-    // TODO: 본인 포지션 일정만 가져갈 있도록 권한 처리 완료 -> 웹소켓 에러 처리 후 권한 처리할 예정임
-    //    if (schedule.getPosition() != projectMember.getPosition()) {
-    //      throw new AccessDeniedException(
-    //          String.format(
-    //              "Access denied: user %d is not authorized to take schedule %d due to position
-    // mismatch.",
-    //              userId, scheduleId));
-    //    }
+    Project project =
+        projectRepository
+            .findById(projectId)
+            .orElseThrow(() -> new EntityNotFoundException("Project Not found"));
 
     // add this user to assignee table
     User user = projectMember.getUser();
@@ -423,6 +420,7 @@ public class ProjectScheduleService {
     Schedule personalSchedule =
         Schedule.builder()
             .user(user)
+            .color(Color.valueOf(String.valueOf(project.getColor())))
             .title(schedule.getTitle())
             .description(schedule.getDescription())
             .startTime(schedule.getStartTime())
