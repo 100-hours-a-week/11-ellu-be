@@ -1,0 +1,97 @@
+# [1.1.0](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.0.0...v1.1.0) (2025-06-05)
+
+
+### Bug Fixes
+
+* meeting note dto id field 타입 수정 ([#56](https://github.com/100-hours-a-week/11-ellu-be/issues/56)) ([206ab89](https://github.com/100-hours-a-week/11-ellu-be/commit/206ab8936261424ed5aaf360be84b8cb6d4300a2))
+* timezone 설정 ([#113](https://github.com/100-hours-a-week/11-ellu-be/issues/113)) ([953442c](https://github.com/100-hours-a-week/11-ellu-be/commit/953442cadc8158ed73c6d4a2151bbe580e75b947))
+* 보안 필터에서 관리자 엔드포인트 화이트리스트 처리 ([#104](https://github.com/100-hours-a-week/11-ellu-be/issues/104)) ([2c7d641](https://github.com/100-hours-a-week/11-ellu-be/commit/2c7d641e40145f80d2613346c186bc43348d1125))
+* 비동기 처리 추가 및 개발 환경 쿠키 설정 추가 ([#63](https://github.com/100-hours-a-week/11-ellu-be/issues/63)) ([f4116a1](https://github.com/100-hours-a-week/11-ellu-be/commit/f4116a1f0f58c9603e83cc2e1dfc02975998eea6))
+
+
+### Features
+
+* added project invitation exception & slight change in nickname live suggest logic ([#83](https://github.com/100-hours-a-week/11-ellu-be/issues/83)) ([a9ecb35](https://github.com/100-hours-a-week/11-ellu-be/commit/a9ecb3573818b73b575eb62dee30ecca5ea55bd1))
+* project detail view dto & project update logic revised ([#85](https://github.com/100-hours-a-week/11-ellu-be/issues/85)) ([7305e0c](https://github.com/100-hours-a-week/11-ellu-be/commit/7305e0c7646587b5599483fe8020d28b18ef98e5))
+* sse 로깅 추가 ([#98](https://github.com/100-hours-a-week/11-ellu-be/issues/98)) ([119c896](https://github.com/100-hours-a-week/11-ellu-be/commit/119c896a5903913031757b51dae7ecd8a11e4031))
+* 메트릭 정보 endpoint 추가 ([86acd28](https://github.com/100-hours-a-week/11-ellu-be/commit/86acd28a6c5fd61c820e94701994ec0df6d509b6))
+* 프로젝트 색상 필드 처리([#71](https://github.com/100-hours-a-week/11-ellu-be/issues/71)) ([#72](https://github.com/100-hours-a-week/11-ellu-be/issues/72)) ([53b2e94](https://github.com/100-hours-a-week/11-ellu-be/commit/53b2e94976fdc66d19afafeaec9e9c1dd41bcd0c))
+* 프로젝트 초대 수락/거절 알림 ([#110](https://github.com/100-hours-a-week/11-ellu-be/issues/110)) ([07b0523](https://github.com/100-hours-a-week/11-ellu-be/commit/07b0523c868bae4d255c5ad43e68986f82a175c2))
+
+
+### Reverts
+
+* Revert "fix: meeting note dto id field 타입 수정" ([#58](https://github.com/100-hours-a-week/11-ellu-be/issues/58)) ([7906505](https://github.com/100-hours-a-week/11-ellu-be/commit/790650523cc22e1a6ae161ed01e723741e10d9a1)), closes [#56](https://github.com/100-hours-a-week/11-ellu-be/issues/56)
+
+# 1.0.0 (2025-05-11)
+
+
+### Bug Fixes
+
+* API 응답 형식 수정에 따른 수정([#19](https://github.com/100-hours-a-week/11-ellu-be/issues/19)) ([9cfb90d](https://github.com/100-hours-a-week/11-ellu-be/commit/9cfb90d12cdc25d80e2564a946cae3f1b986ad80))
+* API 응답 형식 수정에 따른 수정([#19](https://github.com/100-hours-a-week/11-ellu-be/issues/19)) ([#20](https://github.com/100-hours-a-week/11-ellu-be/issues/20)) ([62b33bf](https://github.com/100-hours-a-week/11-ellu-be/commit/62b33bf747aa046cca69c76074546ea2ac1f54c7))
+* API 응답 형식에 맞게 수정([#25](https://github.com/100-hours-a-week/11-ellu-be/issues/25)) ([a7af2b3](https://github.com/100-hours-a-week/11-ellu-be/commit/a7af2b3a1c84ebe6441b6a539c5f551f3ef4ff04))
+* API 응답 형식에 맞게 수정([#25](https://github.com/100-hours-a-week/11-ellu-be/issues/25)) ([#26](https://github.com/100-hours-a-week/11-ellu-be/issues/26)) ([74e7d20](https://github.com/100-hours-a-week/11-ellu-be/commit/74e7d2047f2001ffff6a3f30674c9de3b5519093))
+* cors 스웨거 해결 ([c73cd19](https://github.com/100-hours-a-week/11-ellu-be/commit/c73cd19f110404e7c94f3b875bf1e3a03fbef2ff))
+* dto가 아닌 응답 형태 수정([#31](https://github.com/100-hours-a-week/11-ellu-be/issues/31)) ([d15ae66](https://github.com/100-hours-a-week/11-ellu-be/commit/d15ae66074b5d876424ca23a1295630873ac375b))
+* fastapi wiki 연동 완료 ([7b164a3](https://github.com/100-hours-a-week/11-ellu-be/commit/7b164a33fd87350c791a9eeeed7d22790874be02))
+* fastapi 회의록 연동 ([ae25188](https://github.com/100-hours-a-week/11-ellu-be/commit/ae251885af39395b344f3661b877ba2c37baa5e1))
+* fastapi 회의록 연동 완료 ([c1c539d](https://github.com/100-hours-a-week/11-ellu-be/commit/c1c539d1639e8789c15c0e12c25773f588d32614))
+* fastapi, frontend integration([#46](https://github.com/100-hours-a-week/11-ellu-be/issues/46)) ([#47](https://github.com/100-hours-a-week/11-ellu-be/issues/47)) ([cc1fe62](https://github.com/100-hours-a-week/11-ellu-be/commit/cc1fe62ff9b4817d27ec568345a0df09e1424e2b))
+* frontend 요청 시 Cookie 포함되게 수정 ([ec7173f](https://github.com/100-hours-a-week/11-ellu-be/commit/ec7173f465d7f30aa377a6c06d7ee96eeee8c7c0))
+* frontend에 반환될 회의록 응답 형식 수정 ([d891b43](https://github.com/100-hours-a-week/11-ellu-be/commit/d891b43fe6a6d79ee63e2fb60441c99a14ae0d0c))
+* frontend에 반환될 회의록 응답 형식 수정 ([#49](https://github.com/100-hours-a-week/11-ellu-be/issues/49)) ([c8d8e2c](https://github.com/100-hours-a-week/11-ellu-be/commit/c8d8e2cbac7bae0400aaca7c5f0445eb4805f68d))
+* is_new_user 변수명 수정 ([aecd00d](https://github.com/100-hours-a-week/11-ellu-be/commit/aecd00d5d98db7498f01bb722e388e7b38259f93))
+* is_new_user 변수명 수정 ([#36](https://github.com/100-hours-a-week/11-ellu-be/issues/36)) ([719d742](https://github.com/100-hours-a-week/11-ellu-be/commit/719d74228664ba9f2f01029e81d6c20704389969))
+* is_new_user 변수명 수정 ([#37](https://github.com/100-hours-a-week/11-ellu-be/issues/37)) ([0833110](https://github.com/100-hours-a-week/11-ellu-be/commit/083311073ac2a4e5954b8547c3e67fe24bf4b06c))
+* is_new_user 변수명 수정 ([#38](https://github.com/100-hours-a-week/11-ellu-be/issues/38)) ([36d6a5a](https://github.com/100-hours-a-week/11-ellu-be/commit/36d6a5ab2795db4b4a59d6b91714e071da6ab08c))
+* ScheduleService에 Transactional 추가([#46](https://github.com/100-hours-a-week/11-ellu-be/issues/46)) ([8c94e77](https://github.com/100-hours-a-week/11-ellu-be/commit/8c94e7742f3dcd3616b3cbd9750636988b2cbf23))
+* swagger 문제 해결 ([34a488b](https://github.com/100-hours-a-week/11-ellu-be/commit/34a488bd96da5e36d6685d4eab5b2499b51b820f))
+* swagger 문제 해결 ([1d779ff](https://github.com/100-hours-a-week/11-ellu-be/commit/1d779ff58408bd0c9a83a83f5b5a8b66be22ec14))
+* swagger 문제 해결 ([20b6c90](https://github.com/100-hours-a-week/11-ellu-be/commit/20b6c905ee921e66ed33c4e47adb175c17967f59))
+* swagger 문제 해결 ([4e8a3ac](https://github.com/100-hours-a-week/11-ellu-be/commit/4e8a3acf4ff21a94c99edffdfbd1def094890d93))
+* swagger 문제 해결 ([2dd9f76](https://github.com/100-hours-a-week/11-ellu-be/commit/2dd9f76a9f666cf212906483ef4d6e2a5ec4a744))
+* 로그인 시 응답 형식 수정([#12](https://github.com/100-hours-a-week/11-ellu-be/issues/12)) ([ea5eae6](https://github.com/100-hours-a-week/11-ellu-be/commit/ea5eae654908f00c9a713e4f22066fed3bbf48b4))
+* 로그인 시 응답 형식 수정([#12](https://github.com/100-hours-a-week/11-ellu-be/issues/12)) ([#13](https://github.com/100-hours-a-week/11-ellu-be/issues/13)) ([0f0f079](https://github.com/100-hours-a-week/11-ellu-be/commit/0f0f079c4e507d84ddf63e31c924f5272b84bcab))
+* 리프레시 토큰 재발급 수정([#44](https://github.com/100-hours-a-week/11-ellu-be/issues/44)) ([de09af2](https://github.com/100-hours-a-week/11-ellu-be/commit/de09af297fc00e55ad7a0ad047a336082263894d))
+* 리프레시 토큰 재발급 수정([#44](https://github.com/100-hours-a-week/11-ellu-be/issues/44)) ([#45](https://github.com/100-hours-a-week/11-ellu-be/issues/45)) ([afe5463](https://github.com/100-hours-a-week/11-ellu-be/commit/afe54632385ab3d427bc187a5315f59c44a38f0d))
+* 서버 상태 확인 관련된 api들에 대하여 api 시트 수정([#31](https://github.com/100-hours-a-week/11-ellu-be/issues/31)) ([008ef27](https://github.com/100-hours-a-week/11-ellu-be/commit/008ef274a5a70d316514264845dd4fa02c715a16))
+* 유저가 포함된 스케줄 조회 시 응답 형식 수정 ([80f981c](https://github.com/100-hours-a-week/11-ellu-be/commit/80f981cb7c1008d815cad874f40d97a5e937be75))
+* 프로젝트 스케줄 생성 endpoint가 잘못되어 수정함([#42](https://github.com/100-hours-a-week/11-ellu-be/issues/42)) ([2cff1e2](https://github.com/100-hours-a-week/11-ellu-be/commit/2cff1e22c1270e4528ceb04088ed5d8090c58cdf))
+* 프로젝트 스케줄 생성 endpoint가 잘못되어 수정함([#42](https://github.com/100-hours-a-week/11-ellu-be/issues/42)) ([#43](https://github.com/100-hours-a-week/11-ellu-be/issues/43)) ([8b2feca](https://github.com/100-hours-a-week/11-ellu-be/commit/8b2feca3ce339ac32cf4997a9c9fa21e8637149c))
+* 프로젝트 스케줄 조회 시 position포함되도록 수정([#46](https://github.com/100-hours-a-week/11-ellu-be/issues/46)) ([adb1f5f](https://github.com/100-hours-a-week/11-ellu-be/commit/adb1f5ff7366f72168d9e17218699a7b28bfb15f))
+* 프로젝트 일정 수정/삭제 endpoint 수정 ([7f92505](https://github.com/100-hours-a-week/11-ellu-be/commit/7f92505721e310293348907ea9c2e822d8765850))
+* 프로젝트 일정 수정/삭제 endpoint 수정 ([#50](https://github.com/100-hours-a-week/11-ellu-be/issues/50)) ([d713df1](https://github.com/100-hours-a-week/11-ellu-be/commit/d713df19fd487625b72cd435e66592243b05d4bd))
+* 프로필이미지 파일에 presigned url 적용 ([8e265b6](https://github.com/100-hours-a-week/11-ellu-be/commit/8e265b6186ba766596e67f0ddf3052aba86df40a))
+* 프로필이미지 파일에 presigned url 적용 ([#52](https://github.com/100-hours-a-week/11-ellu-be/issues/52)) ([5ac06f2](https://github.com/100-hours-a-week/11-ellu-be/commit/5ac06f215fe6b8849a4d5296fb3779698edb968e))
+
+
+### Features
+
+* .env.template 설정 및 application.yml 연동 ([aa63bc5](https://github.com/100-hours-a-week/11-ellu-be/commit/aa63bc5b0139effe3253c7d59c6f60ebc42ed2c6))
+* FastAPI 연동을 위한 API 구현([#21](https://github.com/100-hours-a-week/11-ellu-be/issues/21)) ([0d3b249](https://github.com/100-hours-a-week/11-ellu-be/commit/0d3b249b1a3a58304fcd1269ea9930d692850e2e))
+* FastAPI 연동을 위한 API 구현([#21](https://github.com/100-hours-a-week/11-ellu-be/issues/21)) ([#22](https://github.com/100-hours-a-week/11-ellu-be/issues/22)) ([581ca34](https://github.com/100-hours-a-week/11-ellu-be/commit/581ca346a13f0f3de5b6c169a14c5b265a39a477))
+* FE 요청에 따라 프로젝트 월별 조회 수정 ([ea35eb0](https://github.com/100-hours-a-week/11-ellu-be/commit/ea35eb00190351e24bf1aa569c05d11aa2fc692a))
+* Jwt 쿠키 설정 및 Project Domain API 구현([#10](https://github.com/100-hours-a-week/11-ellu-be/issues/10)) ([e32038b](https://github.com/100-hours-a-week/11-ellu-be/commit/e32038b6df05b7247a9f52b7d46a7e9d788a3a48))
+* Jwt 쿠키 설정 및 Project Domain API 구현([#10](https://github.com/100-hours-a-week/11-ellu-be/issues/10)) ([#11](https://github.com/100-hours-a-week/11-ellu-be/issues/11)) ([c3eb8cb](https://github.com/100-hours-a-week/11-ellu-be/commit/c3eb8cb977deb87ce53a40ee3b5cafa9d0440bd7))
+* looper.my 도메인 CORS 허용 설정 추가 ([37b56dd](https://github.com/100-hours-a-week/11-ellu-be/commit/37b56dd638a0ef04b4aa0af679fd818674c37b6e))
+* looper.my 도메인 CORS 허용 설정 추가 ([#35](https://github.com/100-hours-a-week/11-ellu-be/issues/35)) ([6934f95](https://github.com/100-hours-a-week/11-ellu-be/commit/6934f952ba38e248f0b3f12674ade5c41e63d3d2))
+* Project Schedule API 구현([#17](https://github.com/100-hours-a-week/11-ellu-be/issues/17)) ([ee1d27a](https://github.com/100-hours-a-week/11-ellu-be/commit/ee1d27abd8bbb744671266d3d0e5a9e2c865d91d))
+* Project Schedule API 구현([#17](https://github.com/100-hours-a-week/11-ellu-be/issues/17)) ([#18](https://github.com/100-hours-a-week/11-ellu-be/issues/18)) ([dc34c0b](https://github.com/100-hours-a-week/11-ellu-be/commit/dc34c0be3fd22798aa2357e9bc70b9df2d227560))
+* S3이미지 저장 처리 및 환경변수 설정([#23](https://github.com/100-hours-a-week/11-ellu-be/issues/23)) ([bd4c83d](https://github.com/100-hours-a-week/11-ellu-be/commit/bd4c83df7ccf74d145731ade06d96710c999d69d))
+* S3이미지 저장 처리 및 환경변수 설정([#23](https://github.com/100-hours-a-week/11-ellu-be/issues/23)) ([#24](https://github.com/100-hours-a-week/11-ellu-be/issues/24)) ([04df652](https://github.com/100-hours-a-week/11-ellu-be/commit/04df652d0802e1d6bfcc6192d2cacff90b3faf8f))
+* Schedule Domain API 구현([#15](https://github.com/100-hours-a-week/11-ellu-be/issues/15)) ([0169d5b](https://github.com/100-hours-a-week/11-ellu-be/commit/0169d5b9156a61ea1f0d19e5aef66cb9141a4807))
+* Schedule Domain API 구현([#15](https://github.com/100-hours-a-week/11-ellu-be/issues/15)) ([#16](https://github.com/100-hours-a-week/11-ellu-be/issues/16)) ([8ae7ccf](https://github.com/100-hours-a-week/11-ellu-be/commit/8ae7ccf3f7184fd800ce611c5e376407d58b33ac))
+* swagger 설정 ([d462426](https://github.com/100-hours-a-week/11-ellu-be/commit/d4624260f733cffdd0ae5a21d700725ef4fec825))
+* Swagger 설정 ([#29](https://github.com/100-hours-a-week/11-ellu-be/issues/29)) ([3cf8b8d](https://github.com/100-hours-a-week/11-ellu-be/commit/3cf8b8da1476199f2ddbbd0ecfbf48f24fc3981a))
+* User Domain API 구현([#3](https://github.com/100-hours-a-week/11-ellu-be/issues/3)) ([5ebf2da](https://github.com/100-hours-a-week/11-ellu-be/commit/5ebf2da3a4847346f2019cc8fc472d5f42778709))
+* User Domain API 구현([#3](https://github.com/100-hours-a-week/11-ellu-be/issues/3)) ([#4](https://github.com/100-hours-a-week/11-ellu-be/issues/4)) ([c8aa093](https://github.com/100-hours-a-week/11-ellu-be/commit/c8aa09334c0264fead2b48b95a841f1709b32286))
+* wiki api([#32](https://github.com/100-hours-a-week/11-ellu-be/issues/32)) ([60799f2](https://github.com/100-hours-a-week/11-ellu-be/commit/60799f26494184a29e256b01a639306cf0436c5f))
+
+# 1.0.0 (2025-04-30)
+
+
+### Features
+
+* User Domain API 구현([#3](https://github.com/100-hours-a-week/11-ellu-be/issues/3)) ([5ebf2da](https://github.com/100-hours-a-week/11-ellu-be/commit/5ebf2da3a4847346f2019cc8fc472d5f42778709))
+* User Domain API 구현([#3](https://github.com/100-hours-a-week/11-ellu-be/issues/3)) ([#4](https://github.com/100-hours-a-week/11-ellu-be/issues/4)) ([c8aa093](https://github.com/100-hours-a-week/11-ellu-be/commit/c8aa09334c0264fead2b48b95a841f1709b32286))

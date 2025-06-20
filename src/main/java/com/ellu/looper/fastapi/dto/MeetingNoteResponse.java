@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:src/main/java/com/ellu/looper/fastapi/dto/MeetingNoteResponse.java
 package com.ellu.looper.fastapi.dto;
+========
+package com.ellu.looper.project.dto;
+>>>>>>>> main:src/main/java/com/ellu/looper/project/dto/MeetingNoteResponse.java
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
