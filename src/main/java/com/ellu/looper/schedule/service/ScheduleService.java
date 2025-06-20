@@ -1,14 +1,17 @@
 package com.ellu.looper.schedule.service;
 
+import com.ellu.looper.exception.ValidationException;
+import com.ellu.looper.project.repository.ProjectRepository;
+import com.ellu.looper.schedule.dto.PlanCreateRequest;
 import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
 import com.ellu.looper.schedule.dto.ScheduleCreateRequest;
 import com.ellu.looper.schedule.dto.ScheduleResponse;
 import com.ellu.looper.schedule.dto.ScheduleUpdateRequest;
+import com.ellu.looper.schedule.entity.Plan;
 import com.ellu.looper.schedule.entity.Schedule;
-import com.ellu.looper.user.entity.User;
-import com.ellu.looper.exception.ValidationException;
-import com.ellu.looper.project.repository.ProjectRepository;
+import com.ellu.looper.schedule.repository.PlanRepository;
 import com.ellu.looper.schedule.repository.ScheduleRepository;
+import com.ellu.looper.user.entity.User;
 import com.ellu.looper.user.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -18,17 +21,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ScheduleService {
 
   private final ScheduleRepository scheduleRepository;
   private final UserRepository memberRepository;
   private final ProjectRepository projectRepository;
+  private final PlanRepository planRepository;
   private final ProjectScheduleService projectScheduleService;
 
   private void validateTimeOrder(LocalDateTime startTime, LocalDateTime endTime) {
@@ -70,6 +76,69 @@ public class ScheduleService {
             .build();
     Schedule saved = scheduleRepository.save(schedule);
     return toResponse(saved, false);
+  }
+
+  @Transactional
+  public List<ScheduleResponse> createPlan(Long userId, PlanCreateRequest request) {
+    User user =
+        memberRepository
+            .findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid user ID"));
+
+    Map<String, String> errors = new HashMap<>();
+
+    int index = 0;
+    for (PlanCreateRequest.ProjectScheduleDto dto : request.getChatbot_schedules()) {
+      String prefix = "chatbot_schedules[" + index + "]";
+
+      if (dto.getTitle() == null || dto.getTitle().isBlank()) {
+        errors.put(prefix + ".title", "Title is required");
+      }
+
+      if (dto.getStartTime() == null) {
+        errors.put(prefix + ".start_time", "Start time is required");
+      }
+
+      if (dto.getEndTime() == null) {
+        errors.put(prefix + ".end_time", "End time is required");
+      }
+
+      if (dto.getStartTime() != null
+          && dto.getEndTime() != null
+          && !dto.getStartTime().isBefore(dto.getEndTime())) {
+        errors.put(prefix + ".time", "End time must be after start time");
+      }
+      index++;
+    }
+
+    log.info("validation passed");
+    if (!errors.isEmpty()) {
+      throw new ValidationException(errors);
+    }
+    log.info("here we are");
+
+    List<ScheduleResponse> responses = new ArrayList<>();
+    Plan plan = Plan.builder().user(user).title(request.getPlan_title()).build();
+    plan = planRepository.save(plan);
+    log.info("Plan created");
+    for (PlanCreateRequest.ProjectScheduleDto dto : request.getChatbot_schedules()) {
+      Schedule schedule =
+          Schedule.builder()
+              .title(dto.getTitle())
+              .user(user)
+              .startTime(dto.getStartTime())
+              .endTime(dto.getEndTime())
+              .isAiRecommended(true)
+              .description(dto.getDescription())
+              .plan(plan)
+              .build();
+      Schedule saved = scheduleRepository.save(schedule);
+      log.info("schedule saved");
+
+      responses.add(toResponse(saved, false));
+    }
+
+    return responses;
   }
 
   @Transactional
@@ -117,9 +186,6 @@ public class ScheduleService {
     List<ScheduleResponse> responses =
         personalSchedules.stream().map(s -> toResponse(s, false)).collect(Collectors.toList());
 
-    List<ScheduleResponse> projectSchedules = getProjectDailySchedules(memberId, start, end);
-
-    responses.addAll(projectSchedules);
     return responses;
   }
 
@@ -131,11 +197,8 @@ public class ScheduleService {
     List<Schedule> personal = scheduleRepository.findSchedulesBetween(memberId, start, end);
     List<ScheduleResponse> responses = personal.stream().map(s -> toResponse(s, false)).toList();
 
-    List<ScheduleResponse> project =
-        getProjectSchedules(memberId, startDate.atStartOfDay(), endDate.plusDays(1).atStartOfDay());
     List<ScheduleResponse> all = new ArrayList<>();
     all.addAll(responses);
-    all.addAll(project);
     return all.stream().collect(Collectors.groupingBy(r -> r.startTime().toLocalDate()));
   }
 
@@ -211,7 +274,7 @@ public class ScheduleService {
         .projectSchedule(isProject)
         .startTime(s.getStartTime())
         .endTime(s.getEndTime())
-        .color(null)
+        .color(s.getColor())
         .build();
   }
 }

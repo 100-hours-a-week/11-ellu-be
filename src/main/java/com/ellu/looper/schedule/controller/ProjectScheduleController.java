@@ -2,13 +2,13 @@ package com.ellu.looper.schedule.controller;
 
 import com.ellu.looper.commons.ApiResponse;
 import com.ellu.looper.commons.CurrentUser;
-import com.ellu.looper.commons.PreviewHolder;
-import com.ellu.looper.commons.ScheduleHolder;
+import com.ellu.looper.project.repository.ProjectMemberRepository;
 import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest;
 import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
-import com.ellu.looper.schedule.dto.ProjectScheduleTakeRequest;
-import com.ellu.looper.schedule.dto.ProjectScheduleUpdateRequest;
+import com.ellu.looper.schedule.dto.StompProjectScheduleUpdateRequest;
+import com.ellu.looper.schedule.service.PreviewHolder;
 import com.ellu.looper.schedule.service.ProjectScheduleService;
+import com.ellu.looper.schedule.service.ScheduleHolder;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Year;
@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -30,8 +31,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.DeferredResult;
-import org.springframework.security.access.AccessDeniedException;
-import com.ellu.looper.project.repository.ProjectMemberRepository;
 
 @RestController
 @RequestMapping("/projects")
@@ -44,35 +43,46 @@ public class ProjectScheduleController {
   private final ProjectMemberRepository projectMemberRepository;
 
   @PostMapping("/{projectId}/schedules")
-  public DeferredResult<ResponseEntity<?>> createSchedules(@PathVariable Long projectId,
+  public DeferredResult<ResponseEntity<?>> createSchedules(
+      @PathVariable Long projectId,
       @RequestBody ProjectScheduleCreateRequest request,
-      @CurrentUser Long userId) {    // 프로젝트 멤버인지 확인    
-    projectMemberRepository.findByProjectIdAndUserId(projectId, userId)
+      @CurrentUser Long userId) { // 프로젝트 멤버인지 확인
+    projectMemberRepository
+        .findByProjectIdAndUserId(projectId, userId)
         .orElseThrow(() -> new AccessDeniedException("Not a member of this project"));
     DeferredResult<ResponseEntity<?>> result = new DeferredResult<>(300000L); // 5분 타임아웃
-    // 요청 등록    
+    // 요청 등록
     scheduleHolder.register(projectId, userId, request, result);
-    result.onTimeout(() -> {
-      scheduleHolder.remove(projectId, userId);
-      result.setResult(ResponseEntity.status(HttpStatus.ACCEPTED).body(
-          ApiResponse.success("still_processing", Map.of("message",
-              "Schedule creation is still processing.", "data", List.of()))));
-    });
-    result.onError((error) -> {
-      scheduleHolder.remove(projectId, userId);
-      result.setResult(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-          ApiResponse.error("internal_server_error")));
-    });
+    result.onTimeout(
+        () -> {
+          scheduleHolder.remove(projectId, userId);
+          result.setResult(
+              ResponseEntity.status(HttpStatus.ACCEPTED)
+                  .body(
+                      ApiResponse.success(
+                          "still_processing",
+                          Map.of(
+                              "message",
+                              "Schedule creation is still processing.",
+                              "data",
+                              List.of()))));
+        });
+    result.onError(
+        (error) -> {
+          scheduleHolder.remove(projectId, userId);
+          result.setResult(
+              ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                  .body(ApiResponse.error("internal_server_error")));
+        });
     return result;
   }
 
   @PatchMapping("/schedules/{scheduleId}")
   public ResponseEntity<ApiResponse<ProjectScheduleResponse>> updateSchedule(
       @PathVariable Long scheduleId,
-      @RequestBody ProjectScheduleUpdateRequest request,
+      @RequestBody StompProjectScheduleUpdateRequest request,
       @CurrentUser Long userId) {
-    ProjectScheduleResponse result =
-        scheduleService.updateSchedule(scheduleId, userId, request);
+    ProjectScheduleResponse result = scheduleService.updateSchedule(scheduleId, userId, request);
     return ResponseEntity.ok(new ApiResponse<>("schedule_updated", result));
   }
 
@@ -87,7 +97,7 @@ public class ProjectScheduleController {
   public ResponseEntity<ApiResponse<?>> getDailySchedules(
       @PathVariable Long projectId,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-      LocalDate day) {
+          LocalDate day) {
     if (day == null) {
       return ResponseEntity.badRequest()
           .body(
@@ -108,8 +118,8 @@ public class ProjectScheduleController {
   public ResponseEntity<ApiResponse<Map<String, ?>>> getWeeklySchedules(
       @PathVariable Long projectId,
       @RequestParam(required = false, name = "startDate")
-      @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-      LocalDate startDate) {
+          @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+          LocalDate startDate) {
     if (startDate == null) {
       return ResponseEntity.badRequest()
           .body(
@@ -127,7 +137,6 @@ public class ProjectScheduleController {
     return ResponseEntity.ok(new ApiResponse<>("project_weekly_schedule", schedules));
   }
 
-
   @GetMapping("/{projectId}/schedules/monthly")
   public ResponseEntity<ApiResponse<?>> getMonthlySchedules(
       @PathVariable Long projectId,
@@ -135,10 +144,14 @@ public class ProjectScheduleController {
 
     if (month == null) {
       return ResponseEntity.badRequest()
-          .body(new ApiResponse<>(
-              "validation_failed",
-              Map.of("errors",
-                  Map.of("month", "Missing or invalid month parameter. Format must be YYYY-MM."))));
+          .body(
+              new ApiResponse<>(
+                  "validation_failed",
+                  Map.of(
+                      "errors",
+                      Map.of(
+                          "month",
+                          "Missing or invalid month parameter. Format must be YYYY-MM."))));
     }
 
     YearMonth prevMonth = month.minusMonths(1);
@@ -151,12 +164,10 @@ public class ProjectScheduleController {
     Map<String, List<ProjectScheduleResponse>> allSchedules =
         scheduleService.getSchedulesByRange(projectId, startDate, endDate);
 
-    List<ProjectScheduleResponse> flattenedSchedules = allSchedules.values().stream()
-        .flatMap(List::stream)
-        .collect(Collectors.toList());
+    List<ProjectScheduleResponse> flattenedSchedules =
+        allSchedules.values().stream().flatMap(List::stream).collect(Collectors.toList());
 
-    return ResponseEntity.ok(
-        new ApiResponse<>("project_monthly_schedule", flattenedSchedules));
+    return ResponseEntity.ok(new ApiResponse<>("project_monthly_schedule", flattenedSchedules));
   }
 
   @GetMapping("/{projectId}/schedules/yearly")
@@ -176,18 +187,18 @@ public class ProjectScheduleController {
     Map<String, List<ProjectScheduleResponse>> schedules =
         scheduleService.getYearlySchedules(projectId, year);
     // 모든 일정 변환
-    List<ProjectScheduleResponse> flattenedSchedules = schedules.values().stream()
-        .flatMap(List::stream)
-        .collect(Collectors.toList());
+    List<ProjectScheduleResponse> flattenedSchedules =
+        schedules.values().stream().flatMap(List::stream).collect(Collectors.toList());
 
     return ResponseEntity.ok(new ApiResponse<>("project_yearly_schedule", flattenedSchedules));
   }
 
   @GetMapping("/{projectId}/tasks/preview")
-  public DeferredResult<ResponseEntity<?>> getPreview(@PathVariable Long projectId,
-      @CurrentUser Long userId) {
+  public DeferredResult<ResponseEntity<?>> getPreview(
+      @PathVariable Long projectId, @CurrentUser Long userId) {
     // 프로젝트 멤버십 확인
-    projectMemberRepository.findByProjectIdAndUserId(projectId, userId)
+    projectMemberRepository
+        .findByProjectIdAndUserId(projectId, userId)
         .orElseThrow(() -> new AccessDeniedException("Not a member of this project"));
 
     DeferredResult<ResponseEntity<?>> result = new DeferredResult<>(300000L); // 300초 타임아웃
@@ -196,30 +207,34 @@ public class ProjectScheduleController {
     previewHolder.register(projectId, result);
 
     // 타임아웃 처리
-    result.onTimeout(() -> {
-      previewHolder.remove(projectId);
-      result.setResult(ResponseEntity.ok().body(
-          ApiResponse.success("no_content_yet", Map.of(
-              "message", "processing",
-              "data", List.of()
-          ))
-      ));
-    });
+    result.onTimeout(
+        () -> {
+          previewHolder.remove(projectId);
+          result.setResult(
+              ResponseEntity.ok()
+                  .body(
+                      ApiResponse.success(
+                          "no_content_yet", Map.of("message", "processing", "data", List.of()))));
+        });
 
     // 에러 처리 (네트워크 오류 등)
-    result.onError(error -> {
-      previewHolder.remove(projectId);
-      result.setResult(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(ApiResponse.error("internal_server_error")));
-    });
+    result.onError(
+        error -> {
+          previewHolder.remove(projectId);
+          result.setResult(
+              ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                  .body(ApiResponse.error("internal_server_error")));
+        });
 
     return result;
   }
 
-  @PatchMapping("/project/schedules/{projectScheduleId}/assignees")
+  @PatchMapping("/project/{projectId}/schedules/{projectScheduleId}/assignees")
   public ResponseEntity<ApiResponse<Void>> takeSchedule(
-      @RequestBody ProjectScheduleTakeRequest request, @CurrentUser Long userId) {
-    scheduleService.takeSchedules(request.projectScheduleIds(), userId);
+      @RequestParam Long projectId,
+      @RequestParam Long projectScheduleId,
+      @CurrentUser Long userId) {
+    scheduleService.takeSchedule(projectId, projectScheduleId, userId);
     return ResponseEntity.ok(new ApiResponse<>("added_to_personal_schedule", null));
   }
 }

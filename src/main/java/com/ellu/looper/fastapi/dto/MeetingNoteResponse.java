@@ -1,5 +1,4 @@
-package com.ellu.looper.project.dto;
-
+package com.ellu.looper.fastapi.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -24,8 +23,11 @@ public class MeetingNoteResponse {
   @NoArgsConstructor
   @Getter
   public static class SchedulePreview {
-    @JsonProperty("keyword")
-    private String keyword;
+    @JsonProperty("position")
+    private String position;
+
+    @JsonProperty("task")
+    private String task;
 
     @JsonProperty("subtasks")
     private List<String> subtasks;

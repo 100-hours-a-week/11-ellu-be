@@ -1,47 +1,76 @@
 package com.ellu.looper.fastapi.service;
 
-import com.ellu.looper.commons.PreviewHolder;
-import com.ellu.looper.project.dto.MeetingNoteRequest;
-import com.ellu.looper.project.dto.MeetingNoteResponse;
+import com.ellu.looper.chat.dto.MessageRequest;
+import com.ellu.looper.commons.enums.NotificationType;
+import com.ellu.looper.fastapi.dto.MeetingNoteRequest;
+import com.ellu.looper.fastapi.dto.MeetingNoteResponse;
+import com.ellu.looper.fastapi.dto.WikiEmbeddingResponse;
+import com.ellu.looper.notification.service.NotificationService;
 import com.ellu.looper.project.dto.WikiRequest;
+import com.ellu.looper.project.entity.Project;
+import com.ellu.looper.project.entity.ProjectMember;
+import com.ellu.looper.project.repository.ProjectMemberRepository;
+import com.ellu.looper.project.repository.ProjectRepository;
+import com.ellu.looper.schedule.service.PreviewHolder;
+import com.ellu.looper.user.repository.UserRepository;
 import java.time.Duration;
+import java.util.List;
 import java.util.function.Consumer;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class FastApiService {
 
-  private final WebClient webClient;
+  private final WebClient fastApiSummaryWebClient;
+  private final WebClient fastApiChatbotWebClient;
   private final PreviewHolder previewHolder;
+  private final NotificationService notificationService;
+  private final ProjectRepository projectRepository;
+  private final ProjectMemberRepository projectMemberRepository;
 
-  // AI 서버로부터 응답을 전달받아 처리
-  public void handleAiPreviewResponse(Long projectId, MeetingNoteResponse aiResponse) {
-    log.info("[FastApiService] Handling AI preview response for project: {}", projectId);
-    log.info("[FastApiService] Response message: {}", aiResponse.getMessage());
+  public FastApiService(
+      @Qualifier("fastApiSummaryWebClient") WebClient fastApiSummaryWebClient,
+      @Qualifier("fastApiChatbotWebClient") WebClient fastApiChatbotWebClient,
+      PreviewHolder previewHolder,
+      NotificationService notificationService,
+      ProjectRepository projectRepository,
+      ProjectMemberRepository projectMemberRepository,
+      UserRepository userRepository) {
+    this.fastApiSummaryWebClient = fastApiSummaryWebClient;
+    this.fastApiChatbotWebClient = fastApiChatbotWebClient;
+    this.previewHolder = previewHolder;
+    this.notificationService = notificationService;
+    this.projectRepository = projectRepository;
+    this.projectMemberRepository = projectMemberRepository;
+  }
 
-    if (aiResponse.getDetail() != null) {
-      aiResponse
-          .getDetail()
-          .forEach(
-              preview -> {
-                log.info("[FastApiService] Keyword: {}", preview.getKeyword());
-                log.info("[FastApiService] Subtasks: {}", preview.getSubtasks());
-              });
+  public void handleWikiEmbeddingCompletion(
+      Long projectId, WikiEmbeddingResponse wikiEmbeddingResponse) {
+    log.info("[FastApiService] Handling wiki embedding response for project: {}", projectId);
+    if (wikiEmbeddingResponse.getStatus().equals("completed")) {
+      Project project =
+          projectRepository
+              .findByIdAndDeletedAtIsNull(projectId)
+              .orElseThrow(() -> new IllegalArgumentException("Project not found"));
+
+      List<ProjectMember> members =
+          projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
+
+      notificationService.sendProjectNotification(
+          NotificationType.PROJECT_WIKI_READY, members, project.getMember().getId(), project);
+
     } else {
-      log.warn("[FastApiService] No data received in the response");
+      log.warn("[FastApiService] Wiki embedding not completed yet.");
     }
-
-    // aiResponse는 AI 서버가 반환한 task preview 결과
-    previewHolder.complete(projectId, aiResponse);
-
     log.info(
-        "[FastApiService] Successfully handled AI preview response for project: {}", projectId);
+        "[FastApiService] Successfully handled wiki completion response for project: {}",
+        projectId);
   }
 
   // 예외 상황 처리
@@ -54,7 +83,7 @@ public class FastApiService {
       Consumer<MeetingNoteResponse> onSuccess,
       Consumer<Throwable> onError) {
     log.info("Sending note to AI server for project: {}", noteRequest.getProject_id());
-    webClient
+    fastApiSummaryWebClient
         .post()
         .uri(
             uriBuilder ->
@@ -64,25 +93,28 @@ public class FastApiService {
         .retrieve()
         .bodyToMono(MeetingNoteResponse.class)
         .timeout(Duration.ofMinutes(10)) // AI 서버와 통신 timeout
-        .doOnSuccess(
+        .subscribe(
+            // 성공 시
             response -> {
               log.info(
-                  "Successfully sent note to AI server for project: {}",
+                  "Successfully sent note to AI server for project: {}. Response will be handled by FastAPI callback.",
                   noteRequest.getProject_id());
-            })
-        .doOnError(
+            },
+            // 에러 발생 시
             error -> {
               log.error(
                   "Failed to send note to AI server for project: {}, error: {}",
                   noteRequest.getProject_id(),
                   error.getMessage());
-            })
-        .subscribe(onSuccess, onError);
+              if (onError != null) {
+                onError.accept(error);
+              }
+            });
   }
 
   public void createWiki(Long projectId, WikiRequest request) {
     log.info("Creating wiki for project: {}", projectId);
-    webClient
+    fastApiSummaryWebClient
         .post()
         .uri("/ai/wiki")
         .bodyValue(request)
@@ -105,7 +137,7 @@ public class FastApiService {
 
   public void updateWiki(Long projectId, WikiRequest request) {
     log.info("Updating wiki for project: {}", projectId);
-    webClient
+    fastApiSummaryWebClient
         .patch()
         .uri("/ai/wiki")
         .bodyValue(request)
@@ -124,5 +156,17 @@ public class FastApiService {
                   error.getMessage());
             })
         .subscribe();
+  }
+
+  public Flux<String> streamChatResponse(MessageRequest request) {
+    return fastApiChatbotWebClient
+        .post()
+        .uri("/ai/chats")
+        .contentType(MediaType.APPLICATION_JSON)
+        .accept(MediaType.TEXT_EVENT_STREAM)
+        .bodyValue(request)
+        .retrieve()
+        .bodyToFlux(String.class)
+        .doOnError(error -> log.error("Error streaming chat response: {}", error.getMessage()));
   }
 }

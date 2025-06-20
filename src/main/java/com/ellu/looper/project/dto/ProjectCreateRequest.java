@@ -19,14 +19,4 @@ public class ProjectCreateRequest {
   private List<AddedMember> added_members;
 
   private String wiki;
-
-  @Getter
-  @Builder(toBuilder = true)
-  public static class AddedMember {
-    @NotBlank(message = "Nickname must not be empty")
-    private String nickname;
-
-    @NotBlank(message = "Position must not be empty")
-    private String position;
-  }
 }

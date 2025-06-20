@@ -1,29 +1,33 @@
 package com.ellu.looper.schedule.service;
 
+import com.ellu.looper.commons.enums.Color;
 import com.ellu.looper.commons.enums.NotificationType;
-import com.ellu.looper.notification.service.NotificationService;
-import com.ellu.looper.schedule.dto.AssigneeDto;
-import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest;
-import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
-import com.ellu.looper.schedule.dto.ProjectScheduleUpdateRequest;
-import com.ellu.looper.schedule.entity.Assignee;
-import com.ellu.looper.notification.entity.Notification;
-import com.ellu.looper.notification.entity.NotificationTemplate;
-import com.ellu.looper.project.entity.Project;
-import com.ellu.looper.project.entity.ProjectMember;
-import com.ellu.looper.schedule.entity.ProjectSchedule;
-import com.ellu.looper.user.service.ProfileImageService;
-import com.ellu.looper.user.entity.User;
 import com.ellu.looper.exception.ValidationException;
 import com.ellu.looper.kafka.NotificationProducer;
 import com.ellu.looper.kafka.dto.NotificationMessage;
-import com.ellu.looper.schedule.repository.AssigneeRepository;
+import com.ellu.looper.notification.entity.Notification;
+import com.ellu.looper.notification.entity.NotificationTemplate;
 import com.ellu.looper.notification.repository.NotificationRepository;
 import com.ellu.looper.notification.repository.NotificationTemplateRepository;
+import com.ellu.looper.notification.service.NotificationService;
+import com.ellu.looper.project.entity.Project;
+import com.ellu.looper.project.entity.ProjectMember;
 import com.ellu.looper.project.repository.ProjectMemberRepository;
 import com.ellu.looper.project.repository.ProjectRepository;
+import com.ellu.looper.schedule.dto.AssigneeDto;
+import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest;
+import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
+import com.ellu.looper.schedule.dto.StompProjectScheduleUpdateRequest;
+import com.ellu.looper.schedule.entity.Assignee;
+import com.ellu.looper.schedule.entity.ProjectSchedule;
+import com.ellu.looper.schedule.entity.Schedule;
+import com.ellu.looper.schedule.repository.AssigneeRepository;
 import com.ellu.looper.schedule.repository.ProjectScheduleRepository;
+import com.ellu.looper.schedule.repository.ScheduleRepository;
+import com.ellu.looper.user.entity.User;
 import com.ellu.looper.user.repository.UserRepository;
+import com.ellu.looper.user.service.ProfileImageService;
+import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -39,7 +43,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,7 +51,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ProjectScheduleService {
 
-  private final ProjectScheduleRepository scheduleRepository;
+  private final ProjectScheduleRepository projectScheduleRepository;
+  private final ScheduleRepository scheduleRepository;
   private final ProjectRepository projectRepository;
   private final UserRepository userRepository;
   private final ProjectMemberRepository projectMemberRepository;
@@ -114,77 +118,66 @@ public class ProjectScheduleService {
     List<ProjectScheduleResponse> responses = new ArrayList<>();
 
     for (ProjectScheduleCreateRequest.ProjectScheduleDto dto : request.getProject_schedules()) {
-      ProjectSchedule schedule = ProjectSchedule.builder()
-          .project(project)
-          .user(user)
-          .title(dto.getTitle())
-          .description(dto.getDescription())
-          .startTime(dto.getStartTime())
-          .endTime(dto.getEndTime())
-          .isCompleted(dto.getCompleted())
-          .build();
-
-      schedule = scheduleRepository.save(schedule);
-      ProjectSchedule finalSchedule = schedule;
-
       // match by project id and position
       List<ProjectMember> matchedMembers =
-          projectMemberRepository.findByProjectIdAndPositionAndDeletedAtIsNull(projectId,
-              dto.getPosition());
+          projectMemberRepository.findByProjectIdAndPositionAndDeletedAtIsNull(
+              projectId, dto.getPosition());
 
-//      List<Assignee> assignees = matchedMembers.stream()
-//          .map(member -> Assignee.builder()
-//              .projectSchedule(finalSchedule)
-//              .user(member.getUser())
-//              .build())
-//          .toList();
-//
-//      assigneeRepository.saveAll(assignees);
+      ProjectSchedule schedule =
+          ProjectSchedule.builder()
+              .project(project)
+              .user(user)
+              .title(dto.getTitle())
+              .description(dto.getDescription())
+              .startTime(dto.getStartTime())
+              .endTime(dto.getEndTime())
+              .isCompleted(dto.getCompleted())
+              .position(dto.getPosition())
+              .build();
 
-      responses.add(new ProjectScheduleResponse(
-          schedule.getId(),
-          schedule.getTitle(),
-          schedule.getDescription(),
-          schedule.getStartTime(),
-          schedule.getEndTime(),
-          schedule.isCompleted(),
-          true,
-          schedule.getProject().getColor(),
-          schedule.getPosition(),
-          null
-      ));
+      for (ProjectMember member : matchedMembers) {
+        Assignee assignee = Assignee.builder().user(member.getUser()).build();
+        schedule.addAssignee(assignee);
+      }
+
+      schedule = projectScheduleRepository.save(schedule);
+
+      responses.add(toResponse(schedule));
 
       // Send schedule creation notification
-      sendScheduleNotification(NotificationType.SCHEDULE_CREATED,
-          matchedMembers.stream().map(ProjectMember::getUser).toList(), userId, project, schedule);
+      sendScheduleNotification(
+          NotificationType.SCHEDULE_CREATED,
+          matchedMembers.stream().map(ProjectMember::getUser).toList(),
+          userId,
+          project,
+          schedule);
     }
     return responses;
   }
 
   @Transactional
   public ProjectScheduleResponse updateSchedule(
-      Long scheduleId, Long userId, ProjectScheduleUpdateRequest request) {
+      Long scheduleId, Long userId, StompProjectScheduleUpdateRequest request) {
     ProjectSchedule schedule =
-        scheduleRepository
+        projectScheduleRepository
             .findByIdAndDeletedAtIsNull(scheduleId)
             .orElseThrow(() -> new IllegalArgumentException("Schedule not found"));
-
-    if (!schedule.getUser().getId().equals(userId)) {
-      throw new AccessDeniedException("Unauthorized");
-    }
 
     validateTimeOrder(request.start_time(), request.end_time());
 
     schedule.update(
-        request.title(), request.description(), request.start_time(), request.end_time(),
-        request.position(), request.completed());
-
+        request.title(),
+        request.description(),
+        request.start_time(),
+        request.end_time(),
+        request.position(),
+        request.completed());
     Set<User> notificationTargets = new HashSet<>();
 
     // If assignee is newly added or removed, update assignee table
     if (request.position() != null) {
-      List<Assignee> currentAssignees = assigneeRepository
-          .findByProjectScheduleIdAndDeletedAtIsNull(scheduleId);
+      List<Assignee> currentAssignees =
+          assigneeRepository.findByProjectScheduleIdAndDeletedAtIsNull(scheduleId);
 
       // Soft delete existing assignees
       for (Assignee assignee : currentAssignees) {
@@ -192,23 +185,31 @@ public class ProjectScheduleService {
         notificationTargets.add(assignee.getUser());
       }
       // Add new assignees
-      List<ProjectMember> matchingMembers = projectMemberRepository.findByProjectIdAndPosition(
-          schedule.getProject().getId(), request.position());
+      List<ProjectMember> matchingMembers =
+          projectMemberRepository.findByProjectIdAndPosition(
+              schedule.getProject().getId(), request.position());
 
-      matchingMembers.forEach(member -> notificationTargets.add(member.getUser()));
+      for (ProjectMember member : matchingMembers) {
+        Assignee newAssignee =
+            Assignee.builder().projectSchedule(schedule).user(member.getUser()).build();
 
-//      for (ProjectMember member : matchingMembers) {
-//        Assignee newAssignee = new Assignee(schedule, member.getUser());
-//        assigneeRepository.save(newAssignee);
-//      }
+        schedule.addAssignee(newAssignee);
+        assigneeRepository.save(newAssignee);
+
+        notificationTargets.add(member.getUser());
+      }
     }
 
-    List<Assignee> assignees = assigneeRepository.findByProjectScheduleIdAndDeletedAtIsNull(scheduleId);
+    List<Assignee> assignees =
+        assigneeRepository.findByProjectScheduleIdAndDeletedAtIsNull(scheduleId);
 
     // Send schedule update notification
-    sendScheduleNotification(NotificationType.SCHEDULE_UPDATED, new ArrayList<>(notificationTargets),
-        userId, schedule.getProject(), schedule);
-
+    sendScheduleNotification(
+        NotificationType.SCHEDULE_UPDATED,
+        new ArrayList<>(notificationTargets),
+        userId,
+        schedule.getProject(),
+        schedule);
     return new ProjectScheduleResponse(
         schedule.getId(),
         schedule.getTitle(),
@@ -219,23 +220,19 @@ public class ProjectScheduleService {
         true,
         schedule.getProject().getColor(),
         schedule.getPosition(),
-        convertToAssigneeDtos(assignees)
-    );
+        convertToAssigneeDtos(assignees));
   }
 
   @Transactional
   public void deleteSchedule(Long scheduleId, Long userId) {
     ProjectSchedule schedule =
-        scheduleRepository
+        projectScheduleRepository
             .findByIdAndDeletedAtIsNull(scheduleId)
             .orElseThrow(() -> new IllegalArgumentException("Schedule not found"));
-    if (!schedule.getUser().getId().equals(userId)) {
-      throw new AccessDeniedException("Unauthorized");
-    }
 
     //  delete schedule assignee
-    List<Assignee> assignees = assigneeRepository.findByProjectScheduleIdAndDeletedAtIsNull(
-        scheduleId);
+    List<Assignee> assignees =
+        assigneeRepository.findByProjectScheduleIdAndDeletedAtIsNull(scheduleId);
     for (Assignee assignee : assignees) {
       assignee.softDelete();
     }
@@ -243,12 +240,9 @@ public class ProjectScheduleService {
     schedule.softDelete();
 
     // Send schedule deletion notification
-    List<User> receivers = assignees.stream()
-        .map(Assignee::getUser)
-        .collect(Collectors.toList());
-    sendScheduleNotification(NotificationType.SCHEDULE_DELETED, receivers, userId,
-        schedule.getProject(), schedule);
-
+    List<User> receivers = assignees.stream().map(Assignee::getUser).collect(Collectors.toList());
+    sendScheduleNotification(
+        NotificationType.SCHEDULE_DELETED, receivers, userId, schedule.getProject(), schedule);
   }
 
   @Transactional(readOnly = true)
@@ -256,7 +250,7 @@ public class ProjectScheduleService {
     LocalDateTime start = day.atStartOfDay();
     LocalDateTime end = day.plusDays(1).atStartOfDay().minusNanos(1);
     List<ProjectSchedule> dailyProjectSchedules =
-        scheduleRepository.findDailyProjectSchedules(projectId, start, end);
+        projectScheduleRepository.findDailyProjectSchedules(projectId, start, end);
     List<ProjectScheduleResponse> responses =
         dailyProjectSchedules.stream().map(s -> toResponse(s, true)).collect(Collectors.toList());
     return responses;
@@ -307,7 +301,7 @@ public class ProjectScheduleService {
             .orElseThrow(() -> new IllegalArgumentException("Invalid project ID"));
 
     List<ProjectSchedule> schedules =
-        scheduleRepository.findSchedulesBetween(projectId, start, end);
+        projectScheduleRepository.findSchedulesBetween(projectId, start, end);
 
     LinkedHashMap<String, List<ProjectScheduleResponse>> collect =
         schedules.stream()
@@ -327,32 +321,37 @@ public class ProjectScheduleService {
                                 true,
                                 s.getProject().getColor(),
                                 s.getPosition(),
-                                convertToAssigneeDtos(s.getAssignees())
-                            ),
+                                convertToAssigneeDtos(s.getAssignees())),
                         Collectors.toList())));
     return collect;
   }
 
   public List<AssigneeDto> convertToAssigneeDtos(List<Assignee> assignees) {
     return assignees.stream()
-        .map(a -> new AssigneeDto(
-            a.getUser().getNickname(),
-            profileImageService.getProfileImageUrl(a.getUser().getFileName())
-        ))
+        .map(
+            a ->
+                new AssigneeDto(
+                    a.getUser().getNickname(),
+                    profileImageService.getProfileImageUrl(a.getUser().getFileName())))
         .toList();
   }
 
-  private void sendScheduleNotification(NotificationType type, List<User> receivers,
-      Long userId, Project project, ProjectSchedule schedule) {
+  private void sendScheduleNotification(
+      NotificationType type,
+      List<User> receivers,
+      Long userId,
+      Project project,
+      ProjectSchedule schedule) {
     User creator =
         userRepository
             .findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
     // Notification 생성
-    NotificationTemplate inviteTemplate = notificationTemplateRepository
-        .findByType(type)
-        .orElseThrow(() -> new IllegalArgumentException("해당 스케줄 알림 타입에 대한 템플릿이 존재하지 않습니다."));
+    NotificationTemplate inviteTemplate =
+        notificationTemplateRepository
+            .findByType(type)
+            .orElseThrow(() -> new IllegalArgumentException("해당 스케줄 알림 타입에 대한 템플릿이 존재하지 않습니다."));
 
     Map<String, Object> payload = new HashMap<>();
     payload.put("project", project.getTitle());
@@ -360,23 +359,27 @@ public class ProjectScheduleService {
 
     for (User receiver : receivers) {
 
-      Notification notification = Notification.builder()
-          .sender(creator)
-          .receiver(receiver)
-          .project(project)
-          .template(inviteTemplate)
-          .payload(payload)
-          .createdAt(LocalDateTime.now())
-          .build();
+      Notification notification =
+          Notification.builder()
+              .sender(creator)
+              .receiver(receiver)
+              .project(project)
+              .template(inviteTemplate)
+              .payload(payload)
+              .createdAt(LocalDateTime.now())
+              .build();
       notificationRepository.save(notification);
 
       // Kafka를 통해 알림 메시지 전송
-      NotificationMessage message = new NotificationMessage(
-          type.toString(),
-          notification.getId(),
-          project.getId(), creator.getId(), List.of(receiver.getId()),
-          notificationService.renderScheduleTemplate(
-              inviteTemplate.getTemplate(), notification));
+      NotificationMessage message =
+          new NotificationMessage(
+              type.toString(),
+              notification.getId(),
+              project.getId(),
+              creator.getId(),
+              List.of(receiver.getId()),
+              notificationService.renderScheduleTemplate(
+                  inviteTemplate.getTemplate(), notification));
 
       log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
       notificationProducer.sendNotification(message);
@@ -384,7 +387,65 @@ public class ProjectScheduleService {
   }
 
   @Transactional
-  public void takeSchedules(List<Long> scheduleIds, Long userId) {
+  public void takeSchedule(Long projectId, Long scheduleId, Long userId) {
+    ProjectSchedule schedule =
+        projectScheduleRepository
+            .findByIdAndDeletedAtIsNull(scheduleId)
+            .orElseThrow(() -> new IllegalArgumentException("Schedule not found"));
 
+    // Check if the user has already taken this schedule
+    boolean alreadyTaken =
+        assigneeRepository.existsByUserIdAndProjectScheduleIdAndDeletedAtIsNull(userId, scheduleId);
+    if (alreadyTaken) {
+      throw new IllegalArgumentException("Schedule already taken");
+    }
+
+    // Check if this user has the appropriate position
+    ProjectMember projectMember =
+        projectMemberRepository
+            .findByProjectIdAndUserId(projectId, userId)
+            .orElseThrow(() -> new IllegalArgumentException("Project Member not found"));
+
+    Project project =
+        projectRepository
+            .findById(projectId)
+            .orElseThrow(() -> new EntityNotFoundException("Project Not found"));
+
+    // add this user to assignee table
+    User user = projectMember.getUser();
+
+    assigneeRepository.save(new Assignee(schedule, user));
+
+    // Add a new personal schedule
+    Schedule personalSchedule =
+        Schedule.builder()
+            .user(user)
+            .color(Color.valueOf(String.valueOf(project.getColor())))
+            .title(schedule.getTitle())
+            .description(schedule.getDescription())
+            .startTime(schedule.getStartTime())
+            .endTime(schedule.getEndTime())
+            .build();
+    scheduleRepository.save(personalSchedule);
+  }
+
+  public ProjectScheduleResponse toResponse(ProjectSchedule schedule) {
+    return new ProjectScheduleResponse(
+        schedule.getId(),
+        schedule.getTitle(),
+        schedule.getDescription(),
+        schedule.getStartTime(),
+        schedule.getEndTime(),
+        schedule.isCompleted(),
+        true,
+        schedule.getProject().getColor(),
+        schedule.getPosition(),
+        schedule.getAssignees().stream()
+            .map(
+                assignee ->
+                    new AssigneeDto(
+                        assignee.getUser().getNickname(),
+                        profileImageService.getProfileImageUrl(assignee.getUser().getFileName())))
+            .toList());
   }
 }

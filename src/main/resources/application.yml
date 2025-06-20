@@ -13,8 +13,22 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+#      ddl-auto: none
   jackson:
     time-zone: Asia/Seoul
+  kafka:
+    bootstrap-servers: ${KAFKA_BASE_URL:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    streams:
+      bootstrap-servers: ${KAFKA_BASE_URL:localhost:9092}
+      application-id: looper-streams-app
 
 server:
   forward-headers-strategy: framework
@@ -40,10 +54,8 @@ jwt:
   secret: ${JWT_SECRET}
 
 fastapi:
-  base-url: ${FASTAPI_BASE_URL:http://localhost:8000}
-
-kafka:
-  bootstrap-servers: ${KAFKA_BASE_URL:127.0.0.1:9092}
+  summary-url: ${FASTAPI_SUMMARY_URL:http://localhost:8004}
+  chatbot-url: ${FASTAPI_CHATBOT_URL:http://localhost:8002}
 
 # 현재는 OpenTelemetry가 시스템에 영향을 주지 않도록 완전히 비활성화함
 otel:
@@ -77,12 +89,28 @@ management:
       export:
         enabled: true
 
+kafka:
+  topics:
+    chatbot:
+      user-input: chatbot-user-input
+      response: chatbot-response
+    schedule:
+      schedule
+    notification:
+      notification
+    preview:
+      preview-result
+  consumer:
+    group-id: chat-group
+    preview-group-id: preview-consumer-group
+
+
 info:
   app:
     name: ${spring.application.name}
     version: 1.0.1
     description: Looper API 서버
 
-logging:
-  level:
-    io.opentelemetry: DEBUG
+#logging:
+#  level:
+#    io.opentelemetry: DEBUG

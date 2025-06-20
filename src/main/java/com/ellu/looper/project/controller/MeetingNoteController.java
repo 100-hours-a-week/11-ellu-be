@@ -2,14 +2,16 @@ package com.ellu.looper.project.controller;
 
 import com.ellu.looper.commons.ApiResponse;
 import com.ellu.looper.commons.CurrentUser;
-import com.ellu.looper.commons.PreviewHolder;
-import com.ellu.looper.project.dto.MeetingNoteRequest;
+import com.ellu.looper.fastapi.dto.MeetingNoteRequest;
+import com.ellu.looper.fastapi.service.FastApiService;
 import com.ellu.looper.project.entity.ProjectMember;
 import com.ellu.looper.project.repository.ProjectMemberRepository;
+import com.ellu.looper.schedule.service.PreviewHolder;
 import com.ellu.looper.user.repository.UserRepository;
-import com.ellu.looper.fastapi.service.FastApiService;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -37,16 +39,15 @@ public class MeetingNoteController {
 
     request.setNickname(userRepository.findById(userId).get().getNickname());
 
-    ProjectMember member =
-        projectMemberRepository
-            .findByProjectIdAndUserId(projectId, userId)
-            .orElseThrow(() -> new IllegalArgumentException("Project member not found"));
-    request.setPosition(member.getPosition());
+    // 프로젝트 멤버들의 모든 position을 가져옴
+    List<String> positions =
+        projectMemberRepository.findByProjectIdAndDeletedAtIsNull(projectId).stream()
+            .map(ProjectMember::getPosition)
+            .collect(Collectors.toList());
+    request.setPosition(positions);
 
     fastApiService.sendNoteToAI(
-        request,
-        aiResponse -> previewHolder.complete(projectId, aiResponse),
-        error -> previewHolder.completeWithError(projectId, error));
+        request, null, error -> previewHolder.completeWithError(projectId, error));
 
     return ResponseEntity.status(201)
         .body(

@@ -8,6 +8,7 @@ import java.util.Properties;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -24,17 +25,22 @@ public class NotificationProducer {
   private final ObjectMapper objectMapper;
   private KafkaProducer<String, String> producer;
 
-  @Value("${kafka.bootstrap-servers}")
+  @Value("${spring.kafka.bootstrap-servers}")
   private String bootstrapServers;
+
+  @Value("${kafka.topics.notification}")
+  private String NOTIFICATION_TOPIC;
 
   @PostConstruct
   public void initialize() {
     // Create producer properties
     Properties properties = new Properties();
-    properties.setProperty("bootstrap.servers", bootstrapServers);
-    properties.setProperty("key.serializer", StringSerializer.class.getName());
-    properties.setProperty("value.serializer", StringSerializer.class.getName());
-    properties.setProperty("batch.size", "400");
+    properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+    properties.setProperty(
+        ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+    properties.setProperty(
+        ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+    properties.setProperty(ProducerConfig.LINGER_MS_CONFIG, "20");
 
     // Create producer
     producer = new KafkaProducer<>(properties);
@@ -49,7 +55,7 @@ public class NotificationProducer {
 
         // Create producer record
         ProducerRecord<String, String> producerRecord =
-            new ProducerRecord<>("notification", key, value);
+            new ProducerRecord<>(NOTIFICATION_TOPIC, key, value);
 
         // Send data asynchronously with callback
         producer.send(
@@ -75,9 +81,6 @@ public class NotificationProducer {
               }
             });
       }
-
-      // Flush to ensure all messages are sent
-      producer.flush();
 
     } catch (JsonProcessingException e) {
       log.error("Failed to serialize NotificationMessage", e);

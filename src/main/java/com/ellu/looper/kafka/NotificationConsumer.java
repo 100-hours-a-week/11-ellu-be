@@ -29,8 +29,11 @@ public class NotificationConsumer implements Runnable {
   private KafkaConsumer<String, String> consumer;
   private volatile boolean running = true;
 
-  @Value("${kafka.bootstrap-servers}")
+  @Value("${spring.kafka.bootstrap-servers}")
   private String bootstrapServers;
+
+  @Value("${kafka.topics.notification}")
+  public String NOTIFICATION_TOPIC;
 
   @PostConstruct
   public void init() {
@@ -40,7 +43,6 @@ public class NotificationConsumer implements Runnable {
 
   public void start() {
     String groupId = "notification-service-group";
-    String topic = "notification";
 
     // Create consumer properties
     Properties properties = new Properties();
@@ -80,7 +82,7 @@ public class NotificationConsumer implements Runnable {
   public void run() {
     try {
       // Subscribe to the topic
-      consumer.subscribe(Arrays.asList("notification"));
+      consumer.subscribe(Arrays.asList(NOTIFICATION_TOPIC));
 
       // Poll for data
       while (running) {

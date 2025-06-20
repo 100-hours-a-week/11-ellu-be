@@ -61,7 +61,8 @@ public class SecurityConfig {
     configuration.setAllowedOriginPatterns(
         List.of("http://localhost:3000", "https://looper.my", "https://dev.looper.my"));
     configuration.setAllowedHeaders(List.of("*"));
-    configuration.setAllowCredentials(true); // 쿠키 인증 허용 시 true
+    configuration.setAllowCredentials(true); // 쿠키 인증 허용
+    configuration.setMaxAge(3600L); // 1시간
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", configuration);

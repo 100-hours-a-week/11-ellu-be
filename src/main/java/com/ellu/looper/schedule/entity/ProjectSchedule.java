@@ -19,7 +19,6 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -123,5 +122,10 @@ public class ProjectSchedule {
     if (isCompleted != null) {
       this.isCompleted = isCompleted;
     }
+  }
+
+  public void addAssignee(Assignee assignee) {
+    assignee.setProjectSchedule(this);
+    this.assignees.add(assignee);
   }
 }
