@@ -1,6 +1,6 @@
 package com.ellu.looper.user.entity;
 
-import com.ellu.looper.util.HangulUtil;
+import com.ellu.looper.commons.util.HangulUtil;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;

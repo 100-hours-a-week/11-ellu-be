@@ -11,11 +11,9 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 
   @Query(
       "SELECT m FROM ChatMessage m WHERE m.user.id=:userId"
-          + " AND m.createdAt >= :cutoff ORDER BY m.createdAt ASC")
+          + " AND m.createdAt >= :cutoff"
+          + " AND m.content NOT LIKE '{\"task_title%'"
+          + "ORDER BY m.createdAt ASC")
   List<ChatMessage> findRecentMessages(
-      @Param("userId") Long userId, @Param("cutoff") LocalDateTime cutoff);
-
-  @Query("SELECT m FROM ChatMessage m")
-  List<ChatMessage> findRecentMessages1(
       @Param("userId") Long userId, @Param("cutoff") LocalDateTime cutoff);
 }
