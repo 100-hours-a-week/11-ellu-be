@@ -81,4 +81,5 @@ jobs:
             --ssh-flag="-o StrictHostKeyChecking=no" \
             --command="cd /opt && \
               sudo docker compose pull looper-backend && \
-              sudo docker compose up -d looper-backend"
+              sudo docker compose up -d looper-backend && \
+              sudo docker compose restart looper-nginx"
