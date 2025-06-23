@@ -18,7 +18,7 @@ public class SseEmitterService {
 
   public SseEmitter createEmitter(String userId) {
     SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
-    log.info("USER WITH ID {} IS CONNECTED TO SSE", userId);
+    log.info("UserId {} is connected to sse. ", userId);
 
     emitter.onCompletion(
         () -> {

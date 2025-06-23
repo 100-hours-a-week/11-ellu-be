@@ -28,6 +28,7 @@ public class ChatService {
 
   // 지난 24시간의 대화 기록 조회
   public List<ChatMessageResponse> getRecentHistory(Long userId) {
+    log.info("UserId {} fetched chat history. ", userId);
     LocalDateTime cutoff = LocalDateTime.now().minusHours(24);
 
     List<ChatMessage> messages = chatMessageRepository.findRecentMessages(userId, cutoff);

@@ -87,7 +87,10 @@ public class AuthService {
                 LocalDateTime.now().plusSeconds(JwtExpiration.REFRESH_TOKEN_EXPIRATION / 1000))
             .build();
 
-    refreshTokenRepository.save(refreshTokenEntity);
+    RefreshToken token = refreshTokenRepository.save(refreshTokenEntity);
+    log.info("token"+token.getRefreshToken());
+    Long userId = jwtProvider.extractUserId(token.getRefreshToken());
+    log.info("UserId {} logged in. ", userId);
 
     return new AuthResponse(jwtAccessToken, jwtRefreshToken, isNewUser);
   }
@@ -106,6 +109,8 @@ public class AuthService {
         userRepository.findById(userId).orElseThrow(() -> new RuntimeException("user_not_found"));
 
     user.updateNickname(nickname);
+
+    log.info("UserId {} registered his/her nickname. ", userId);
     userRepository.save(user);
   }
 
@@ -115,7 +120,10 @@ public class AuthService {
         refreshTokenRepository
             .findByRefreshToken(refreshToken)
             .orElseThrow(() -> new RuntimeException("unauthorized"));
+    Long userId = jwtProvider.extractUserId(token.getRefreshToken());
     refreshTokenRepository.delete(token);
+    log.info("UserId {} logged out. ", userId);
+
   }
 
   @Transactional
