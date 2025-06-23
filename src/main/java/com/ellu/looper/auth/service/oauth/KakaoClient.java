@@ -1,5 +1,6 @@
-package com.ellu.external;
+package com.ellu.looper.auth.service.oauth;
 
+import com.ellu.looper.auth.dto.KakaoUserResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 

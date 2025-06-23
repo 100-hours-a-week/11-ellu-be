@@ -1,4 +1,4 @@
-package com.ellu.external;
+package com.ellu.looper.auth.dto;
 
 import lombok.Getter;
 import lombok.Setter;
