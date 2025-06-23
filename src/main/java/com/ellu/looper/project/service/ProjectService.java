@@ -147,43 +147,51 @@ public class ProjectService {
   @Transactional(readOnly = true)
   public List<ProjectResponse> getProjects(Long userId) {
     log.info("Getting projects for user: {}", userId);
-    List<ProjectMember> memberships =
-        projectMemberRepository.findByUserIdAndDeletedAtIsNull(userId);
 
-    // 중복 제거된 프로젝트만 추출
-    List<Project> distinctProjects =
-        memberships.stream()
-            .map(ProjectMember::getProject)
-            .filter(project -> project.getDeletedAt() == null)
-            .distinct() // 중복 제거
-            .collect(Collectors.toList());
+    // 사용자가 user인 ProjectMember + Project + User를 fetch join으로 한 번에 로딩
+    List<ProjectMember> userProjectMembers =
+        projectMemberRepository.findWithProjectAndUserByUserId(userId);
 
-    List<ProjectResponse> responses =
-        distinctProjects.stream()
-            .map(
-                project -> {
-                  List<ProjectMember> members =
-                      projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
-                  List<MemberDto> memberDtos =
-                      members.stream()
-                          .map(
-                              pm ->
-                                  new MemberDto(
-                                      pm.getUser().getId(),
-                                      pm.getUser().getNickname(),
-                                      profileImageService.getProfileImageUrl(
-                                          pm.getUser().getFileName()),
-                                      pm.getPosition()))
-                          .collect(Collectors.toList());
+    // 중복 제거된 프로젝트 리스트 생성
+    List<Project> distinctProjects = userProjectMembers.stream()
+        .map(ProjectMember::getProject)
+        .filter(project -> project.getDeletedAt() == null)
+        .distinct()
+        .collect(Collectors.toList());
 
-                  return new ProjectResponse(
-                      project.getId(),
-                      project.getTitle(),
-                      project.getColor() != null ? project.getColor().name() : "E3EEFC",
-                      memberDtos,
-                      project.getWiki());
-                })
-            .collect(Collectors.toList());
+    // 프로젝트 ID 리스트 추출
+    List<Long> projectIds = distinctProjects.stream()
+        .map(Project::getId)
+        .collect(Collectors.toList());
+
+    // 전체 프로젝트의 모든 멤버를 한 번에 fetch join으로 로딩
+    List<ProjectMember> allProjectMembers =
+        projectMemberRepository.findByProjectIdsWithUser(projectIds);
+
+    // projectId로 그룹화
+    Map<Long, List<ProjectMember>> projectMemberMap = allProjectMembers.stream()
+        .collect(Collectors.groupingBy(pm -> pm.getProject().getId()));
+
+    List<ProjectResponse> responses = distinctProjects.stream()
+        .map(project -> {
+          List<ProjectMember> members = projectMemberMap.getOrDefault(project.getId(), List.of());
+
+          List<MemberDto> memberDtos = members.stream()
+              .map(pm -> new MemberDto(
+                  pm.getUser().getId(),
+                  pm.getUser().getNickname(),
+                  profileImageService.getProfileImageUrl(pm.getUser().getFileName()),
+                  pm.getPosition()))
+              .collect(Collectors.toList());
+
+          return new ProjectResponse(
+              project.getId(),
+              project.getTitle(),
+              project.getColor() != null ? project.getColor().name() : "E3EEFC",
+              memberDtos,
+              project.getWiki());
+        })
+        .collect(Collectors.toList());
 
     log.info("Found {} projects for user: {}", responses.size(), userId);
     return responses;
@@ -348,7 +356,7 @@ public class ProjectService {
                 pm ->
                     !pm.getUser().getId().equals(userId)
                         && updatedUsers.stream()
-                            .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
+                        .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
             .collect(Collectors.toList());
     toRemove.forEach(pm -> pm.setDeletedAt(LocalDateTime.now()));
     projectMemberRepository.saveAll(toRemove);
