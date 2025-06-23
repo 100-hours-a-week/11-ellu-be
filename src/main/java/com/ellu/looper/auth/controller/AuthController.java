@@ -69,8 +69,6 @@ public class AuthController {
       ResponseEntity<String> response =
           restTemplate.exchange(tokenUrl, HttpMethod.POST, requestEntity, String.class);
 
-      log.info("Response from Kakao token API: {}", response.getBody());
-
       if (response.getStatusCode() == HttpStatus.OK) {
         // JSON 파싱
         ObjectMapper mapper = new ObjectMapper();
@@ -114,7 +112,6 @@ public class AuthController {
 
     try {
       String json = objectMapper.writeValueAsString(responseEntity.getBody());
-      log.info("응답 내용: {}", json);
     } catch (Exception e) {
       log.error("응답 내용 로깅 중 오류 발생", e);
     }
@@ -155,8 +152,13 @@ public class AuthController {
 
   @PostMapping("/auth/token/refresh")
   public ResponseEntity<?> refresh(
-      @CookieValue("refresh_token") String refreshToken,
+      @CookieValue(value = "refresh_token", required = false) String refreshToken,
       @RequestHeader(value = "Authorization", required = false) String accessToken) {
+    if (refreshToken == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+          .body(new ApiResponse("refresh_token_not_found_in_cookie", null));
+    }
+
     TokenRefreshResponse response =
         authService.refreshAccessToken(refreshToken, httpServletResponse);
     return ResponseEntity.ok(new ApiResponse("token_refreshed", response));
