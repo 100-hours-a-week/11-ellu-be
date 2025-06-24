@@ -101,6 +101,9 @@ dependencies {
 
     // OpenTelemetry Spring Boot Starter
     implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
+
+    // OpenTelemetry JDBC
+    implementation("io.opentelemetry.instrumentation:opentelemetry-jdbc")
 }
 dependencyManagement {
     imports {
