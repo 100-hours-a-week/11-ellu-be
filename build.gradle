@@ -103,7 +103,7 @@ dependencies {
     implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
 
     // OpenTelemetry JDBC
-    implementation("io.opentelemetry.instrumentation:opentelemetry-jdbc")
+    implementation("io.opentelemetry.instrumentation:opentelemetry-jdbc:2.16.0-alpha")
 }
 dependencyManagement {
     imports {
