@@ -53,8 +53,6 @@ public class KafkaStreamsConfig {
 
     stream.foreach(
         (key, value) -> {
-          log.info("Kafka Streams MESSAGE RECEIVED: key={}, value={}", key, value);
-
           String cleanedValue = value;
 
           if (value.startsWith("\"") && value.endsWith("\"") && value.length() > 1) {
@@ -63,7 +61,7 @@ public class KafkaStreamsConfig {
 
             cleanedValue = cleanedValue.replace("\\\"", "\"");
           }
-          log.info("Cleaned Kafka Streams MESSAGE: key={}, cleanedValue={}", key, cleanedValue);
+          log.info("Formatted Kafka Streams message: key={}, cleanedValue={}", key, cleanedValue);
 
           try {
             ObjectMapper objectMapper = new ObjectMapper();
