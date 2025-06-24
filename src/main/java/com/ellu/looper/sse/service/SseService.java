@@ -24,12 +24,12 @@ public class SseService {
     emitter.onCompletion(
         () -> {
           emitters.remove(userId);
-          log.info("USER WITH ID {} IS DISCONNECTED TO SSE", userId);
+          log.info("UserId {} is disconnected to sse.", userId);
         });
     emitter.onTimeout(
         () -> {
           emitters.remove(userId);
-          log.info("USER WITH ID {} IS CONNECTION TIMEOUT", userId);
+          log.info("UserId {}'s connection timed out.", userId);
         });
 
     return emitter;
