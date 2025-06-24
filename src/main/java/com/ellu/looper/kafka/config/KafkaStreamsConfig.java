@@ -61,7 +61,7 @@ public class KafkaStreamsConfig {
 
             cleanedValue = cleanedValue.replace("\\\"", "\"");
           }
-          log.info("Formatted Kafka Streams message: key={}, cleanedValue={}", key, cleanedValue);
+          log.info("Formatted Kafka Streams message: {}", cleanedValue);
 
           try {
             ObjectMapper objectMapper = new ObjectMapper();
