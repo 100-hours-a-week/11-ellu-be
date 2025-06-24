@@ -158,6 +158,28 @@ public class FastApiService {
         .subscribe();
   }
 
+  public void deleteWiki(Long projectId) {
+    log.info("Deleting wiki for project: {}", projectId);
+    fastApiSummaryWebClient.delete().uri(
+            uriBuilder ->
+                uriBuilder.path("/projects/{projectId}/wiki").build(projectId))
+        .retrieve()
+        .bodyToMono(Void.class)
+        .timeout(Duration.ofSeconds(10))
+        .doOnSuccess(
+            response -> {
+              log.info("Successfully deleted wiki for project: {}", projectId);
+            })
+        .doOnError(
+            error -> {
+              log.error(
+                  "Failed to delete wiki for project: {}, error: {}",
+                  projectId,
+                  error.getMessage());
+            })
+        .subscribe();
+  }
+
   public Flux<String> streamChatResponse(MessageRequest request) {
     return fastApiChatbotWebClient
         .post()

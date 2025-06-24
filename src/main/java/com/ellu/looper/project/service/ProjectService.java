@@ -278,6 +278,9 @@ public class ProjectService {
     }
     projectMemberRepository.saveAll(members);
 
+    // send wiki deletion request to FastApi
+    fastApiService.deleteWiki(projectId);
+
     // send deletion notification
     notificationService.sendProjectNotification(
         NotificationType.PROJECT_DELETED, members, userId, project);
@@ -403,7 +406,7 @@ public class ProjectService {
           newlyInvitedUsers, creator.getUser(), project, newlyAddedMembers);
     }
 
-    //     위키 내용이 있다면 수정
+    // 위키 내용이 있다면 수정
     if (request.getWiki() != null && !request.getWiki().trim().isEmpty()) {
       log.info("Updating wiki for project: {}", projectId);
       WikiRequest wikiRequest =
@@ -416,33 +419,5 @@ public class ProjectService {
     }
 
     log.info("Project updated successfully: {}", projectId);
-  }
-
-  @Transactional
-  public void createWiki(Long projectId, Long userId, WikiRequest request) {
-    Project project =
-        projectRepository
-            .findByIdAndDeletedAtIsNull(projectId)
-            .orElseThrow(() -> new IllegalArgumentException("Project not found"));
-
-    if (!project.getMember().getId().equals(userId)) {
-      throw new SecurityException("Only project creator can create wiki");
-    }
-
-    fastApiService.createWiki(projectId, request);
-  }
-
-  @Transactional
-  public void updateWiki(Long projectId, Long userId, WikiRequest request) {
-    Project project =
-        projectRepository
-            .findByIdAndDeletedAtIsNull(projectId)
-            .orElseThrow(() -> new IllegalArgumentException("Project not found"));
-
-    if (!project.getMember().getId().equals(userId)) {
-      throw new SecurityException("Only project creator can modify wiki");
-    }
-
-    fastApiService.updateWiki(projectId, request);
   }
 }
