@@ -13,6 +13,19 @@ spring:
     init:
       mode: never
   jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        highlight_sql: true
+        use_sql_comments: true
+        generate_statistics: true
+        session:
+          events:
+            log:
+              LOG_QUERIES_SLOWER_THAN_MS:
+                10
+    generate-ddl: false
     hibernate:
       ddl-auto: update
   jackson:
