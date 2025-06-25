@@ -14,7 +14,9 @@ import org.hibernate.annotations.Type;
 @Table(
     name = "notification",
     indexes = {
-      @Index(name = "idx_notification_receiver_id_deleted_at_created_at", columnList = "receiver_id, deleted_at, created_at DESC"),
+      @Index(
+          name = "idx_notification_receiver_id_deleted_at_created_at",
+          columnList = "receiver_id, deleted_at, created_at DESC"),
       @Index(name = "idx_notification_deleted_at_created_at", columnList = "deleted_at, created_at")
     })
 @Getter

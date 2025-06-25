@@ -1,7 +1,6 @@
 package com.ellu.looper.project.repository;
 
 import com.ellu.looper.project.entity.Project;
-import com.ellu.looper.user.entity.User;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,8 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ProjectRepository extends JpaRepository<Project, Long> {
-
-  List<Project> findByMember(User member);
 
   Optional<Project> findByIdAndDeletedAtIsNull(Long projectId);
 
