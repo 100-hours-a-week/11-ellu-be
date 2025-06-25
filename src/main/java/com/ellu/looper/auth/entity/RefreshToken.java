@@ -10,16 +10,12 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 
 @Entity
-@Table(name = "refresh_token",
+@Table(
+    name = "refresh_token",
     indexes = {
-        @Index(
-            name = "idx_refresh_token_member_id",
-            columnList = "member_id"),
-        @Index(
-            name = "idx_refresh_token_refresh_token",
-            columnList = "refresh_token")
-    }
-)
+      @Index(name = "idx_refresh_token_member_id", columnList = "member_id"),
+      @Index(name = "idx_refresh_token_refresh_token", columnList = "refresh_token")
+    })
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
