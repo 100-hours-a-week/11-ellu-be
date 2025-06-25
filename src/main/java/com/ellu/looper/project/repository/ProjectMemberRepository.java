@@ -13,15 +13,17 @@ import org.springframework.stereotype.Repository;
 public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Long> {
 
   // 로그인한 사용자가 참여한 모든 프로젝트 멤버십 조회 (soft-delete 제외)
-  @Query("SELECT pm FROM ProjectMember pm " +
-      "JOIN FETCH pm.project p " +
-      "JOIN FETCH pm.user u " +
-      "WHERE u.id = :userId AND pm.deletedAt IS NULL")
+  @Query(
+      "SELECT pm FROM ProjectMember pm "
+          + "JOIN FETCH pm.project p "
+          + "JOIN FETCH pm.user u "
+          + "WHERE u.id = :userId AND pm.deletedAt IS NULL")
   List<ProjectMember> findWithProjectAndUserByUserId(@Param("userId") Long userId);
 
-  @Query("SELECT pm FROM ProjectMember pm " +
-      "JOIN FETCH pm.user u " +
-      "WHERE pm.project.id IN :projectIds AND pm.deletedAt IS NULL")
+  @Query(
+      "SELECT pm FROM ProjectMember pm "
+          + "JOIN FETCH pm.user u "
+          + "WHERE pm.project.id IN :projectIds AND pm.deletedAt IS NULL")
   List<ProjectMember> findByProjectIdsWithUser(@Param("projectIds") List<Long> projectIds);
 
   // 특정 프로젝트의 멤버들 조회 (soft-delete 제외)
@@ -37,4 +39,3 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
 
   boolean existsByProjectIdAndUserIdAndDeletedAtIsNull(Long id, Long userId);
 }
-

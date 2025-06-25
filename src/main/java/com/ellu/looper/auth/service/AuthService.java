@@ -88,7 +88,7 @@ public class AuthService {
             .build();
 
     RefreshToken token = refreshTokenRepository.save(refreshTokenEntity);
-    log.info("token"+token.getRefreshToken());
+    log.info("token" + token.getRefreshToken());
     Long userId = jwtProvider.extractUserId(token.getRefreshToken());
     log.info("UserId {} logged in. ", userId);
 
@@ -123,7 +123,6 @@ public class AuthService {
     Long userId = jwtProvider.extractUserId(token.getRefreshToken());
     refreshTokenRepository.delete(token);
     log.info("UserId {} logged out. ", userId);
-
   }
 
   @Transactional

@@ -24,9 +24,11 @@ import org.hibernate.annotations.UpdateTimestamp;
 @NoArgsConstructor
 @Builder(toBuilder = true)
 @Getter
-@Table(name = "chat_conversations", indexes = {
-    @Index(name = "idx_conversation_user_createdat", columnList = "user_id, createdAt DESC")
-})
+@Table(
+    name = "chat_conversations",
+    indexes = {
+      @Index(name = "idx_conversation_user_createdat", columnList = "user_id, createdAt DESC")
+    })
 public class ChatConversation {
 
   @Id

@@ -160,9 +160,9 @@ public class FastApiService {
 
   public void deleteWiki(Long projectId) {
     log.info("Deleting wiki for project: {}", projectId);
-    fastApiSummaryWebClient.delete().uri(
-            uriBuilder ->
-                uriBuilder.path("/projects/{projectId}/wiki").build(projectId))
+    fastApiSummaryWebClient
+        .delete()
+        .uri(uriBuilder -> uriBuilder.path("/projects/{projectId}/wiki").build(projectId))
         .retrieve()
         .bodyToMono(Void.class)
         .timeout(Duration.ofSeconds(10))
