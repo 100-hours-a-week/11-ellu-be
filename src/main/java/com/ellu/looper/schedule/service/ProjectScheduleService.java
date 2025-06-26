@@ -186,7 +186,7 @@ public class ProjectScheduleService {
       }
       // Add new assignees
       List<ProjectMember> matchingMembers =
-          projectMemberRepository.findByProjectIdAndPosition(
+          projectMemberRepository.findByProjectIdAndPositionAndDeletedAtIsNull(
               schedule.getProject().getId(), request.position());
 
       for (ProjectMember member : matchingMembers) {
@@ -403,7 +403,7 @@ public class ProjectScheduleService {
     // Check if this user has the appropriate position
     ProjectMember projectMember =
         projectMemberRepository
-            .findByProjectIdAndUserId(projectId, userId)
+            .findByProjectIdAndUserIdAndDeletedAtIsNull(projectId, userId)
             .orElseThrow(() -> new IllegalArgumentException("Project Member not found"));
 
     Project project =
