@@ -33,9 +33,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,6 +57,11 @@ public class ProjectService {
   private final ProfileImageService profileImageService;
   private final NotificationService notificationService;
   private final AssigneeRepository assigneeRepository;
+  private final RedisTemplate<String, Object> redisTemplate;
+  private static final long PROJECT_CACHE_TTL_HOURS = 3L;
+  private static final String PROJECT_DETAIL_CACHE_KEY_PREFIX = "project:";
+  private static final String PROJECT_LIST_CACHE_KEY_PREFIX = "projects:user:";
+
 
   @Transactional
   public void createProject(ProjectCreateRequest request, Long creatorId) {
@@ -142,10 +152,20 @@ public class ProjectService {
         addedUsers, creator, project, request.getAdded_members());
 
     log.info("Project created successfully with ID: {}", project.getId());
+    redisTemplate.delete(PROJECT_LIST_CACHE_KEY_PREFIX + creatorId);
   }
 
   @Transactional(readOnly = true)
   public List<ProjectResponse> getProjects(Long userId) {
+    String cacheKey = PROJECT_LIST_CACHE_KEY_PREFIX + userId;
+    List<ProjectResponse> cached =
+        (List<ProjectResponse>) redisTemplate.opsForValue().get(cacheKey);
+    if (cached != null) {
+      log.info("Cache hit for project list: {}", userId);
+      return cached;
+    }
+
+    log.info("Cache miss for project list: {}", userId);
     log.info("Getting projects for user: {}", userId);
 
     // 사용자가 user인 ProjectMember + Project + User를 fetch join으로 한 번에 로딩
@@ -201,35 +221,40 @@ public class ProjectService {
             .collect(Collectors.toList());
 
     log.info("Found {} projects for user: {}", responses.size(), userId);
+    redisTemplate.opsForValue().set(cacheKey, responses, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
     return responses;
   }
 
   @Transactional(readOnly = true)
   public CreatorExcludedProjectResponse getProjectDetail(Long projectId, Long userId) {
-    log.info("Getting project details for project: {} and user: {}", projectId, userId);
+    String cacheKey = PROJECT_DETAIL_CACHE_KEY_PREFIX + projectId;
+    CreatorExcludedProjectResponse cached = (CreatorExcludedProjectResponse) redisTemplate.opsForValue().get(cacheKey);
+    if (cached != null) {
+      log.info("Cache hit for project detail: {}", projectId);
+      return cached;
+    }
+    log.info("Cache miss for project detail: {}. Loading from DB.", projectId);
     Project project =
         projectRepository
             .findByIdAndDeletedAtIsNull(projectId)
             .orElseThrow(() -> new IllegalArgumentException("Project not found"));
 
     if (!project.getMember().getId().equals(userId)) {
-      return new CreatorExcludedProjectResponse(
+      CreatorExcludedProjectResponse response = new CreatorExcludedProjectResponse(
           project.getId(), project.getTitle(), project.getColor().name(), null, null, null);
+      redisTemplate.opsForValue().set(cacheKey, response, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
+      return response;
     }
 
     List<ProjectMember> members = projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
-
-    // 생성자 추출 (ADMIN 역할이면서 userId와 일치하는 사용자)
     ProjectMember creator =
         members.stream()
             .filter(pm -> pm.getRole() == Role.ADMIN && pm.getUser().getId().equals(userId))
             .findFirst()
             .orElseThrow(() -> new IllegalStateException("프로젝트 생성자가 존재하지 않습니다."));
-
-    // 생성자 제외한 멤버 리스트 생성
     List<MemberDto> memberDtos =
         members.stream()
-            .filter(pm -> !pm.getUser().getId().equals(userId)) // 생성자 제외
+            .filter(pm -> !pm.getUser().getId().equals(userId))
             .map(
                 pm ->
                     new MemberDto(
@@ -238,14 +263,15 @@ public class ProjectService {
                         profileImageService.getProfileImageUrl(pm.getUser().getFileName()),
                         pm.getPosition()))
             .collect(Collectors.toList());
-
-    return new CreatorExcludedProjectResponse(
+    CreatorExcludedProjectResponse response = new CreatorExcludedProjectResponse(
         project.getId(),
         project.getTitle(),
         project.getColor() != null ? project.getColor().name() : "E3EEFC",
-        creator.getPosition(), // 생성자의 position만 포함
+        creator.getPosition(),
         memberDtos,
         project.getWiki());
+    redisTemplate.opsForValue().set(cacheKey, response, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
+    return response;
   }
 
   @Transactional
@@ -291,6 +317,9 @@ public class ProjectService {
     // send deletion notification
     notificationService.sendProjectNotification(
         NotificationType.PROJECT_DELETED, members, userId, project);
+    // 캐시 무효화
+    redisTemplate.delete(PROJECT_DETAIL_CACHE_KEY_PREFIX + projectId);
+    redisTemplate.delete(PROJECT_LIST_CACHE_KEY_PREFIX + userId);
   }
 
   @Transactional
@@ -426,5 +455,8 @@ public class ProjectService {
     }
 
     log.info("Project updated successfully: {}", projectId);
+    // 캐시 무효화
+    redisTemplate.delete(PROJECT_DETAIL_CACHE_KEY_PREFIX + projectId);
+    redisTemplate.delete(PROJECT_LIST_CACHE_KEY_PREFIX + userId);
   }
 }
