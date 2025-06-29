@@ -25,8 +25,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Entity
 @Table(
     indexes = {
-      @Index(name = "IDX_SCHEDULE_MEMBER_ID_DELETED_AT", columnList = "member_id, deleted_at"),
-      @Index(name = "IDX_SCHEDULE_MULTI", columnList = "member_id, start_time, end_time, deleted_at"),
+        @Index(name = "IDX_SCHEDULE_MEMBER_ID_DELETED_AT", columnList = "member_id, deleted_at"),
 //      @Index(name = "IDX_SCHEDULE_IS_COMPLETED", columnList = "is_completed")
     })
 @Getter
