@@ -16,7 +16,8 @@ public interface ProjectScheduleRepository extends JpaRepository<ProjectSchedule
   Optional<ProjectSchedule> findByIdAndDeletedAtIsNull(Long id);
 
   @Query(
-      "SELECT s FROM ProjectSchedule s "
+      "SELECT DISTINCT s FROM ProjectSchedule s "
+          + "LEFT JOIN FETCH s.assignees "
           + "WHERE s.project.id = :projectId "
           + "AND s.deletedAt IS NULL "
           + "AND s.startTime < :end "
@@ -27,10 +28,12 @@ public interface ProjectScheduleRepository extends JpaRepository<ProjectSchedule
       @Param("end") LocalDateTime end);
 
   @Query(
-      "SELECT s FROM ProjectSchedule s "
+      "SELECT DISTINCT s FROM ProjectSchedule s "
+          + "LEFT JOIN FETCH s.assignees "
           + "WHERE s.project.id = :projectId "
           + "AND s.deletedAt IS NULL "
-          + "AND s.startTime <=:end AND s.endTime>= :start")
+          + "AND s.startTime <=:end "
+          + "AND s.endTime>= :start")
   List<ProjectSchedule> findSchedulesBetween(
       @Param("projectId") Long projectId,
       @Param("start") LocalDateTime start,
