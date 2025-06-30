@@ -12,7 +12,7 @@ public class ProjectCreateRequest {
   @NotBlank(message = "Title must not be empty")
   private String title;
 
-  private String color; // "#fec178" 같은 Hex Color String
+  private String color; // Hex Color String
 
   private String position; // 생성자 본인의 position
 

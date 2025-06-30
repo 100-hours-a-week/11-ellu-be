@@ -53,10 +53,14 @@ public class UserService {
 
     if (HangulUtil.containsOnlyChoseong(query)) {
       // 순수 초성 검색: ㄱㄴㄷ 형태
-      userProjections = userRepository.findTop10ByNicknameChoseongStartingWithOrderByNicknameAsc(query);
+      userProjections =
+          userRepository.findTop10ByNicknameChoseongStartingWithOrderByNicknameAsc(query);
     } else {
       // 일반 검색 (부분 일치 포함)
-      userProjections = userRepository.findTop10ByNicknameStartingWithOrNicknameChoseongStartingWithOrderByNicknameAsc(query, query);
+      userProjections =
+          userRepository
+              .findTop10ByNicknameStartingWithOrNicknameChoseongStartingWithOrderByNicknameAsc(
+                  query, query);
     }
 
     return userProjections.stream()

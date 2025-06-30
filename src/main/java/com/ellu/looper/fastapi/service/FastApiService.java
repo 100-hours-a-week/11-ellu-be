@@ -4,6 +4,8 @@ import com.ellu.looper.chat.dto.MessageRequest;
 import com.ellu.looper.commons.enums.NotificationType;
 import com.ellu.looper.fastapi.dto.MeetingNoteRequest;
 import com.ellu.looper.fastapi.dto.MeetingNoteResponse;
+import com.ellu.looper.fastapi.dto.SchedulePreview;
+import com.ellu.looper.fastapi.dto.TaskSelectionResultRequest;
 import com.ellu.looper.fastapi.dto.WikiEmbeddingResponse;
 import com.ellu.looper.notification.service.NotificationService;
 import com.ellu.looper.project.dto.WikiRequest;
@@ -11,10 +13,14 @@ import com.ellu.looper.project.entity.Project;
 import com.ellu.looper.project.entity.ProjectMember;
 import com.ellu.looper.project.repository.ProjectMemberRepository;
 import com.ellu.looper.project.repository.ProjectRepository;
+import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest.ProjectScheduleDto;
 import com.ellu.looper.schedule.service.PreviewHolder;
-import com.ellu.looper.user.repository.UserRepository;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -40,8 +46,7 @@ public class FastApiService {
       PreviewHolder previewHolder,
       NotificationService notificationService,
       ProjectRepository projectRepository,
-      ProjectMemberRepository projectMemberRepository,
-      UserRepository userRepository) {
+      ProjectMemberRepository projectMemberRepository) {
     this.fastApiSummaryWebClient = fastApiSummaryWebClient;
     this.fastApiChatbotWebClient = fastApiChatbotWebClient;
     this.previewHolder = previewHolder;
@@ -190,5 +195,58 @@ public class FastApiService {
         .retrieve()
         .bodyToFlux(String.class)
         .doOnError(error -> log.error("Error streaming chat response: {}", error.getMessage()));
+  }
+
+  public void sendSelectionResult(Long projectId, List<ProjectScheduleDto> projectSchedules) {
+    Map<String, Map<String, Set<String>>> grouped = new ConcurrentHashMap<>();
+
+    projectSchedules.forEach(
+        dto -> {
+          String position = dto.getPosition();
+          String task = dto.getTitle();
+          String subtask = dto.getDescription();
+
+          if (position == null || task == null || subtask == null) return;
+
+          grouped
+              .computeIfAbsent(position, k -> new ConcurrentHashMap<>())
+              .computeIfAbsent(task, k -> ConcurrentHashMap.newKeySet())
+              .add(subtask);
+        });
+
+    List<SchedulePreview> content =
+        grouped.entrySet().stream()
+            .flatMap(
+                positionEntry ->
+                    positionEntry.getValue().entrySet().stream()
+                        .map(
+                            taskEntry ->
+                                new SchedulePreview(
+                                    positionEntry.getKey(),
+                                    taskEntry.getKey(),
+                                    new ArrayList<>(taskEntry.getValue()))))
+            .toList();
+    TaskSelectionResultRequest request = new TaskSelectionResultRequest(projectId, content);
+
+    fastApiSummaryWebClient
+        .post()
+        .uri(uriBuilder -> uriBuilder.path("/projects/{projectId}/notes/results").build(projectId))
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(request)
+        .retrieve()
+        .bodyToMono(Void.class)
+        .timeout(Duration.ofMinutes(10))
+        .doOnSuccess(
+            response -> {
+              log.info("Successfully sent selected result for project {}.", projectId);
+            })
+        .doOnError(
+            error -> {
+              log.error(
+                  "Failed to send selected result for project {}, error: {}",
+                  projectId,
+                  error.getMessage());
+            })
+        .subscribe();
   }
 }

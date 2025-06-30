@@ -11,13 +11,17 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "project_member",
+@Table(
+    name = "project_member",
     indexes = {
-        @Index(name = "idx_projectmember_project_id_deleted_at", columnList = "project_id, deleted_at"),
-        @Index(name = "idx_projectmember_user_id_deleted_at", columnList = "member_id, deleted_at"),
-        @Index(name = "idx_projectmember_project_position_deleted_at", columnList = "project_id, position, deleted_at")
-        }
-)
+      @Index(
+          name = "idx_projectmember_project_id_deleted_at",
+          columnList = "project_id, deleted_at"),
+      @Index(name = "idx_projectmember_user_id_deleted_at", columnList = "member_id, deleted_at"),
+      @Index(
+          name = "idx_projectmember_project_position_deleted_at",
+          columnList = "project_id, position, deleted_at")
+    })
 @Getter
 @Builder
 @AllArgsConstructor
@@ -37,7 +41,7 @@ public class ProjectMember {
   private User user;
 
   @Setter
-  @Column(name="position", length = 15)
+  @Column(name = "position", length = 15)
   private String position; // FE, BE, CLOUD, etc
 
   @Column(nullable = false, length = 15)

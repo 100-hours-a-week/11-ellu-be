@@ -3,6 +3,7 @@ package com.ellu.looper.schedule.service;
 import com.ellu.looper.commons.enums.Color;
 import com.ellu.looper.commons.enums.NotificationType;
 import com.ellu.looper.exception.ValidationException;
+import com.ellu.looper.fastapi.service.FastApiService;
 import com.ellu.looper.kafka.NotificationProducer;
 import com.ellu.looper.kafka.dto.NotificationMessage;
 import com.ellu.looper.notification.entity.Notification;
@@ -16,6 +17,7 @@ import com.ellu.looper.project.repository.ProjectMemberRepository;
 import com.ellu.looper.project.repository.ProjectRepository;
 import com.ellu.looper.schedule.dto.AssigneeDto;
 import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest;
+import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest.ProjectScheduleDto;
 import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
 import com.ellu.looper.schedule.dto.StompProjectScheduleUpdateRequest;
 import com.ellu.looper.schedule.entity.Assignee;
@@ -62,6 +64,7 @@ public class ProjectScheduleService {
   private final ProfileImageService profileImageService;
   private final NotificationService notificationService;
   private final NotificationProducer notificationProducer;
+  private final FastApiService fastApiService;
 
   private void validateTimeOrder(LocalDateTime startTime, LocalDateTime endTime) {
     if (startTime != null && endTime != null) {
@@ -151,6 +154,11 @@ public class ProjectScheduleService {
           userId,
           project,
           schedule);
+    }
+
+    List<ProjectScheduleDto> projectSchedules = request.getProject_schedules();
+    if (request.getAi_recommended() && projectSchedules != null && !projectSchedules.isEmpty()) {
+      fastApiService.sendSelectionResult(projectId, request.getProject_schedules());
     }
     return responses;
   }

@@ -20,9 +20,11 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +39,9 @@ public class NotificationService {
   private final NotificationTemplateRepository notificationTemplateRepository;
   private final NotificationProducer notificationProducer;
   private final UserRepository userRepository;
+  private final RedisTemplate<String, Object> redisTemplate;
+  private static final long NOTIFICATION_CACHE_TTL_HOURS = 3L;
+  private static final String NOTIFICATION_CACHE_KEY_PREFIX = "notifications:user:";
 
   @Transactional
   public void softDeleteOldNotifications() {
@@ -54,40 +59,56 @@ public class NotificationService {
   }
 
   public List<NotificationDto> getNotifications(Long userId) {
+    String cacheKey = NOTIFICATION_CACHE_KEY_PREFIX + userId;
+    List<NotificationDto> cached =
+        (List<NotificationDto>) redisTemplate.opsForValue().get(cacheKey);
+    if (cached != null) {
+      log.info("Cache hit for notifications: {}", userId);
+      return cached;
+    }
+
+    log.info("Cache miss for notifications: {}", userId);
+
     List<Notification> notifications =
         notificationRepository.findByReceiverIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId);
 
-    return notifications.stream()
-        .map(
-            n -> {
-              String message;
-              NotificationType type = n.getTemplate().getType();
+    List<NotificationDto> notificationDtoList =
+        notifications.stream()
+            .map(
+                n -> {
+                  String message;
+                  NotificationType type = n.getTemplate().getType();
 
-              if (type.equals(NotificationType.PROJECT_INVITED)) {
-                message = renderInvitationTemplate(n.getTemplate().getTemplate(), n);
-              } else if (type.equals(NotificationType.PROJECT_DELETED)
-                  || type.equals(NotificationType.PROJECT_EXPELLED)
-                  || type.equals(NotificationType.PROJECT_WIKI_READY)) {
-                message = renderProjectTemplate(n.getTemplate().getTemplate(), n);
-              } else if (type.equals(NotificationType.SCHEDULE_CREATED)
-                  || type.equals(NotificationType.SCHEDULE_UPDATED)
-                  || type.equals(NotificationType.SCHEDULE_DELETED)) {
-                message = renderScheduleTemplate(n.getTemplate().getTemplate(), n);
-              } else if (type.equals(NotificationType.INVITATION_PROCESSED)) {
-                message = renderInvitationResponseTemplate(n.getTemplate().getTemplate(), n);
-              } else {
-                message = "";
-              }
+                  if (type.equals(NotificationType.PROJECT_INVITED)) {
+                    message = renderInvitationTemplate(n.getTemplate().getTemplate(), n);
+                  } else if (type.equals(NotificationType.PROJECT_DELETED)
+                      || type.equals(NotificationType.PROJECT_EXPELLED)
+                      || type.equals(NotificationType.PROJECT_WIKI_READY)) {
+                    message = renderProjectTemplate(n.getTemplate().getTemplate(), n);
+                  } else if (type.equals(NotificationType.SCHEDULE_CREATED)
+                      || type.equals(NotificationType.SCHEDULE_UPDATED)
+                      || type.equals(NotificationType.SCHEDULE_DELETED)) {
+                    message = renderScheduleTemplate(n.getTemplate().getTemplate(), n);
+                  } else if (type.equals(NotificationType.INVITATION_PROCESSED)) {
+                    message = renderInvitationResponseTemplate(n.getTemplate().getTemplate(), n);
+                  } else {
+                    message = "";
+                  }
 
-              return NotificationDto.builder()
-                  .id(n.getId())
-                  .senderNickname(n.getSender().getNickname())
-                  .message(message)
-                  .inviteStatus(n.getInviteStatus())
-                  .createdAt(n.getCreatedAt())
-                  .build();
-            })
-        .collect(Collectors.toList());
+                  return NotificationDto.builder()
+                      .id(n.getId())
+                      .senderNickname(n.getSender().getNickname())
+                      .message(message)
+                      .inviteStatus(n.getInviteStatus())
+                      .createdAt(n.getCreatedAt())
+                      .build();
+                })
+            .collect(Collectors.toList());
+
+    redisTemplate
+        .opsForValue()
+        .set(cacheKey, notificationDtoList, NOTIFICATION_CACHE_TTL_HOURS, TimeUnit.HOURS);
+    return notificationDtoList;
   }
 
   private String renderInvitationResponseTemplate(String template, Notification notification) {
