@@ -22,6 +22,10 @@ public class ProjectScheduleCreateRequest {
   @Valid
   private List<ProjectScheduleDto> project_schedules;
 
+  @NotNull(message = "is_ai_recommended is required")
+  @JsonProperty("is_ai_recommended")
+  private Boolean ai_recommended;
+
   @Getter
   @Builder
   @NoArgsConstructor
