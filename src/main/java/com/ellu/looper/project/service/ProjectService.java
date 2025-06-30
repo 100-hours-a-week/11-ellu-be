@@ -162,7 +162,6 @@ public class ProjectService {
     }
 
     log.info("Cache miss for project list: {}", userId);
-    log.info("Getting projects for user: {}", userId);
 
     // 사용자가 user인 ProjectMember + Project + User를 fetch join으로 한 번에 로딩
     List<ProjectMember> userProjectMembers =
