@@ -37,9 +37,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,7 +58,6 @@ public class ProjectService {
   private static final long PROJECT_CACHE_TTL_HOURS = 3L;
   private static final String PROJECT_DETAIL_CACHE_KEY_PREFIX = "project:";
   private static final String PROJECT_LIST_CACHE_KEY_PREFIX = "projects:user:";
-
 
   @Transactional
   public void createProject(ProjectCreateRequest request, Long creatorId) {
@@ -228,7 +224,8 @@ public class ProjectService {
   @Transactional(readOnly = true)
   public CreatorExcludedProjectResponse getProjectDetail(Long projectId, Long userId) {
     String cacheKey = PROJECT_DETAIL_CACHE_KEY_PREFIX + projectId;
-    CreatorExcludedProjectResponse cached = (CreatorExcludedProjectResponse) redisTemplate.opsForValue().get(cacheKey);
+    CreatorExcludedProjectResponse cached =
+        (CreatorExcludedProjectResponse) redisTemplate.opsForValue().get(cacheKey);
     if (cached != null) {
       log.info("Cache hit for project detail: {}", projectId);
       return cached;
@@ -240,8 +237,9 @@ public class ProjectService {
             .orElseThrow(() -> new IllegalArgumentException("Project not found"));
 
     if (!project.getMember().getId().equals(userId)) {
-      CreatorExcludedProjectResponse response = new CreatorExcludedProjectResponse(
-          project.getId(), project.getTitle(), project.getColor().name(), null, null, null);
+      CreatorExcludedProjectResponse response =
+          new CreatorExcludedProjectResponse(
+              project.getId(), project.getTitle(), project.getColor().name(), null, null, null);
       redisTemplate.opsForValue().set(cacheKey, response, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
       return response;
     }
@@ -263,13 +261,14 @@ public class ProjectService {
                         profileImageService.getProfileImageUrl(pm.getUser().getFileName()),
                         pm.getPosition()))
             .collect(Collectors.toList());
-    CreatorExcludedProjectResponse response = new CreatorExcludedProjectResponse(
-        project.getId(),
-        project.getTitle(),
-        project.getColor() != null ? project.getColor().name() : "E3EEFC",
-        creator.getPosition(),
-        memberDtos,
-        project.getWiki());
+    CreatorExcludedProjectResponse response =
+        new CreatorExcludedProjectResponse(
+            project.getId(),
+            project.getTitle(),
+            project.getColor() != null ? project.getColor().name() : "E3EEFC",
+            creator.getPosition(),
+            memberDtos,
+            project.getWiki());
     redisTemplate.opsForValue().set(cacheKey, response, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
     return response;
   }
