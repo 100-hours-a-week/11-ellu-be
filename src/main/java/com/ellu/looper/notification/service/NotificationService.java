@@ -40,7 +40,7 @@ public class NotificationService {
   private final NotificationProducer notificationProducer;
   private final UserRepository userRepository;
   private final RedisTemplate<String, Object> redisTemplate;
-  private static final long NOTIFICATION_CACHE_TTL_HOURS = 3L;
+  private static final long NOTIFICATION_CACHE_TTL_MINUTES = 5L;
   private static final String NOTIFICATION_CACHE_KEY_PREFIX = "notifications:user:";
 
   @Transactional
@@ -107,7 +107,7 @@ public class NotificationService {
 
     redisTemplate
         .opsForValue()
-        .set(cacheKey, notificationDtoList, NOTIFICATION_CACHE_TTL_HOURS, TimeUnit.HOURS);
+        .set(cacheKey, notificationDtoList, NOTIFICATION_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
     return notificationDtoList;
   }
 
