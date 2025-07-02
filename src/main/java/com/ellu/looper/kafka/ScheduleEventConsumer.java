@@ -130,7 +130,9 @@ public class ScheduleEventConsumer implements Runnable {
             projectScheduleService.updateSchedule(
                 event.getScheduleId(), event.getUserId(), event.getUpdateRequest());
         event =
-            event.toBuilder().schedule(projectScheduleService.toDto(projectScheduleResponse)).build();
+            event.toBuilder()
+                .schedule(projectScheduleService.toDto(projectScheduleResponse))
+                .build();
 
         // WebSocket 브로드캐스트
         messagingTemplate.convertAndSend("/topic/" + event.getProjectId(), event);
@@ -146,9 +148,11 @@ public class ScheduleEventConsumer implements Runnable {
                 .findWithDetailsById(event.getScheduleId())
                 .orElseThrow(() -> new EntityNotFoundException("Project schedule not found"));
 
-        event = event.toBuilder()
+        event =
+            event.toBuilder()
                 .schedule(
-                    projectScheduleService.toDto(projectScheduleService.toResponse(updatedSchedule)))
+                    projectScheduleService.toDto(
+                        projectScheduleService.toResponse(updatedSchedule)))
                 .build();
 
         // WebSocket 브로드캐스트

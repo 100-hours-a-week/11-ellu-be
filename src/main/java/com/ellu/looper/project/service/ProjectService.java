@@ -40,6 +40,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Slf4j
 @Service
@@ -142,11 +144,16 @@ public class ProjectService {
       fastApiService.createWiki(project.getId(), wikiRequest);
     }
 
-    log.info("Sending invitation notification to project members");
-    // 초대 알림 보내기
-    notificationService.sendInvitationNotification(
-        addedUsers, creator, project, request.getAdded_members());
-
+    TransactionSynchronizationManager.registerSynchronization(
+        new TransactionSynchronizationAdapter() {
+          @Override
+          public void afterCommit() {
+            log.info("Sending invitation notification to project members");
+            // 초대 알림 보내기
+            notificationService.sendInvitationNotification(
+                addedUsers, creator, project, request.getAdded_members());
+          }
+        });
     log.info("Project created successfully with ID: {}", project.getId());
     redisTemplate.delete(PROJECT_LIST_CACHE_KEY_PREFIX + creatorId);
   }

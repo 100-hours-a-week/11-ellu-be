@@ -2,11 +2,9 @@ package com.ellu.looper.kafka.dto;
 
 import com.ellu.looper.schedule.dto.AssigneeDto;
 import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest;
-import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
 import com.ellu.looper.schedule.dto.StompProjectScheduleUpdateRequest;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Timer;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

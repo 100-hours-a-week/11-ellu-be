@@ -1,10 +1,12 @@
 package com.ellu.looper.kafka;
 
 import com.ellu.looper.kafka.dto.NotificationMessage;
+import com.ellu.looper.notification.dto.NotificationDto;
 import com.ellu.looper.notification.entity.Notification;
 import com.ellu.looper.notification.entity.NotificationTemplate;
 import com.ellu.looper.notification.repository.NotificationRepository;
 import com.ellu.looper.notification.repository.NotificationTemplateRepository;
+import com.ellu.looper.notification.service.NotificationService;
 import com.ellu.looper.project.entity.Project;
 import com.ellu.looper.project.repository.ProjectRepository;
 import com.ellu.looper.sse.service.SseService;
@@ -16,7 +18,9 @@ import jakarta.persistence.EntityNotFoundException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -26,6 +30,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -40,15 +45,20 @@ public class NotificationConsumer implements Runnable {
   private volatile boolean running = true;
 
   private final NotificationRepository notificationRepository;
+  private final NotificationService notificationService;
   private final UserRepository userRepository;
   private final ProjectRepository projectRepository;
   private final NotificationTemplateRepository notificationTemplateRepository;
+  private final RedisTemplate<String, Object> redisTemplate;
 
   @Value("${spring.kafka.bootstrap-servers}")
   private String bootstrapServers;
 
   @Value("${kafka.topics.notification}")
   public String NOTIFICATION_TOPIC;
+
+  private static final long NOTIFICATION_CACHE_TTL_MINUTES = 5L;
+  private static final String NOTIFICATION_CACHE_KEY_PREFIX = "notifications:user:";
 
   @PostConstruct
   public void init() {
@@ -139,18 +149,19 @@ public class NotificationConsumer implements Runnable {
 
       User receiver =
           userRepository
-              .findById(event.getReceiverId().getFirst())
+              .findById(userId)
               .orElseThrow(
                   () ->
                       new IllegalArgumentException(
-                          "Notification receiver with id "
-                              + event.getReceiverId().getFirst()
-                              + " not found"));
+                          "Notification receiver with id " + userId + " not found"));
 
       Project project =
           projectRepository
               .findById(event.getProjectId())
-              .orElseThrow(() -> new EntityNotFoundException("Project Not found"));
+              .orElseThrow(
+                  () ->
+                      new EntityNotFoundException(
+                          "Project with id " + event.getProjectId() + "Not found"));
 
       NotificationTemplate notificationTemplate =
           notificationTemplateRepository
@@ -165,6 +176,7 @@ public class NotificationConsumer implements Runnable {
               .sender(sender)
               .receiver(receiver)
               .project(project)
+              .inviteStatus(event.getInviteStatus())
               .template(notificationTemplate)
               .payload(event.getPayload())
               .createdAt(LocalDateTime.now())
@@ -173,7 +185,15 @@ public class NotificationConsumer implements Runnable {
       // DB 저장
       Notification saved = notificationRepository.save(notification);
 
-      // Redis 저장
+      // Redis 저장 (write-through cache)
+      String cacheKey = NOTIFICATION_CACHE_KEY_PREFIX + userId;
+      List<Notification> notifications =
+          notificationRepository.findByReceiverIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId);
+
+      List<NotificationDto> dtoList = notificationService.toDtoList(notifications);
+      redisTemplate
+          .opsForValue()
+          .set(cacheKey, dtoList, NOTIFICATION_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
 
       // SSE 구독 중인 유저에게 전송
       sseEmitterService.sendNotification(

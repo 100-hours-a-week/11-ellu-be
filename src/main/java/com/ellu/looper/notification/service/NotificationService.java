@@ -6,6 +6,7 @@ import com.ellu.looper.commons.enums.Role;
 import com.ellu.looper.kafka.NotificationProducer;
 import com.ellu.looper.kafka.dto.NotificationMessage;
 import com.ellu.looper.notification.dto.NotificationDto;
+import com.ellu.looper.notification.dto.NotificationResponse;
 import com.ellu.looper.notification.entity.Notification;
 import com.ellu.looper.notification.entity.NotificationTemplate;
 import com.ellu.looper.notification.repository.NotificationRepository;
@@ -38,7 +39,7 @@ public class NotificationService {
   private final NotificationTemplateRepository notificationTemplateRepository;
   private final NotificationProducer notificationProducer;
   private final RedisTemplate<String, Object> redisTemplate;
-  private static final long NOTIFICATION_CACHE_TTL_MINUTES = 5L;
+  private static final long NOTIFICATION_CACHE_TTL_MINUTES = 10L;
   private static final String NOTIFICATION_CACHE_KEY_PREFIX = "notifications:user:";
 
   @Transactional
@@ -56,10 +57,10 @@ public class NotificationService {
     // TODO: 배치 처리 실패 처리 로직 추가, shedlock 처리 추가
   }
 
-  public List<NotificationDto> getNotifications(Long userId) {
+  public List<NotificationResponse> getNotifications(Long userId) {
     String cacheKey = NOTIFICATION_CACHE_KEY_PREFIX + userId;
-    List<NotificationDto> cached =
-        (List<NotificationDto>) redisTemplate.opsForValue().get(cacheKey);
+    List<NotificationResponse> cached =
+        (List<NotificationResponse>) redisTemplate.opsForValue().get(cacheKey);
     if (cached != null) {
       log.info("Cache hit for notifications: {}", userId);
       return cached;
@@ -70,7 +71,7 @@ public class NotificationService {
     List<Notification> notifications =
         notificationRepository.findByReceiverIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId);
 
-    List<NotificationDto> notificationDtoList =
+    List<NotificationResponse> notificationDtoList =
         notifications.stream()
             .map(
                 n -> {
@@ -93,7 +94,7 @@ public class NotificationService {
                     message = "";
                   }
 
-                  return NotificationDto.builder()
+                  return NotificationResponse.builder()
                       .id(n.getId())
                       .senderNickname(n.getSender().getNickname())
                       .message(message)
@@ -199,7 +200,7 @@ public class NotificationService {
   }
 
   @Transactional
-  public NotificationDto respondToInvitation(Long notificationId, Long userId, String status) {
+  public NotificationResponse respondToInvitation(Long notificationId, Long userId, String status) {
     Notification notification =
         notificationRepository
             .findByIdAndDeletedAtIsNull(notificationId)
@@ -221,6 +222,18 @@ public class NotificationService {
             .build();
 
     notificationRepository.save(notification);
+
+    // Redis 저장 (write-through cache)
+    String cacheKey = NOTIFICATION_CACHE_KEY_PREFIX + notification.getSender().getId();
+    List<Notification> notifications =
+        notificationRepository.findByReceiverIdAndDeletedAtIsNullOrderByCreatedAtDesc(
+            notification.getSender().getId());
+
+    List<NotificationDto> dtoList = toDtoList(notifications);
+    redisTemplate
+        .opsForValue()
+        .set(cacheKey, dtoList, NOTIFICATION_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+
     if (status.equalsIgnoreCase(InviteStatus.ACCEPTED.toString())) {
       boolean alreadyMember =
           projectMemberRepository.existsByProjectIdAndUserIdAndDeletedAtIsNull(
@@ -244,7 +257,7 @@ public class NotificationService {
 
     String message =
         renderInvitationTemplate(notification.getTemplate().getTemplate(), notification);
-    return new NotificationDto(
+    return new NotificationResponse(
         notificationId,
         notification.getSender().getNickname(),
         message,
@@ -281,5 +294,23 @@ public class NotificationService {
 
     log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
     notificationProducer.sendNotification(message);
+  }
+
+  public NotificationDto toDto(Notification notification) {
+    return NotificationDto.builder()
+        .id(notification.getId())
+        .senderId(notification.getSender() != null ? notification.getSender().getId() : null)
+        .receiverId(notification.getReceiver() != null ? notification.getReceiver().getId() : null)
+        .projectId(notification.getProject() != null ? notification.getProject().getId() : null)
+        .templateId(notification.getTemplate() != null ? notification.getTemplate().getId() : null)
+        .payload(notification.getPayload())
+        .inviteStatus(notification.getInviteStatus())
+        .createdAt(notification.getCreatedAt())
+        .updatedAt(notification.getUpdatedAt())
+        .build();
+  }
+
+  public List<NotificationDto> toDtoList(List<Notification> notifications) {
+    return notifications.stream().map(this::toDto).collect(Collectors.toList());
   }
 }
