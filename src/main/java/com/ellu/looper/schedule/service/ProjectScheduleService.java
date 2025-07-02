@@ -6,9 +6,10 @@ import com.ellu.looper.exception.ValidationException;
 import com.ellu.looper.fastapi.service.FastApiService;
 import com.ellu.looper.kafka.NotificationProducer;
 import com.ellu.looper.kafka.dto.NotificationMessage;
+import com.ellu.looper.kafka.dto.ScheduleEventMessage;
+import com.ellu.looper.kafka.dto.ScheduleEventMessage.ScheduleDto;
 import com.ellu.looper.notification.entity.Notification;
 import com.ellu.looper.notification.entity.NotificationTemplate;
-import com.ellu.looper.notification.repository.NotificationRepository;
 import com.ellu.looper.notification.repository.NotificationTemplateRepository;
 import com.ellu.looper.notification.service.NotificationService;
 import com.ellu.looper.project.entity.Project;
@@ -17,7 +18,6 @@ import com.ellu.looper.project.repository.ProjectMemberRepository;
 import com.ellu.looper.project.repository.ProjectRepository;
 import com.ellu.looper.schedule.dto.AssigneeDto;
 import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest;
-import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest.ProjectScheduleDto;
 import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
 import com.ellu.looper.schedule.dto.StompProjectScheduleUpdateRequest;
 import com.ellu.looper.schedule.entity.Assignee;
@@ -59,7 +59,6 @@ public class ProjectScheduleService {
   private final UserRepository userRepository;
   private final ProjectMemberRepository projectMemberRepository;
   private final AssigneeRepository assigneeRepository;
-  private final NotificationRepository notificationRepository;
   private final NotificationTemplateRepository notificationTemplateRepository;
   private final ProfileImageService profileImageService;
   private final NotificationService notificationService;
@@ -156,10 +155,11 @@ public class ProjectScheduleService {
           schedule);
     }
 
-    List<ProjectScheduleDto> projectSchedules = request.getProject_schedules();
-    if (request.getAi_recommended() && projectSchedules != null && !projectSchedules.isEmpty()) {
-      fastApiService.sendSelectionResult(projectId, request.getProject_schedules());
-    }
+    //    List<ProjectScheduleDto> projectSchedules = request.getProject_schedules();
+    //    if (request.getAi_recommended() && projectSchedules != null &&
+    // !projectSchedules.isEmpty()) {
+    //      fastApiService.sendSelectionResult(projectId, request.getProject_schedules());
+    //    }
     return responses;
   }
 
@@ -264,19 +264,6 @@ public class ProjectScheduleService {
     return responses;
   }
 
-  private ProjectScheduleResponse toResponse(ProjectSchedule s, boolean isProject) {
-    return ProjectScheduleResponse.builder()
-        .id(s.getId())
-        .title(s.getTitle())
-        .description(s.getDescription())
-        .start_time(s.getStartTime())
-        .end_time(s.getEndTime())
-        .is_project_schedule(isProject)
-        .color(s.getProject().getColor())
-        .assignees(convertToAssigneeDtos(s.getAssignees()))
-        .build();
-  }
-
   @Transactional(readOnly = true)
   public Map<String, List<ProjectScheduleResponse>> getWeeklySchedules(
       Long projectId, LocalDate startDate) {
@@ -334,16 +321,6 @@ public class ProjectScheduleService {
     return collect;
   }
 
-  public List<AssigneeDto> convertToAssigneeDtos(List<Assignee> assignees) {
-    return assignees.stream()
-        .map(
-            a ->
-                new AssigneeDto(
-                    a.getUser().getNickname(),
-                    profileImageService.getProfileImageUrl(a.getUser().getFileName())))
-        .toList();
-  }
-
   private void sendScheduleNotification(
       NotificationType type,
       List<User> receivers,
@@ -367,29 +344,22 @@ public class ProjectScheduleService {
 
     for (User receiver : receivers) {
 
-      Notification notification =
-          Notification.builder()
-              .sender(creator)
-              .receiver(receiver)
-              .project(project)
-              .template(inviteTemplate)
-              .payload(payload)
-              .createdAt(LocalDateTime.now())
-              .build();
-      notificationRepository.save(notification);
+      Notification notification = Notification.builder().payload(payload).build();
 
       // Kafka를 통해 알림 메시지 전송
       NotificationMessage message =
           new NotificationMessage(
               type.toString(),
-              notification.getId(),
+              null,
               project.getId(),
               creator.getId(),
               List.of(receiver.getId()),
               notificationService.renderScheduleTemplate(
-                  inviteTemplate.getTemplate(), notification));
+                  inviteTemplate.getTemplate(), notification),
+              inviteTemplate.getId(),
+              payload,
+              null);
 
-      log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
       notificationProducer.sendNotification(message);
     }
   }
@@ -437,6 +407,29 @@ public class ProjectScheduleService {
     scheduleRepository.save(personalSchedule);
   }
 
+  public List<AssigneeDto> convertToAssigneeDtos(List<Assignee> assignees) {
+    return assignees.stream()
+        .map(
+            a ->
+                new AssigneeDto(
+                    a.getUser().getNickname(),
+                    profileImageService.getProfileImageUrl(a.getUser().getFileName())))
+        .toList();
+  }
+
+  private ProjectScheduleResponse toResponse(ProjectSchedule s, boolean isProject) {
+    return ProjectScheduleResponse.builder()
+        .id(s.getId())
+        .title(s.getTitle())
+        .description(s.getDescription())
+        .start_time(s.getStartTime())
+        .end_time(s.getEndTime())
+        .is_project_schedule(isProject)
+        .color(s.getProject().getColor())
+        .assignees(convertToAssigneeDtos(s.getAssignees()))
+        .build();
+  }
+
   public ProjectScheduleResponse toResponse(ProjectSchedule schedule) {
     return new ProjectScheduleResponse(
         schedule.getId(),
@@ -455,5 +448,17 @@ public class ProjectScheduleService {
                         assignee.getUser().getNickname(),
                         profileImageService.getProfileImageUrl(assignee.getUser().getFileName())))
             .toList());
+  }
+
+  public ScheduleDto toDto(ProjectScheduleResponse response) {
+    return ScheduleEventMessage.ScheduleDto.builder()
+        .id(response.id())
+        .title(response.title())
+        .startTime(response.start_time())
+        .endTime(response.end_time())
+        .position(response.position())
+        .description(response.description())
+        .assignees(response.assignees())
+        .build();
   }
 }

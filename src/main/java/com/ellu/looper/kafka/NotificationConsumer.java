@@ -1,10 +1,20 @@
 package com.ellu.looper.kafka;
 
 import com.ellu.looper.kafka.dto.NotificationMessage;
+import com.ellu.looper.notification.entity.Notification;
+import com.ellu.looper.notification.entity.NotificationTemplate;
+import com.ellu.looper.notification.repository.NotificationRepository;
+import com.ellu.looper.notification.repository.NotificationTemplateRepository;
+import com.ellu.looper.project.entity.Project;
+import com.ellu.looper.project.repository.ProjectRepository;
 import com.ellu.looper.sse.service.SseService;
+import com.ellu.looper.user.entity.User;
+import com.ellu.looper.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import jakarta.persistence.EntityNotFoundException;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Properties;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +38,11 @@ public class NotificationConsumer implements Runnable {
   private final SseService sseEmitterService;
   private KafkaConsumer<String, String> consumer;
   private volatile boolean running = true;
+
+  private final NotificationRepository notificationRepository;
+  private final UserRepository userRepository;
+  private final ProjectRepository projectRepository;
+  private final NotificationTemplateRepository notificationTemplateRepository;
 
   @Value("${spring.kafka.bootstrap-servers}")
   private String bootstrapServers;
@@ -114,8 +129,55 @@ public class NotificationConsumer implements Runnable {
 
   private void processNotification(NotificationMessage event) {
     for (Long userId : event.getReceiverId()) {
+      User sender =
+          userRepository
+              .findById(event.getSenderId())
+              .orElseThrow(
+                  () ->
+                      new IllegalArgumentException(
+                          "Notification sender with id " + event.getSenderId() + "not found"));
+
+      User receiver =
+          userRepository
+              .findById(event.getReceiverId().getFirst())
+              .orElseThrow(
+                  () ->
+                      new IllegalArgumentException(
+                          "Notification receiver with id "
+                              + event.getReceiverId().getFirst()
+                              + " not found"));
+
+      Project project =
+          projectRepository
+              .findById(event.getProjectId())
+              .orElseThrow(() -> new EntityNotFoundException("Project Not found"));
+
+      NotificationTemplate notificationTemplate =
+          notificationTemplateRepository
+              .findById(event.getTemplateId())
+              .orElseThrow(
+                  () ->
+                      new EntityNotFoundException(
+                          "Notification template is not stored in database."));
+
+      Notification notification =
+          Notification.builder()
+              .sender(sender)
+              .receiver(receiver)
+              .project(project)
+              .template(notificationTemplate)
+              .payload(event.getPayload())
+              .createdAt(LocalDateTime.now())
+              .build();
+
+      // DB 저장
+      Notification saved = notificationRepository.save(notification);
+
+      // Redis 저장
+
       // SSE 구독 중인 유저에게 전송
-      sseEmitterService.sendNotification(userId, event);
+      sseEmitterService.sendNotification(
+          userId, event.toBuilder().notificationId(saved.getId()).build());
     }
   }
 }

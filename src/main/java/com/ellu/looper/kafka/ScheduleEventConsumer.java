@@ -1,10 +1,16 @@
 package com.ellu.looper.kafka;
 
 import com.ellu.looper.kafka.dto.ScheduleEventMessage;
+import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
+import com.ellu.looper.schedule.entity.ProjectSchedule;
+import com.ellu.looper.schedule.repository.ProjectScheduleRepository;
+import com.ellu.looper.schedule.service.ProjectScheduleService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import jakarta.persistence.EntityNotFoundException;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -27,6 +33,9 @@ public class ScheduleEventConsumer implements Runnable {
   private final SimpMessagingTemplate messagingTemplate;
   private KafkaConsumer<String, String> consumer;
   private volatile boolean running = true;
+
+  private final ProjectScheduleService projectScheduleService;
+  private final ProjectScheduleRepository projectScheduleRepository;
 
   @Value("${spring.kafka.bootstrap-servers}")
   private String bootstrapServers;
@@ -105,6 +114,55 @@ public class ScheduleEventConsumer implements Runnable {
   }
 
   private void processScheduleEvent(ScheduleEventMessage event) {
-    messagingTemplate.convertAndSend("/topic/" + event.getProjectId(), event);
+    switch (event.getType()) {
+      case "SCHEDULE_CREATED":
+        List<ProjectScheduleResponse> createdList =
+            projectScheduleService.createSchedules(
+                Long.valueOf(event.getProjectId()), event.getUserId(), event.getCreateRequest());
+        for (ProjectScheduleResponse response : createdList) {
+          event = event.toBuilder().schedule(projectScheduleService.toDto(response)).build();
+          messagingTemplate.convertAndSend("/topic/" + event.getProjectId(), event);
+        }
+        break;
+
+      case "SCHEDULE_UPDATED":
+        ProjectScheduleResponse projectScheduleResponse =
+            projectScheduleService.updateSchedule(
+                event.getScheduleId(), event.getUserId(), event.getUpdateRequest());
+        event =
+            event.toBuilder().schedule(projectScheduleService.toDto(projectScheduleResponse)).build();
+
+        // WebSocket 브로드캐스트
+        messagingTemplate.convertAndSend("/topic/" + event.getProjectId(), event);
+
+        break;
+
+      case "SCHEDULE_TAKEN":
+        projectScheduleService.takeSchedule(
+            Long.valueOf(event.getProjectId()), event.getScheduleId(), event.getUserId());
+        // 반영된 스케줄 정보 조회
+        ProjectSchedule updatedSchedule =
+            projectScheduleRepository
+                .findWithDetailsById(event.getScheduleId())
+                .orElseThrow(() -> new EntityNotFoundException("Project schedule not found"));
+
+        event = event.toBuilder()
+                .schedule(
+                    projectScheduleService.toDto(projectScheduleService.toResponse(updatedSchedule)))
+                .build();
+
+        // WebSocket 브로드캐스트
+        messagingTemplate.convertAndSend("/topic/" + event.getProjectId(), event);
+
+        break;
+
+      case "SCHEDULE_DELETED":
+        projectScheduleService.deleteSchedule(event.getScheduleId(), event.getUserId());
+
+        // WebSocket 브로드캐스트
+        messagingTemplate.convertAndSend("/topic/" + event.getProjectId(), event);
+
+        break;
+    }
   }
 }

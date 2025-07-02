@@ -15,7 +15,6 @@ import com.ellu.looper.project.entity.Project;
 import com.ellu.looper.project.entity.ProjectMember;
 import com.ellu.looper.project.repository.ProjectMemberRepository;
 import com.ellu.looper.user.entity.User;
-import com.ellu.looper.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +37,6 @@ public class NotificationService {
   private final ProjectMemberRepository projectMemberRepository;
   private final NotificationTemplateRepository notificationTemplateRepository;
   private final NotificationProducer notificationProducer;
-  private final UserRepository userRepository;
   private final RedisTemplate<String, Object> redisTemplate;
   private static final long NOTIFICATION_CACHE_TTL_MINUTES = 5L;
   private static final String NOTIFICATION_CACHE_KEY_PREFIX = "notifications:user:";
@@ -138,12 +136,6 @@ public class NotificationService {
   @Transactional
   public void sendProjectNotification(
       NotificationType type, List<ProjectMember> toRemove, Long creatorId, Project project) {
-    User creator =
-        userRepository
-            .findById(creatorId)
-            .orElseThrow(() -> new IllegalArgumentException("Project creator not found"));
-
-    // Notification 생성
     NotificationTemplate inviteTemplate =
         notificationTemplateRepository
             .findByType(type)
@@ -153,26 +145,7 @@ public class NotificationService {
     payload.put("project", project.getTitle());
 
     for (ProjectMember member : toRemove) {
-      User receiver =
-          userRepository
-              .findById(member.getUser().getId())
-              .orElseThrow(
-                  () ->
-                      new IllegalArgumentException(
-                          "Project notification receiver with id "
-                              + member.getUser().getId()
-                              + " not found"));
-
-      Notification notification =
-          Notification.builder()
-              .sender(creator)
-              .receiver(receiver)
-              .project(project)
-              .template(inviteTemplate)
-              .payload(payload)
-              .createdAt(LocalDateTime.now())
-              .build();
-      notificationRepository.save(notification);
+      Notification notification = Notification.builder().payload(payload).build();
 
       // Kafka를 통해 알림 메시지 전송
       NotificationMessage message =
@@ -180,18 +153,19 @@ public class NotificationService {
               type.toString(),
               notification.getId(),
               project.getId(),
-              creator.getId(),
+              creatorId,
               List.of(member.getUser().getId()),
-              renderProjectTemplate(inviteTemplate.getTemplate(), notification));
+              renderProjectTemplate(inviteTemplate.getTemplate(), notification),
+              inviteTemplate.getId(),
+              payload,
+              null);
 
-      log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
       notificationProducer.sendNotification(message);
     }
   }
 
   public void sendInvitationNotification(
       List<User> addedUsers, User creator, Project project, List<AddedMember> addedMemberRequests) {
-    // Notification 생성
     NotificationTemplate inviteTemplate =
         notificationTemplateRepository
             .findByType(NotificationType.PROJECT_INVITED)
@@ -205,29 +179,21 @@ public class NotificationService {
       payload.put("creator", creator.getNickname());
       payload.put("project", project.getTitle());
       payload.put("position", nicknameToPosition.get(user.getNickname()));
-      Notification notification =
-          Notification.builder()
-              .sender(creator)
-              .receiver(user)
-              .project(project)
-              .template(inviteTemplate)
-              .payload(payload)
-              .inviteStatus(String.valueOf(InviteStatus.PENDING))
-              .createdAt(LocalDateTime.now())
-              .build();
-      notificationRepository.save(notification);
+      Notification notification = Notification.builder().payload(payload).build();
 
       // Kafka를 통해 알림 메시지 전송
       NotificationMessage message =
           new NotificationMessage(
               NotificationType.PROJECT_INVITED.toString(),
-              notification.getId(),
+              null,
               project.getId(),
               creator.getId(),
               List.of(user.getId()),
-              renderInvitationTemplate(inviteTemplate.getTemplate(), notification));
+              renderInvitationTemplate(inviteTemplate.getTemplate(), notification),
+              inviteTemplate.getId(),
+              payload,
+              InviteStatus.PENDING.name());
 
-      log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
       notificationProducer.sendNotification(message);
     }
   }
@@ -298,16 +264,7 @@ public class NotificationService {
     payload.put("receiver", sender.getNickname()); // 초대 알림을 받은 사람, 초대 응답을 보내는 사람
     payload.put("status", status);
     payload.put("project", project.getTitle());
-    Notification notification =
-        Notification.builder()
-            .sender(sender)
-            .receiver(projectCreator)
-            .project(project)
-            .template(inviteResponseTemplate)
-            .payload(payload)
-            .createdAt(LocalDateTime.now())
-            .build();
-    notificationRepository.save(notification);
+    Notification notification = Notification.builder().payload(payload).build();
 
     // Kafka를 통해 알림 메시지 전송
     NotificationMessage message =
@@ -317,7 +274,10 @@ public class NotificationService {
             project.getId(),
             sender.getId(),
             List.of(projectCreator.getId()),
-            renderInvitationResponseTemplate(inviteResponseTemplate.getTemplate(), notification));
+            renderInvitationResponseTemplate(inviteResponseTemplate.getTemplate(), notification),
+            inviteResponseTemplate.getId(),
+            payload,
+            null);
 
     log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
     notificationProducer.sendNotification(message);
