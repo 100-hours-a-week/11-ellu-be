@@ -7,7 +7,7 @@ import lombok.*;
 @Entity
 @Table(
     name = "notification_template",
-    indexes = {@Index(name = "IDX_NOTIFICATION_TEMPLATE_TEMPLATE", columnList = "template")})
+    indexes = {@Index(name = "IDX_NOTIFICATION_TEMPLATE_TYPE", columnList = "type")})
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor

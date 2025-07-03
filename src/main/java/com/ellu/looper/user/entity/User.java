@@ -1,6 +1,6 @@
 package com.ellu.looper.user.entity;
 
-import com.ellu.looper.util.HangulUtil;
+import com.ellu.looper.commons.util.HangulUtil;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
@@ -13,7 +13,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Getter
 @Builder(toBuilder = true)
-@Table(name = "MEMBER")
+@Table(name = "MEMBER",
+indexes = {
+    @Index(name = "idx_member_nickname", columnList = "nickname")
+})
 public class User {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

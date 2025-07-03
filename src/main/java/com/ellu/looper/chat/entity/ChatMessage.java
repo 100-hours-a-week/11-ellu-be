@@ -10,6 +10,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -24,7 +25,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Getter
 @Builder(toBuilder = true)
-@Table(name = "chat_messages")
+@Table(
+    name = "chat_messages",
+    indexes = {
+      @Index(
+          name = "idx_message_conversation_id_createdat",
+          columnList = "conversation_id, created_at")
+    })
 public class ChatMessage {
 
   @Id
@@ -45,7 +52,6 @@ public class ChatMessage {
   private ChatRole messageType;
 
   @Column(columnDefinition = "text", name = "content")
-  //  @Lob
   private String content;
 
   @Column(columnDefinition = "jsonb", name = "metadata")

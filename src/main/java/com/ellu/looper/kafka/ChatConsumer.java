@@ -35,7 +35,7 @@ public class ChatConsumer {
           .streamChatResponse(message)
           .doOnNext(
               fullJson -> {
-                log.debug("FastAPI Response: {}", fullJson);
+                log.info("FastAPI Response: {}", fullJson);
                 chatProducer.sendChatbotResponse(userId, fullJson);
               })
           .doOnComplete(

@@ -19,17 +19,17 @@ public class SseService {
   public SseEmitter subscribe(Long userId) {
     SseEmitter emitter = new SseEmitter(60L * 1000 * 60); // 60분 타임아웃
     emitters.put(userId, emitter);
-    log.info("USER WITH ID {} IS CONNECTED TO SSE", userId);
+    log.info("UserId {} is connected to sse. ", userId);
 
     emitter.onCompletion(
         () -> {
           emitters.remove(userId);
-          log.info("USER WITH ID {} IS DISCONNECTED TO SSE", userId);
+          log.info("UserId {} is disconnected to sse.", userId);
         });
     emitter.onTimeout(
         () -> {
           emitters.remove(userId);
-          log.info("USER WITH ID {} IS CONNECTION TIMEOUT", userId);
+          log.info("UserId {}'s connection timed out.", userId);
         });
 
     return emitter;

@@ -1,4 +1,4 @@
-package com.ellu.looper.util;
+package com.ellu.looper.commons.util;
 
 public class HangulUtil {
 

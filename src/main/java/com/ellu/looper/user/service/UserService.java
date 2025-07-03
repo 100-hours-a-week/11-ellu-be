@@ -1,11 +1,11 @@
 package com.ellu.looper.user.service;
 
+import com.ellu.looper.commons.util.HangulUtil;
 import com.ellu.looper.exception.NicknameAlreadyExistsException;
 import com.ellu.looper.user.dto.UserProjection;
 import com.ellu.looper.user.dto.UserResponse;
 import com.ellu.looper.user.entity.User;
 import com.ellu.looper.user.repository.UserRepository;
-import com.ellu.looper.util.HangulUtil;
 import jakarta.transaction.Transactional;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -53,10 +53,10 @@ public class UserService {
 
     if (HangulUtil.containsOnlyChoseong(query)) {
       // 순수 초성 검색: ㄱㄴㄷ 형태
-      userProjections = userRepository.findTop10ByNicknameChoseongStartingWith(query);
+      userProjections = userRepository.findTop10ByNicknameChoseongStartingWithOrderByNicknameAsc(query);
     } else {
       // 일반 검색 (부분 일치 포함)
-      userProjections = userRepository.findTop10ByNicknameOrChoseongContaining(query);
+      userProjections = userRepository.findTop10ByNicknameStartingWithOrNicknameChoseongStartingWithOrderByNicknameAsc(query, query);
     }
 
     return userProjections.stream()
