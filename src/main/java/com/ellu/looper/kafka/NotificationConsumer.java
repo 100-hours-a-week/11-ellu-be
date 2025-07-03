@@ -185,7 +185,7 @@ public class NotificationConsumer implements Runnable {
       // DB 저장
       Notification saved = notificationRepository.save(notification);
 
-      // Redis 저장 (write-through cache)
+      // Redis에 알림 저장 (write-through cache)
       String cacheKey = NOTIFICATION_CACHE_KEY_PREFIX + userId;
       List<Notification> notifications =
           notificationRepository.findByReceiverIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId);

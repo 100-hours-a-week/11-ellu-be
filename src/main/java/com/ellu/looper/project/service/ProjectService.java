@@ -170,57 +170,7 @@ public class ProjectService {
 
     log.info("Cache miss for project list: {}", userId);
 
-    // 사용자가 user인 ProjectMember + Project + User를 fetch join으로 한 번에 로딩
-    List<ProjectMember> userProjectMembers =
-        projectMemberRepository.findWithProjectAndUserByUserId(userId);
-
-    // 중복 제거된 프로젝트 리스트 생성
-    List<Project> distinctProjects =
-        userProjectMembers.stream()
-            .map(ProjectMember::getProject)
-            .filter(project -> project.getDeletedAt() == null)
-            .distinct()
-            .collect(Collectors.toList());
-
-    // 프로젝트 ID 리스트 추출
-    List<Long> projectIds =
-        distinctProjects.stream().map(Project::getId).collect(Collectors.toList());
-
-    // 전체 프로젝트의 모든 멤버를 한 번에 fetch join으로 로딩
-    List<ProjectMember> allProjectMembers =
-        projectMemberRepository.findByProjectIdsWithUser(projectIds);
-
-    // projectId로 그룹화
-    Map<Long, List<ProjectMember>> projectMemberMap =
-        allProjectMembers.stream().collect(Collectors.groupingBy(pm -> pm.getProject().getId()));
-
-    List<ProjectResponse> responses =
-        distinctProjects.stream()
-            .map(
-                project -> {
-                  List<ProjectMember> members =
-                      projectMemberMap.getOrDefault(project.getId(), List.of());
-
-                  List<MemberDto> memberDtos =
-                      members.stream()
-                          .map(
-                              pm ->
-                                  new MemberDto(
-                                      pm.getUser().getId(),
-                                      pm.getUser().getNickname(),
-                                      profileImageService.getProfileImageUrl(
-                                          pm.getUser().getFileName()),
-                                      pm.getPosition()))
-                          .collect(Collectors.toList());
-
-                  return new ProjectResponse(
-                      project.getId(),
-                      project.getTitle(),
-                      project.getColor() != null ? project.getColor().name() : "E3EEFC",
-                      memberDtos,
-                      project.getWiki());
-                })
-            .collect(Collectors.toList());
+    List<ProjectResponse> responses = getProjectListResponses(userId);
 
     log.info("Found {} projects for user: {}", responses.size(), userId);
     redisTemplate.opsForValue().set(cacheKey, responses, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
@@ -236,12 +186,14 @@ public class ProjectService {
       log.info("Cache hit for project detail: {}", projectId);
       return cached;
     }
+
     log.info("Cache miss for project detail: {}. Loading from DB.", projectId);
     Project project =
         projectRepository
             .findByIdAndDeletedAtIsNull(projectId)
             .orElseThrow(() -> new IllegalArgumentException("Project not found"));
 
+    // 프로젝트 생성자가 아닌 경우
     if (!project.getMember().getId().equals(userId)) {
       CreatorExcludedProjectResponse response =
           new CreatorExcludedProjectResponse(
@@ -250,31 +202,9 @@ public class ProjectService {
       return response;
     }
 
-    List<ProjectMember> members = projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
-    ProjectMember creator =
-        members.stream()
-            .filter(pm -> pm.getRole() == Role.ADMIN && pm.getUser().getId().equals(userId))
-            .findFirst()
-            .orElseThrow(() -> new IllegalStateException("프로젝트 생성자가 존재하지 않습니다."));
-    List<MemberDto> memberDtos =
-        members.stream()
-            .filter(pm -> !pm.getUser().getId().equals(userId))
-            .map(
-                pm ->
-                    new MemberDto(
-                        pm.getUser().getId(),
-                        pm.getUser().getNickname(),
-                        profileImageService.getProfileImageUrl(pm.getUser().getFileName()),
-                        pm.getPosition()))
-            .collect(Collectors.toList());
-    CreatorExcludedProjectResponse response =
-        new CreatorExcludedProjectResponse(
-            project.getId(),
-            project.getTitle(),
-            project.getColor() != null ? project.getColor().name() : "E3EEFC",
-            creator.getPosition(),
-            memberDtos,
-            project.getWiki());
+    // 프로젝트 생성자인 경우
+    CreatorExcludedProjectResponse response = getCreatorExcludedProjectResponse(userId, project);
+    // redis에 프로젝트 정보 캐싱
     redisTemplate.opsForValue().set(cacheKey, response, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
     return response;
   }
@@ -325,6 +255,8 @@ public class ProjectService {
     // 캐시 무효화
     redisTemplate.delete(PROJECT_DETAIL_CACHE_KEY_PREFIX + projectId);
     redisTemplate.delete(PROJECT_LIST_CACHE_KEY_PREFIX + userId);
+    // 프로젝트 멤버들의 캐시도 무효화
+
   }
 
   @Transactional
@@ -463,5 +395,91 @@ public class ProjectService {
     // 캐시 무효화
     redisTemplate.delete(PROJECT_DETAIL_CACHE_KEY_PREFIX + projectId);
     redisTemplate.delete(PROJECT_LIST_CACHE_KEY_PREFIX + userId);
+    // 프로젝트 멤버들의 캐시도 무효화
+  }
+
+  public CreatorExcludedProjectResponse getCreatorExcludedProjectResponse(
+      Long userId, Project project) {
+    List<ProjectMember> members = projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
+    ProjectMember creator =
+        members.stream()
+            .filter(pm -> pm.getRole() == Role.ADMIN && pm.getUser().getId().equals(userId))
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("프로젝트 생성자가 존재하지 않습니다."));
+    List<MemberDto> memberDtos =
+        members.stream()
+            .filter(pm -> !pm.getUser().getId().equals(userId))
+            .map(
+                pm ->
+                    new MemberDto(
+                        pm.getUser().getId(),
+                        pm.getUser().getNickname(),
+                        profileImageService.getProfileImageUrl(pm.getUser().getFileName()),
+                        pm.getPosition()))
+            .collect(Collectors.toList());
+    CreatorExcludedProjectResponse response =
+        new CreatorExcludedProjectResponse(
+            project.getId(),
+            project.getTitle(),
+            project.getColor() != null ? project.getColor().name() : "E3EEFC",
+            creator.getPosition(),
+            memberDtos,
+            project.getWiki());
+    return response;
+  }
+
+  public List<ProjectResponse> getProjectListResponses(Long userId) {
+    // 사용자가 user인 ProjectMember + Project + User를 fetch join으로 한 번에 로딩
+    List<ProjectMember> userProjectMembers =
+        projectMemberRepository.findWithProjectAndUserByUserId(userId);
+
+    // 중복 제거된 프로젝트 리스트 생성
+    List<Project> distinctProjects =
+        userProjectMembers.stream()
+            .map(ProjectMember::getProject)
+            .filter(project -> project.getDeletedAt() == null)
+            .distinct()
+            .collect(Collectors.toList());
+
+    // 프로젝트 ID 리스트 추출
+    List<Long> projectIds =
+        distinctProjects.stream().map(Project::getId).collect(Collectors.toList());
+
+    // 전체 프로젝트의 모든 멤버를 한 번에 fetch join으로 로딩
+    List<ProjectMember> allProjectMembers =
+        projectMemberRepository.findByProjectIdsWithUser(projectIds);
+
+    // projectId로 그룹화
+    Map<Long, List<ProjectMember>> projectMemberMap =
+        allProjectMembers.stream().collect(Collectors.groupingBy(pm -> pm.getProject().getId()));
+
+    List<ProjectResponse> responses =
+        distinctProjects.stream()
+            .map(
+                project -> {
+                  List<ProjectMember> members =
+                      projectMemberMap.getOrDefault(project.getId(), List.of());
+
+                  List<MemberDto> memberDtos =
+                      members.stream()
+                          .map(
+                              pm ->
+                                  new MemberDto(
+                                      pm.getUser().getId(),
+                                      pm.getUser().getNickname(),
+                                      profileImageService.getProfileImageUrl(
+                                          pm.getUser().getFileName()),
+                                      pm.getPosition()))
+                          .collect(Collectors.toList());
+
+                  return new ProjectResponse(
+                      project.getId(),
+                      project.getTitle(),
+                      project.getColor() != null ? project.getColor().name() : "E3EEFC",
+                      memberDtos,
+                      project.getWiki());
+                })
+            .collect(Collectors.toList());
+    return responses;
   }
 }

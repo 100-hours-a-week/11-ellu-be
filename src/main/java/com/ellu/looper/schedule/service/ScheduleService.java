@@ -130,7 +130,6 @@ public class ScheduleService {
               .plan(plan)
               .build();
       schedulesToSave.add(schedule);
-      ;
     }
 
     List<Schedule> savedSchedules = scheduleRepository.saveAll(schedulesToSave);
