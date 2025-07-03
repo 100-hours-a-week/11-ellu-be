@@ -1,3 +1,21 @@
+# [1.3.0](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.2.0...v1.3.0) (2025-07-03)
+
+
+### Bug Fixes
+
+* otel 콜렉터 의존성 버전 수정 ([7f25c52](https://github.com/100-hours-a-week/11-ellu-be/commit/7f25c5206bd22b07703a169a1dfb066b68aeba98))
+* otel 콜렉터 의존성 버전 수정 ([c5eeb8a](https://github.com/100-hours-a-week/11-ellu-be/commit/c5eeb8a4f14ef23dfa9e2a809f0400e8719a5972))
+* 누락된 파일 추가 ([87d6813](https://github.com/100-hours-a-week/11-ellu-be/commit/87d6813a52fa0eca04544738dc551004cb704581))
+* 대화 기록 조회 쿼리 수정 ([b72a72c](https://github.com/100-hours-a-week/11-ellu-be/commit/b72a72ce8795dd3841c88a8e7db6b6d766126164))
+* 로그 수정 및 예외 처리 추가 ([e297ce7](https://github.com/100-hours-a-week/11-ellu-be/commit/e297ce72c2efd16287b55c61b5e5353b557d3f8c))
+* 로그 수정 및 예외 처리 추가 ([fc3837a](https://github.com/100-hours-a-week/11-ellu-be/commit/fc3837a24e8a430eef1f61973193b0a7c525efd5))
+
+
+### Features
+
+* Otel jdbc 콜렌터 추가 ([c8bdc88](https://github.com/100-hours-a-week/11-ellu-be/commit/c8bdc8877c18da1e46410d4ddff1bb1c91d57553))
+* Otel jdbc 콜렌터 추가 ([a238545](https://github.com/100-hours-a-week/11-ellu-be/commit/a2385457d8a11b5d389dc97193ff36c2c57892b6))
+
 # [1.2.0](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.1.0...v1.2.0) (2025-06-20)
 
 
