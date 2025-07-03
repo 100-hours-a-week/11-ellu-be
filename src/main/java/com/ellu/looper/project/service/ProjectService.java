@@ -366,7 +366,7 @@ public class ProjectService {
                 pm ->
                     !pm.getUser().getId().equals(userId)
                         && updatedUsers.stream()
-                            .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
+                        .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
             .collect(Collectors.toList());
     toRemove.forEach(pm -> pm.setDeletedAt(LocalDateTime.now()));
     projectMemberRepository.saveAll(toRemove);

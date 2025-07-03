@@ -40,3 +40,4 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
   // 프로젝트 id와 포지션(BE, FE, CLOUD, etc)으로 해당되는 프로젝트 멤버들 조회 (soft-delete 제외)
   List<ProjectMember> findByProjectIdAndPositionAndDeletedAtIsNull(Long projectId, String position);
 }
+
