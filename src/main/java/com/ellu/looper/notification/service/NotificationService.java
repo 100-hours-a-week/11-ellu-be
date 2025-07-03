@@ -42,10 +42,9 @@ public class NotificationService {
   private final ProjectMemberRepository projectMemberRepository;
   private final NotificationTemplateRepository notificationTemplateRepository;
   private final NotificationProducer notificationProducer;
-  private final ProjectService projectService;
   private final RedisTemplate<String, Object> redisTemplate;
 
-  @Value("${cache.notification.user-ttl-minutes}")
+  @Value("${cache.notification.ttl-minutes}")
   private long NOTIFICATION_CACHE_TTL_MINUTES;
 
   @Value("${cache.project.ttl-hours}")
@@ -261,39 +260,40 @@ public class NotificationService {
           projectMemberRepository.existsByProjectIdAndUserIdAndDeletedAtIsNull(
               project.getId(), userId);
       if (!alreadyMember) {
-        ProjectMember member =
-            ProjectMember.builder()
-                .project(project)
-                .user(notification.getReceiver())
-                .role(Role.PARTICIPANT)
-                .position(notification.getPayload().get("position").toString())
-                .build();
-        ProjectMember savedMember = projectMemberRepository.save(member);
+//        ProjectMember member =
+//            ProjectMember.builder()
+//                .project(project)
+//                .user(notification.getReceiver())
+//                .role(Role.PARTICIPANT)
+//                .position(notification.getPayload().get("position").toString())
+//                .build();
+//        ProjectMember savedMember = projectMemberRepository.save(member);
+//
+//        // Redis에 프로젝트 멤버들의 프로젝트 리스트 업데이트
+//        List<ProjectResponse> projectListDto =
+//            projectService.getProjectListResponses(notification.getReceiver().getId());
+//        String projectMemberCacheKey =
+//            PROJECT_LIST_CACHE_KEY_PREFIX + savedMember.getUser().getId();
+//        redisTemplate
+//            .opsForValue()
+//            .set(projectMemberCacheKey, projectListDto, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
+//
+//        // Redis에 해당 프로젝트 정보 업데이트
+//        CreatorExcludedProjectResponse projectDto =
+//            projectService.getCreatorExcludedProjectResponse(project.getMember().getId(), project);
+//        String projectCacheKey = PROJECT_DETAIL_CACHE_KEY_PREFIX + project.getId();
+//        redisTemplate
+//            .opsForValue()
+//            .set(projectCacheKey, projectDto, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
 
-        // Redis에 프로젝트 멤버들의 프로젝트 리스트 업데이트
-        List<ProjectResponse> projectListDto =
-            projectService.getProjectListResponses(notification.getReceiver().getId());
-        String projectMemberCacheKey =
-            PROJECT_LIST_CACHE_KEY_PREFIX + savedMember.getUser().getId();
-        redisTemplate
-            .opsForValue()
-            .set(projectMemberCacheKey, projectListDto, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
-
-        // Redis에 해당 프로젝트 정보 업데이트
-        CreatorExcludedProjectResponse projectDto =
-            projectService.getCreatorExcludedProjectResponse(project.getMember().getId(), project);
-        String projectCacheKey = PROJECT_DETAIL_CACHE_KEY_PREFIX + project.getId();
-        redisTemplate
-            .opsForValue()
-            .set(projectCacheKey, projectDto, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
+/// /////////////////
         // 초대 처리 알림 전송
-        sendInvitationResponseNotification(notification.getReceiver(), project, "수락");
+        sendInvitationResponseNotification(notification, project, "수락");
       }
       // 초대 거부
     } else if (status.equalsIgnoreCase(InviteStatus.REJECTED.name())) {
-      sendInvitationResponseNotification(notification.getReceiver(), project, "거부");
+      sendInvitationResponseNotification(notification, project, "거부");
     }
-
     String message =
         renderInvitationTemplate(notification.getTemplate().getTemplate(), notification);
     return new NotificationResponse(
@@ -304,8 +304,9 @@ public class NotificationService {
         notification.getCreatedAt());
   }
 
-  private void sendInvitationResponseNotification(User sender, Project project, String status) {
+  private void sendInvitationResponseNotification(Notification notification, Project project, String status) {
     // Notification 생성
+    User sender = notification.getReceiver();
     NotificationTemplate inviteResponseTemplate =
         notificationTemplateRepository
             .findByType(NotificationType.INVITATION_PROCESSED)
@@ -316,7 +317,7 @@ public class NotificationService {
     payload.put("receiver", sender.getNickname()); // 초대 알림을 받은 사람, 초대 응답을 보내는 사람
     payload.put("status", status);
     payload.put("project", project.getTitle());
-    Notification notification = Notification.builder().payload(payload).build();
+    notification = notification.toBuilder().payload(payload).build();
 
     // Kafka를 통해 알림 메시지 전송
     NotificationMessage message =
@@ -331,7 +332,6 @@ public class NotificationService {
             payload,
             status);
 
-    log.info("TRYING TO SEND KAFKA MESSAGE: {}", message.getMessage());
     notificationProducer.sendNotification(message);
   }
 

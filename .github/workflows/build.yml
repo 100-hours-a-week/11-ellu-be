@@ -55,7 +55,7 @@ jobs:
       - name: Build container image
         run: |
           chmod +x gradlew 
-          ./gradlew bootBuildImage --imageName ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+          ./gradlew clean bootBuildImage --imageName ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
 
       - name: Anchore Container Scan
         uses: anchore/scan-action@v6.2.0

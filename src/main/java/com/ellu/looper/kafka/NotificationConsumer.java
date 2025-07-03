@@ -9,6 +9,7 @@ import com.ellu.looper.notification.repository.NotificationTemplateRepository;
 import com.ellu.looper.notification.service.NotificationService;
 import com.ellu.looper.project.entity.Project;
 import com.ellu.looper.project.repository.ProjectRepository;
+import com.ellu.looper.project.service.ProjectService;
 import com.ellu.looper.sse.service.SseService;
 import com.ellu.looper.user.entity.User;
 import com.ellu.looper.user.repository.UserRepository;
@@ -48,6 +49,7 @@ public class NotificationConsumer implements Runnable {
   private final NotificationService notificationService;
   private final UserRepository userRepository;
   private final ProjectRepository projectRepository;
+  private final ProjectService projectService;
   private final NotificationTemplateRepository notificationTemplateRepository;
   private final RedisTemplate<String, Object> redisTemplate;
 
@@ -57,7 +59,7 @@ public class NotificationConsumer implements Runnable {
   @Value("${kafka.topics.notification}")
   public String NOTIFICATION_TOPIC;
 
-  @Value("${cache.notification.user-ttl-minutes}")
+  @Value("${cache.notification.ttl-minutes}")
   private long NOTIFICATION_CACHE_TTL_MINUTES;
 
   @Value("${cache.notification.user-key-prefix}")
