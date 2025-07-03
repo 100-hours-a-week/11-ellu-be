@@ -153,45 +153,52 @@ public class ProjectService {
         projectMemberRepository.findWithProjectAndUserByUserId(userId);
 
     // 중복 제거된 프로젝트 리스트 생성
-    List<Project> distinctProjects = userProjectMembers.stream()
-        .map(ProjectMember::getProject)
-        .filter(project -> project.getDeletedAt() == null)
-        .distinct()
-        .collect(Collectors.toList());
+    List<Project> distinctProjects =
+        userProjectMembers.stream()
+            .map(ProjectMember::getProject)
+            .filter(project -> project.getDeletedAt() == null)
+            .distinct()
+            .collect(Collectors.toList());
 
     // 프로젝트 ID 리스트 추출
-    List<Long> projectIds = distinctProjects.stream()
-        .map(Project::getId)
-        .collect(Collectors.toList());
+    List<Long> projectIds =
+        distinctProjects.stream().map(Project::getId).collect(Collectors.toList());
 
     // 전체 프로젝트의 모든 멤버를 한 번에 fetch join으로 로딩
     List<ProjectMember> allProjectMembers =
         projectMemberRepository.findByProjectIdsWithUser(projectIds);
 
     // projectId로 그룹화
-    Map<Long, List<ProjectMember>> projectMemberMap = allProjectMembers.stream()
-        .collect(Collectors.groupingBy(pm -> pm.getProject().getId()));
+    Map<Long, List<ProjectMember>> projectMemberMap =
+        allProjectMembers.stream().collect(Collectors.groupingBy(pm -> pm.getProject().getId()));
 
-    List<ProjectResponse> responses = distinctProjects.stream()
-        .map(project -> {
-          List<ProjectMember> members = projectMemberMap.getOrDefault(project.getId(), List.of());
+    List<ProjectResponse> responses =
+        distinctProjects.stream()
+            .map(
+                project -> {
+                  List<ProjectMember> members =
+                      projectMemberMap.getOrDefault(project.getId(), List.of());
 
-          List<MemberDto> memberDtos = members.stream()
-              .map(pm -> new MemberDto(
-                  pm.getUser().getId(),
-                  pm.getUser().getNickname(),
-                  profileImageService.getProfileImageUrl(pm.getUser().getFileName()),
-                  pm.getPosition()))
-              .collect(Collectors.toList());
+                  List<MemberDto> memberDtos =
+                      members.stream()
+                          .map(
+                              pm ->
+                                  new MemberDto(
+                                      pm.getUser().getId(),
+                                      pm.getUser().getNickname(),
+                                      profileImageService.getProfileImageUrl(
+                                          pm.getUser().getFileName()),
+                                      pm.getPosition()))
+                          .collect(Collectors.toList());
 
-          return new ProjectResponse(
-              project.getId(),
-              project.getTitle(),
-              project.getColor() != null ? project.getColor().name() : "E3EEFC",
-              memberDtos,
-              project.getWiki());
-        })
-        .collect(Collectors.toList());
+                  return new ProjectResponse(
+                      project.getId(),
+                      project.getTitle(),
+                      project.getColor() != null ? project.getColor().name() : "E3EEFC",
+                      memberDtos,
+                      project.getWiki());
+                })
+            .collect(Collectors.toList());
 
     log.info("Found {} projects for user: {}", responses.size(), userId);
     return responses;
@@ -277,6 +284,9 @@ public class ProjectService {
       member.setDeletedAt(LocalDateTime.now());
     }
     projectMemberRepository.saveAll(members);
+
+    // send wiki deletion request to FastApi
+    fastApiService.deleteWiki(projectId);
 
     // send deletion notification
     notificationService.sendProjectNotification(
@@ -403,7 +413,7 @@ public class ProjectService {
           newlyInvitedUsers, creator.getUser(), project, newlyAddedMembers);
     }
 
-    //     위키 내용이 있다면 수정
+    // 위키 내용이 있다면 수정
     if (request.getWiki() != null && !request.getWiki().trim().isEmpty()) {
       log.info("Updating wiki for project: {}", projectId);
       WikiRequest wikiRequest =
@@ -416,33 +426,5 @@ public class ProjectService {
     }
 
     log.info("Project updated successfully: {}", projectId);
-  }
-
-  @Transactional
-  public void createWiki(Long projectId, Long userId, WikiRequest request) {
-    Project project =
-        projectRepository
-            .findByIdAndDeletedAtIsNull(projectId)
-            .orElseThrow(() -> new IllegalArgumentException("Project not found"));
-
-    if (!project.getMember().getId().equals(userId)) {
-      throw new SecurityException("Only project creator can create wiki");
-    }
-
-    fastApiService.createWiki(projectId, request);
-  }
-
-  @Transactional
-  public void updateWiki(Long projectId, Long userId, WikiRequest request) {
-    Project project =
-        projectRepository
-            .findByIdAndDeletedAtIsNull(projectId)
-            .orElseThrow(() -> new IllegalArgumentException("Project not found"));
-
-    if (!project.getMember().getId().equals(userId)) {
-      throw new SecurityException("Only project creator can modify wiki");
-    }
-
-    fastApiService.updateWiki(projectId, request);
   }
 }

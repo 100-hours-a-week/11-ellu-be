@@ -48,7 +48,7 @@ public class ProjectScheduleController {
       @RequestBody ProjectScheduleCreateRequest request,
       @CurrentUser Long userId) { // 프로젝트 멤버인지 확인
     projectMemberRepository
-        .findByProjectIdAndUserId(projectId, userId)
+        .findByProjectIdAndUserIdAndDeletedAtIsNull(projectId, userId)
         .orElseThrow(() -> new AccessDeniedException("Not a member of this project"));
     DeferredResult<ResponseEntity<?>> result = new DeferredResult<>(300000L); // 5분 타임아웃
     // 요청 등록
@@ -198,7 +198,7 @@ public class ProjectScheduleController {
       @PathVariable Long projectId, @CurrentUser Long userId) {
     // 프로젝트 멤버십 확인
     projectMemberRepository
-        .findByProjectIdAndUserId(projectId, userId)
+        .findByProjectIdAndUserIdAndDeletedAtIsNull(projectId, userId)
         .orElseThrow(() -> new AccessDeniedException("Not a member of this project"));
 
     DeferredResult<ResponseEntity<?>> result = new DeferredResult<>(300000L); // 300초 타임아웃
@@ -231,8 +231,8 @@ public class ProjectScheduleController {
 
   @PatchMapping("/project/{projectId}/schedules/{projectScheduleId}/assignees")
   public ResponseEntity<ApiResponse<Void>> takeSchedule(
-      @RequestParam Long projectId,
-      @RequestParam Long projectScheduleId,
+      @PathVariable Long projectId,
+      @PathVariable Long projectScheduleId,
       @CurrentUser Long userId) {
     scheduleService.takeSchedule(projectId, projectScheduleId, userId);
     return ResponseEntity.ok(new ApiResponse<>("added_to_personal_schedule", null));

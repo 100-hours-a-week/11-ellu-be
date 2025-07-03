@@ -13,15 +13,22 @@ import org.springframework.stereotype.Repository;
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
   @Query(
-      "SELECT s FROM Schedule s WHERE s.user.id = :userId AND s.deletedAt IS NULL "
-          + "AND s.startTime < :end AND s.endTime >= :start")
+      "SELECT s FROM Schedule s "
+          + "WHERE s.user.id = :userId "
+          + "AND s.deletedAt IS NULL "
+          + "AND s.startTime < :end "
+          + "AND s.endTime >= :start")
   List<Schedule> findDailySchedules(
       @Param("userId") Long userId,
       @Param("start") LocalDateTime start,
       @Param("end") LocalDateTime end);
 
   @Query(
-      "SELECT s FROM Schedule s WHERE s.user.id = :userId AND s.deletedAt IS NULL AND s.startTime <=:end AND s.endTime>= :start")
+      "SELECT s FROM Schedule s "
+          + "WHERE s.user.id = :userId "
+          + "AND s.deletedAt IS NULL "
+          + "AND s.startTime <=:end "
+          + "AND s.endTime>= :start")
   List<Schedule> findSchedulesBetween(
       @Param("userId") Long userId,
       @Param("start") LocalDateTime start,

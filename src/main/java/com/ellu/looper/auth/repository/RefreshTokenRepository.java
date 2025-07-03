@@ -8,11 +8,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
 
-  // Custom query to find a RefreshToken by its associated member ID
   Optional<RefreshToken> findByUserId(Long userId);
-
-  // Optional custom query to delete a RefreshToken by member ID
-  void deleteByUserId(Long userId);
 
   Optional<RefreshToken> findByRefreshToken(String refreshToken);
 }

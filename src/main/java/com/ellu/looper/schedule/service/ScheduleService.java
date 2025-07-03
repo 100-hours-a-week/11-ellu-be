@@ -3,7 +3,6 @@ package com.ellu.looper.schedule.service;
 import com.ellu.looper.exception.ValidationException;
 import com.ellu.looper.project.repository.ProjectRepository;
 import com.ellu.looper.schedule.dto.PlanCreateRequest;
-import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
 import com.ellu.looper.schedule.dto.ScheduleCreateRequest;
 import com.ellu.looper.schedule.dto.ScheduleResponse;
 import com.ellu.looper.schedule.dto.ScheduleUpdateRequest;
@@ -200,68 +199,6 @@ public class ScheduleService {
     List<ScheduleResponse> all = new ArrayList<>();
     all.addAll(responses);
     return all.stream().collect(Collectors.groupingBy(r -> r.startTime().toLocalDate()));
-  }
-
-  @Transactional(readOnly = true)
-  public List<ScheduleResponse> getProjectSchedules(
-      Long memberId, LocalDateTime start, LocalDateTime end) {
-
-    List<ProjectScheduleResponse> projectSchedules =
-        projectRepository.findAllByMemberId(memberId).stream()
-            .flatMap(
-                project ->
-                    projectScheduleService
-                        .getSchedulesByRange(project.getId(), start, end)
-                        .values()
-                        .stream()
-                        .flatMap(List::stream))
-            .toList();
-    return projectSchedules.stream()
-        .map(
-            ps ->
-                new ScheduleResponse(
-                    ps.id(),
-                    ps.title(),
-                    ps.description(),
-                    ps.is_completed(),
-                    false,
-                    ps.is_project_schedule(),
-                    ps.start_time(),
-                    ps.end_time(),
-                    ps.color()))
-        .toList();
-  }
-
-  @Transactional(readOnly = true)
-  public List<ScheduleResponse> getProjectDailySchedules(
-      Long memberId, LocalDateTime start, LocalDateTime end) {
-    if (!start.toLocalDate().equals(end.minusNanos(1).toLocalDate())) {
-      throw new IllegalArgumentException("일일 조회가 아닙니다. 일일 범위만 getDailySchedules에서 지원됩니다.");
-    }
-
-    List<ProjectScheduleResponse> projectSchedules =
-        projectRepository.findAllByMemberId(memberId).stream()
-            .flatMap(
-                project ->
-                    projectScheduleService
-                        .getDailySchedules(project.getId(), start.toLocalDate())
-                        .stream())
-            .toList();
-
-    return projectSchedules.stream()
-        .map(
-            ps ->
-                new ScheduleResponse(
-                    ps.id(),
-                    ps.title(),
-                    ps.description(),
-                    ps.is_completed(),
-                    false,
-                    ps.is_project_schedule(),
-                    ps.start_time(),
-                    ps.end_time(),
-                    ps.color()))
-        .toList();
   }
 
   public ScheduleResponse toResponse(Schedule s, boolean isProject) {
