@@ -57,8 +57,11 @@ public class NotificationConsumer implements Runnable {
   @Value("${kafka.topics.notification}")
   public String NOTIFICATION_TOPIC;
 
-  private static final long NOTIFICATION_CACHE_TTL_MINUTES = 5L;
-  private static final String NOTIFICATION_CACHE_KEY_PREFIX = "notifications:user:";
+  @Value("${cache.notification.user-ttl-minutes}")
+  private long NOTIFICATION_CACHE_TTL_MINUTES;
+
+  @Value("${cache.notification.user-key-prefix}")
+  private String NOTIFICATION_CACHE_KEY_PREFIX;
 
   @PostConstruct
   public void init() {

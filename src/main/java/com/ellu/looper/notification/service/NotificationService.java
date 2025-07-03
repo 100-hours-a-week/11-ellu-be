@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -43,11 +44,21 @@ public class NotificationService {
   private final NotificationProducer notificationProducer;
   private final ProjectService projectService;
   private final RedisTemplate<String, Object> redisTemplate;
-  private static final long NOTIFICATION_CACHE_TTL_MINUTES = 10L;
-  private static final long PROJECT_CACHE_TTL_HOURS = 3L;
-  private static final String NOTIFICATION_CACHE_KEY_PREFIX = "notifications:user:";
-  private static final String PROJECT_DETAIL_CACHE_KEY_PREFIX = "project:";
-  private static final String PROJECT_LIST_CACHE_KEY_PREFIX = "projects:user:";
+
+  @Value("${cache.notification.user-ttl-minutes}")
+  private long NOTIFICATION_CACHE_TTL_MINUTES;
+
+  @Value("${cache.project.ttl-hours}")
+  private long PROJECT_CACHE_TTL_HOURS;
+
+  @Value("${cache.notification.user-key-prefix}")
+  private String NOTIFICATION_CACHE_KEY_PREFIX;
+
+  @Value("${cache.project.detail-key-prefix}")
+  private String PROJECT_DETAIL_CACHE_KEY_PREFIX;
+
+  @Value("${cache.project.list-key-prefix}")
+  private String PROJECT_LIST_CACHE_KEY_PREFIX;
 
   @Transactional
   public void softDeleteOldNotifications() {

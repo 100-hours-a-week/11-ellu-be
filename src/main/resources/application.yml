@@ -110,6 +110,14 @@ kafka:
     group-id: chat-group
     preview-group-id: preview-consumer-group
 
+cache:
+  project:
+    ttl-hours: 3
+    detail-key-prefix: "project:"
+    list-key-prefix: "projects:user:"
+  notification:
+    ttl-minutes: 10
+    user-key-prefix: "notifications:user:"
 
 info:
   app:

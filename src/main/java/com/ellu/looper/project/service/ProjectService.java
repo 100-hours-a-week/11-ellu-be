@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,9 +58,15 @@ public class ProjectService {
   private final NotificationService notificationService;
   private final AssigneeRepository assigneeRepository;
   private final RedisTemplate<String, Object> redisTemplate;
-  private static final long PROJECT_CACHE_TTL_HOURS = 3L;
-  private static final String PROJECT_DETAIL_CACHE_KEY_PREFIX = "project:";
-  private static final String PROJECT_LIST_CACHE_KEY_PREFIX = "projects:user:";
+
+  @Value("${cache.project.ttl-hours}")
+  private long PROJECT_CACHE_TTL_HOURS;
+
+  @Value("${cache.project.detail-key-prefix}")
+  private String PROJECT_DETAIL_CACHE_KEY_PREFIX;
+
+  @Value("${cache.project.list-key-prefix}")
+  private String PROJECT_LIST_CACHE_KEY_PREFIX;
 
   @Transactional
   public void createProject(ProjectCreateRequest request, Long creatorId) {
@@ -332,13 +339,14 @@ public class ProjectService {
                 pm ->
                     !pm.getUser().getId().equals(userId)
                         && updatedUsers.stream()
-                        .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
+                            .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
             .collect(Collectors.toList());
-    toRemove.forEach(pm -> {
-      pm.setDeletedAt(LocalDateTime.now());
-      // 프로젝트 멤버들의 캐시 무효화
-      redisTemplate.delete(PROJECT_LIST_CACHE_KEY_PREFIX + pm.getUser().getId());
-    });
+    toRemove.forEach(
+        pm -> {
+          pm.setDeletedAt(LocalDateTime.now());
+          // 프로젝트 멤버들의 캐시 무효화
+          redisTemplate.delete(PROJECT_LIST_CACHE_KEY_PREFIX + pm.getUser().getId());
+        });
     projectMemberRepository.saveAll(toRemove);
 
     // send expulsion notification
@@ -370,10 +378,16 @@ public class ProjectService {
     if (!newlyInvitedUsers.isEmpty()) {
       log.info("Sending invitation notification to newly invited project members");
 
-      newlyInvitedUsers.forEach(user ->
-          // 캐시 저장
-          redisTemplate.opsForValue().set(PROJECT_LIST_CACHE_KEY_PREFIX + user.getId(),
-              getProjectListResponses(user.getId()), PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS));
+      newlyInvitedUsers.forEach(
+          user ->
+              // 캐시 저장
+              redisTemplate
+                  .opsForValue()
+                  .set(
+                      PROJECT_LIST_CACHE_KEY_PREFIX + user.getId(),
+                      getProjectListResponses(user.getId()),
+                      PROJECT_CACHE_TTL_HOURS,
+                      TimeUnit.HOURS));
       // AddedMember 객체로 변환
       List<AddedMember> newlyAddedMembers =
           request.getAdded_members().stream()
