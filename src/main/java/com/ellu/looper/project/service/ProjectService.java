@@ -243,6 +243,8 @@ public class ProjectService {
     List<ProjectMember> members = projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
     for (ProjectMember member : members) {
       member.setDeletedAt(LocalDateTime.now());
+      // 프로젝트 멤버들의 캐시 무효화
+      redisTemplate.delete(PROJECT_LIST_CACHE_KEY_PREFIX + member.getUser().getId());
     }
     projectMemberRepository.saveAll(members);
 
@@ -255,8 +257,6 @@ public class ProjectService {
     // 캐시 무효화
     redisTemplate.delete(PROJECT_DETAIL_CACHE_KEY_PREFIX + projectId);
     redisTemplate.delete(PROJECT_LIST_CACHE_KEY_PREFIX + userId);
-    // 프로젝트 멤버들의 캐시도 무효화
-
   }
 
   @Transactional
@@ -332,9 +332,13 @@ public class ProjectService {
                 pm ->
                     !pm.getUser().getId().equals(userId)
                         && updatedUsers.stream()
-                            .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
+                        .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
             .collect(Collectors.toList());
-    toRemove.forEach(pm -> pm.setDeletedAt(LocalDateTime.now()));
+    toRemove.forEach(pm -> {
+      pm.setDeletedAt(LocalDateTime.now());
+      // 프로젝트 멤버들의 캐시 무효화
+      redisTemplate.delete(PROJECT_LIST_CACHE_KEY_PREFIX + pm.getUser().getId());
+    });
     projectMemberRepository.saveAll(toRemove);
 
     // send expulsion notification
@@ -366,6 +370,10 @@ public class ProjectService {
     if (!newlyInvitedUsers.isEmpty()) {
       log.info("Sending invitation notification to newly invited project members");
 
+      newlyInvitedUsers.forEach(user ->
+          // 캐시 저장
+          redisTemplate.opsForValue().set(PROJECT_LIST_CACHE_KEY_PREFIX + user.getId(),
+              getProjectListResponses(user.getId()), PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS));
       // AddedMember 객체로 변환
       List<AddedMember> newlyAddedMembers =
           request.getAdded_members().stream()
@@ -395,7 +403,6 @@ public class ProjectService {
     // 캐시 무효화
     redisTemplate.delete(PROJECT_DETAIL_CACHE_KEY_PREFIX + projectId);
     redisTemplate.delete(PROJECT_LIST_CACHE_KEY_PREFIX + userId);
-    // 프로젝트 멤버들의 캐시도 무효화
   }
 
   public CreatorExcludedProjectResponse getCreatorExcludedProjectResponse(
