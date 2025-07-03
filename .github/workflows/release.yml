@@ -5,7 +5,7 @@ on:
       - main
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: 100-hours-a-week/11-ellu-be
+  IMAGE_NAME: 100-hours-a-week/looper-be
 permissions:
   contents: write
   issues: write
