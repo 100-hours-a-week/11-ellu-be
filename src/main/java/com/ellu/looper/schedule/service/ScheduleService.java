@@ -109,16 +109,15 @@ public class ScheduleService {
       index++;
     }
 
-    log.info("validation passed");
     if (!errors.isEmpty()) {
       throw new ValidationException(errors);
     }
-    log.info("here we are");
 
     List<ScheduleResponse> responses = new ArrayList<>();
     Plan plan = Plan.builder().user(user).title(request.getPlan_title()).build();
     plan = planRepository.save(plan);
-    log.info("Plan created");
+
+    List<Schedule> schedulesToSave = new ArrayList<>();
     for (PlanCreateRequest.ProjectScheduleDto dto : request.getChatbot_schedules()) {
       Schedule schedule =
           Schedule.builder()
@@ -130,12 +129,15 @@ public class ScheduleService {
               .description(dto.getDescription())
               .plan(plan)
               .build();
-      Schedule saved = scheduleRepository.save(schedule);
-      log.info("schedule saved");
-
-      responses.add(toResponse(saved, false));
+      schedulesToSave.add(schedule);
+      ;
     }
 
+    List<Schedule> savedSchedules = scheduleRepository.saveAll(schedulesToSave);
+
+    for (Schedule savedSchedule : savedSchedules) {
+      responses.add(toResponse(savedSchedule, false));
+    }
     return responses;
   }
 
