@@ -1,5 +1,6 @@
 package com.ellu.looper.kafka;
 
+import com.ellu.looper.commons.enums.Role;
 import com.ellu.looper.kafka.dto.NotificationMessage;
 import com.ellu.looper.notification.dto.NotificationDto;
 import com.ellu.looper.notification.entity.Notification;
@@ -7,7 +8,11 @@ import com.ellu.looper.notification.entity.NotificationTemplate;
 import com.ellu.looper.notification.repository.NotificationRepository;
 import com.ellu.looper.notification.repository.NotificationTemplateRepository;
 import com.ellu.looper.notification.service.NotificationService;
+import com.ellu.looper.project.dto.CreatorExcludedProjectResponse;
+import com.ellu.looper.project.dto.ProjectResponse;
 import com.ellu.looper.project.entity.Project;
+import com.ellu.looper.project.entity.ProjectMember;
+import com.ellu.looper.project.repository.ProjectMemberRepository;
 import com.ellu.looper.project.repository.ProjectRepository;
 import com.ellu.looper.project.service.ProjectService;
 import com.ellu.looper.sse.service.SseService;
@@ -50,6 +55,7 @@ public class NotificationConsumer implements Runnable {
   private final UserRepository userRepository;
   private final ProjectRepository projectRepository;
   private final ProjectService projectService;
+  private final ProjectMemberRepository projectMemberRepository;
   private final NotificationTemplateRepository notificationTemplateRepository;
   private final RedisTemplate<String, Object> redisTemplate;
 
@@ -64,6 +70,15 @@ public class NotificationConsumer implements Runnable {
 
   @Value("${cache.notification.user-key-prefix}")
   private String NOTIFICATION_CACHE_KEY_PREFIX;
+
+  @Value("${cache.project.ttl-hours}")
+  private long PROJECT_CACHE_TTL_HOURS;
+
+  @Value("${cache.project.detail-key-prefix}")
+  private String PROJECT_DETAIL_CACHE_KEY_PREFIX;
+
+  @Value("${cache.project.list-key-prefix}")
+  private String PROJECT_LIST_CACHE_KEY_PREFIX;
 
   @PostConstruct
   public void init() {
@@ -200,6 +215,34 @@ public class NotificationConsumer implements Runnable {
           .opsForValue()
           .set(cacheKey, dtoList, NOTIFICATION_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
 
+      // 초대 수락 알림 시 DB와 캐시 업데이트 (write-through)
+      if (event.getType().equals("INVITATION_PROCESSED") && event.getInviteStatus().equals("수락")) {
+        ProjectMember member =
+            ProjectMember.builder()
+                .project(project)
+                .user(notification.getReceiver())
+                .role(Role.PARTICIPANT)
+                .position(notification.getPayload().get("position").toString())
+                .build();
+        ProjectMember savedMember = projectMemberRepository.save(member);
+
+        // Redis에 프로젝트 멤버들의 프로젝트 리스트 업데이트
+        List<ProjectResponse> projectListDto =
+            projectService.getProjectListResponses(notification.getReceiver().getId());
+        String projectMemberCacheKey =
+            PROJECT_LIST_CACHE_KEY_PREFIX + savedMember.getUser().getId();
+        redisTemplate
+            .opsForValue()
+            .set(projectMemberCacheKey, projectListDto, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
+
+        // Redis에 해당 프로젝트 정보 업데이트
+        CreatorExcludedProjectResponse projectDto =
+            projectService.getCreatorExcludedProjectResponse(project.getMember().getId(), project);
+        String projectCacheKey = PROJECT_DETAIL_CACHE_KEY_PREFIX + project.getId();
+        redisTemplate
+            .opsForValue()
+            .set(projectCacheKey, projectDto, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
+      }
       // SSE 구독 중인 유저에게 전송
       sseEmitterService.sendNotification(
           userId, event.toBuilder().notificationId(saved.getId()).build());

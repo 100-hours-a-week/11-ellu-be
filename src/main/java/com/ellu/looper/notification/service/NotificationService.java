@@ -2,7 +2,6 @@ package com.ellu.looper.notification.service;
 
 import com.ellu.looper.commons.enums.InviteStatus;
 import com.ellu.looper.commons.enums.NotificationType;
-import com.ellu.looper.commons.enums.Role;
 import com.ellu.looper.kafka.NotificationProducer;
 import com.ellu.looper.kafka.dto.NotificationMessage;
 import com.ellu.looper.notification.dto.NotificationDto;
@@ -12,12 +11,9 @@ import com.ellu.looper.notification.entity.NotificationTemplate;
 import com.ellu.looper.notification.repository.NotificationRepository;
 import com.ellu.looper.notification.repository.NotificationTemplateRepository;
 import com.ellu.looper.project.dto.AddedMember;
-import com.ellu.looper.project.dto.CreatorExcludedProjectResponse;
-import com.ellu.looper.project.dto.ProjectResponse;
 import com.ellu.looper.project.entity.Project;
 import com.ellu.looper.project.entity.ProjectMember;
 import com.ellu.looper.project.repository.ProjectMemberRepository;
-import com.ellu.looper.project.service.ProjectService;
 import com.ellu.looper.user.entity.User;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -253,45 +249,19 @@ public class NotificationService {
 
     Project project = notification.getProject();
 
-    // 초대 수락
+    // 초대 수락 시
     if (status.equalsIgnoreCase(InviteStatus.ACCEPTED.toString())) {
       // 프로젝트 멤버 추가
       boolean alreadyMember =
           projectMemberRepository.existsByProjectIdAndUserIdAndDeletedAtIsNull(
               project.getId(), userId);
       if (!alreadyMember) {
-//        ProjectMember member =
-//            ProjectMember.builder()
-//                .project(project)
-//                .user(notification.getReceiver())
-//                .role(Role.PARTICIPANT)
-//                .position(notification.getPayload().get("position").toString())
-//                .build();
-//        ProjectMember savedMember = projectMemberRepository.save(member);
-//
-//        // Redis에 프로젝트 멤버들의 프로젝트 리스트 업데이트
-//        List<ProjectResponse> projectListDto =
-//            projectService.getProjectListResponses(notification.getReceiver().getId());
-//        String projectMemberCacheKey =
-//            PROJECT_LIST_CACHE_KEY_PREFIX + savedMember.getUser().getId();
-//        redisTemplate
-//            .opsForValue()
-//            .set(projectMemberCacheKey, projectListDto, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
-//
-//        // Redis에 해당 프로젝트 정보 업데이트
-//        CreatorExcludedProjectResponse projectDto =
-//            projectService.getCreatorExcludedProjectResponse(project.getMember().getId(), project);
-//        String projectCacheKey = PROJECT_DETAIL_CACHE_KEY_PREFIX + project.getId();
-//        redisTemplate
-//            .opsForValue()
-//            .set(projectCacheKey, projectDto, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
-
-/// /////////////////
         // 초대 처리 알림 전송
         sendInvitationResponseNotification(notification, project, "수락");
       }
-      // 초대 거부
+      // 초대 거부 시
     } else if (status.equalsIgnoreCase(InviteStatus.REJECTED.name())) {
+      // 초대 처리 알림 전송
       sendInvitationResponseNotification(notification, project, "거부");
     }
     String message =
@@ -304,7 +274,8 @@ public class NotificationService {
         notification.getCreatedAt());
   }
 
-  private void sendInvitationResponseNotification(Notification notification, Project project, String status) {
+  private void sendInvitationResponseNotification(
+      Notification notification, Project project, String status) {
     // Notification 생성
     User sender = notification.getReceiver();
     NotificationTemplate inviteResponseTemplate =
