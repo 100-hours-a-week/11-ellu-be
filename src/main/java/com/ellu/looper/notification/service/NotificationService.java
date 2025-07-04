@@ -15,6 +15,7 @@ import com.ellu.looper.project.entity.Project;
 import com.ellu.looper.project.entity.ProjectMember;
 import com.ellu.looper.project.repository.ProjectMemberRepository;
 import com.ellu.looper.user.entity.User;
+import com.ellu.looper.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -37,6 +38,7 @@ public class NotificationService {
 
   private final NotificationRepository notificationRepository;
   private final ProjectMemberRepository projectMemberRepository;
+  private final UserRepository userRepository;
   private final NotificationTemplateRepository notificationTemplateRepository;
   private final NotificationProducer notificationProducer;
   private final RedisTemplate<String, Object> redisTemplate;
@@ -92,7 +94,16 @@ public class NotificationService {
                                         "Notification template with id "
                                             + cachedDto.getTemplateId()
                                             + " not found."));
+                    User sender =
+                        userRepository
+                            .findById(cachedDto.getSenderId())
+                            .orElseThrow(
+                                () ->
+                                    new EntityNotFoundException(
+                                        "User with id " + cachedDto.getSenderId() + " not found."));
                     return Notification.builder()
+                        .id(cachedDto.getId())
+                        .sender(sender)
                         .payload(cachedDto.getPayload())
                         .template(template)
                         .inviteStatus(cachedDto.getInviteStatus())
@@ -259,16 +270,28 @@ public class NotificationService {
 
     notificationRepository.save(notification);
 
-    // Redis 저장 (write-through cache)
-    String cacheKey = NOTIFICATION_CACHE_KEY_PREFIX + notification.getSender().getId();
-    List<Notification> notifications =
+    // 초대 수락한 사람의 알림 Redis 저장 (write-through cache)
+    String receiverCacheKey = NOTIFICATION_CACHE_KEY_PREFIX + notification.getReceiver().getId();
+    List<Notification> receiverNotifications =
+        notificationRepository.findByReceiverIdAndDeletedAtIsNullOrderByCreatedAtDesc(
+            notification.getReceiver().getId());
+
+    List<NotificationDto> receiverDtoList = toDtoList(receiverNotifications);
+    redisTemplate
+        .opsForValue()
+        .set(receiverCacheKey, receiverDtoList, NOTIFICATION_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+
+    // 초대 요청한 사람의 알림 Redis 저장 (write-through cache)
+    String senderCacheKey = NOTIFICATION_CACHE_KEY_PREFIX + notification.getSender().getId();
+
+    List<Notification> senderNotifications =
         notificationRepository.findByReceiverIdAndDeletedAtIsNullOrderByCreatedAtDesc(
             notification.getSender().getId());
 
-    List<NotificationDto> dtoList = toDtoList(notifications);
+    List<NotificationDto> senderDtoList = toDtoList(senderNotifications);
     redisTemplate
         .opsForValue()
-        .set(cacheKey, dtoList, NOTIFICATION_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+        .set(senderCacheKey, senderDtoList, NOTIFICATION_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
 
     Project project = notification.getProject();
 

@@ -1,6 +1,7 @@
 package com.ellu.looper.kafka;
 
 import com.ellu.looper.commons.enums.Role;
+import com.ellu.looper.fastapi.service.FastApiService;
 import com.ellu.looper.kafka.dto.NotificationMessage;
 import com.ellu.looper.notification.dto.NotificationDto;
 import com.ellu.looper.notification.entity.Notification;
@@ -15,6 +16,10 @@ import com.ellu.looper.project.entity.ProjectMember;
 import com.ellu.looper.project.repository.ProjectMemberRepository;
 import com.ellu.looper.project.repository.ProjectRepository;
 import com.ellu.looper.project.service.ProjectService;
+import com.ellu.looper.schedule.entity.Assignee;
+import com.ellu.looper.schedule.entity.ProjectSchedule;
+import com.ellu.looper.schedule.repository.AssigneeRepository;
+import com.ellu.looper.schedule.repository.ProjectScheduleRepository;
 import com.ellu.looper.sse.service.SseService;
 import com.ellu.looper.user.entity.User;
 import com.ellu.looper.user.repository.UserRepository;
@@ -57,6 +62,9 @@ public class NotificationConsumer implements Runnable {
   private final ProjectService projectService;
   private final ProjectMemberRepository projectMemberRepository;
   private final NotificationTemplateRepository notificationTemplateRepository;
+  private final ProjectScheduleRepository projectScheduleRepository;
+  private final AssigneeRepository assigneeRepository;
+  private final FastApiService fastApiService;
   private final RedisTemplate<String, Object> redisTemplate;
 
   @Value("${spring.kafka.bootstrap-servers}")
@@ -217,8 +225,7 @@ public class NotificationConsumer implements Runnable {
 
       // 초대 수락 알림 시 DB와 캐시 업데이트 (write-through)
       if (event.getType().equals("INVITATION_PROCESSED")
-          && event.getInviteStatus() != null
-          && event.getInviteStatus().equals("수락")) {
+          && event.getPayload().get("status").equals("수락")) {
         Notification originalNotification =
             notificationRepository
                 .findByIdAndDeletedAtIsNull(event.getNotificationId())
@@ -237,13 +244,24 @@ public class NotificationConsumer implements Runnable {
         ProjectMember savedMember = projectMemberRepository.save(member);
 
         // Redis에 프로젝트 멤버들의 프로젝트 리스트 업데이트
-        List<ProjectResponse> projectListDto =
-            projectService.getProjectListResponses(originalNotification.getReceiver().getId());
-        String projectMemberCacheKey =
-            PROJECT_LIST_CACHE_KEY_PREFIX + savedMember.getUser().getId();
-        redisTemplate
-            .opsForValue()
-            .set(projectMemberCacheKey, projectListDto, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
+        List<ProjectMember> projectMembers =
+            projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
+        projectMembers.forEach(
+            pm -> {
+              List<ProjectResponse> projectListDto =
+                  projectService.getProjectListResponses(
+                      originalNotification.getReceiver().getId());
+
+              String projectMemberCacheKey =
+                  PROJECT_LIST_CACHE_KEY_PREFIX + pm.getUser().getId();
+              redisTemplate
+                  .opsForValue()
+                  .set(
+                      projectMemberCacheKey,
+                      projectListDto,
+                      PROJECT_CACHE_TTL_HOURS,
+                      TimeUnit.HOURS);
+            });
 
         // Redis에 해당 프로젝트 정보 업데이트
         CreatorExcludedProjectResponse projectDto =
@@ -252,7 +270,71 @@ public class NotificationConsumer implements Runnable {
         redisTemplate
             .opsForValue()
             .set(projectCacheKey, projectDto, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
+
+      } else if (event.getType().equals("PROJECT_EXPELLED")) {
+        // Redis에 프로젝트 멤버들의 프로젝트 리스트 업데이트
+        List<ProjectMember> projectMembers =
+            projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
+        projectMembers.forEach(
+            pm -> {
+              List<ProjectResponse> projectListDto =
+                  projectService.getProjectListResponses(notification.getSender().getId());
+
+              String projectMemberCacheKey =
+                  PROJECT_LIST_CACHE_KEY_PREFIX + pm.getUser().getId();
+              redisTemplate
+                  .opsForValue()
+                  .set(
+                      projectMemberCacheKey,
+                      projectListDto,
+                      PROJECT_CACHE_TTL_HOURS,
+                      TimeUnit.HOURS);
+            });
+
+        // Redis에 해당 프로젝트 정보 업데이트
+        CreatorExcludedProjectResponse projectDto =
+            projectService.getCreatorExcludedProjectResponse(project.getMember().getId(), project);
+        String projectCacheKey = PROJECT_DETAIL_CACHE_KEY_PREFIX + project.getId();
+        redisTemplate
+            .opsForValue()
+            .set(projectCacheKey, projectDto, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
+
+      } else if (event.getType().equals("PROJECT_DELETED")) {
+        Project deletedProject = project.toBuilder().deletedAt(LocalDateTime.now()).build();
+        projectRepository.save(deletedProject);
+
+        // 캐시 무효화
+        redisTemplate.delete(PROJECT_DETAIL_CACHE_KEY_PREFIX + event.getProjectId());
+
+        // 프로젝트 스케줄 assignees 삭제
+        List<Assignee> assignees =
+            assigneeRepository.findByProjectIdThroughScheduleAndDeletedAtIsNull(project.getId());
+        for (Assignee assignee : assignees) {
+          assignee.softDelete();
+        }
+        assigneeRepository.saveAll(assignees);
+
+        // 프로젝트의 스케줄 삭제
+        List<ProjectSchedule> schedules =
+            projectScheduleRepository.findByProjectAndDeletedAtIsNull(project);
+        for (ProjectSchedule schedule : schedules) {
+          schedule.softDelete();
+        }
+        projectScheduleRepository.saveAll(schedules);
+
+        // 프로젝트 멤버 삭제
+        List<ProjectMember> members = projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
+        for (ProjectMember member : members) {
+          member.setDeletedAt(LocalDateTime.now());
+          // 캐시 무효화
+          redisTemplate.delete(PROJECT_LIST_CACHE_KEY_PREFIX + member.getUser().getId());
+        }
+        projectMemberRepository.saveAll(members);
+
+        // send wiki deletion request to FastApi
+        fastApiService.deleteWiki(project.getId());
       }
+
       // SSE 구독 중인 유저에게 전송
       sseEmitterService.sendNotification(
           userId, event.toBuilder().notificationId(saved.getId()).build());
