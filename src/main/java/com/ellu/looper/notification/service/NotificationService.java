@@ -1,5 +1,7 @@
 package com.ellu.looper.notification.service;
 
+import static com.ellu.looper.commons.util.CacheService.addJitter;
+
 import com.ellu.looper.commons.enums.InviteStatus;
 import com.ellu.looper.commons.enums.NotificationType;
 import com.ellu.looper.kafka.NotificationProducer;
@@ -43,11 +45,8 @@ public class NotificationService {
   private final NotificationProducer notificationProducer;
   private final RedisTemplate<String, Object> redisTemplate;
 
-  @Value("${cache.notification.ttl-minutes}")
-  private long NOTIFICATION_CACHE_TTL_MINUTES;
-
-  @Value("${cache.project.ttl-hours}")
-  private long PROJECT_CACHE_TTL_HOURS;
+  @Value("${cache.notification.ttl-seconds}")
+  private long NOTIFICATION_CACHE_TTL_SECONDS;
 
   @Value("${cache.notification.user-key-prefix}")
   private String NOTIFICATION_CACHE_KEY_PREFIX;
@@ -151,9 +150,8 @@ public class NotificationService {
 
     List<NotificationDto> notificationDtoList =
         notifications.stream().map(this::toDto).collect(Collectors.toList());
-    redisTemplate
-        .opsForValue()
-        .set(cacheKey, notificationDtoList, NOTIFICATION_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+    long ttlWithJitter = addJitter(NOTIFICATION_CACHE_TTL_SECONDS, 0.1);
+    redisTemplate.opsForValue().set(cacheKey, notificationDtoList, ttlWithJitter, TimeUnit.MINUTES);
     return notificationResponseList;
   }
 
@@ -277,9 +275,10 @@ public class NotificationService {
             notification.getReceiver().getId());
 
     List<NotificationDto> receiverDtoList = toDtoList(receiverNotifications);
+    long ttlWithJitter = addJitter(NOTIFICATION_CACHE_TTL_SECONDS, 0.1);
     redisTemplate
         .opsForValue()
-        .set(receiverCacheKey, receiverDtoList, NOTIFICATION_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+        .set(receiverCacheKey, receiverDtoList, ttlWithJitter, TimeUnit.MINUTES);
 
     // 초대 요청한 사람의 알림 Redis 저장 (write-through cache)
     String senderCacheKey = NOTIFICATION_CACHE_KEY_PREFIX + notification.getSender().getId();
@@ -289,9 +288,8 @@ public class NotificationService {
             notification.getSender().getId());
 
     List<NotificationDto> senderDtoList = toDtoList(senderNotifications);
-    redisTemplate
-        .opsForValue()
-        .set(senderCacheKey, senderDtoList, NOTIFICATION_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+    ttlWithJitter = addJitter(NOTIFICATION_CACHE_TTL_SECONDS, 0.1);
+    redisTemplate.opsForValue().set(senderCacheKey, senderDtoList, ttlWithJitter, TimeUnit.MINUTES);
 
     Project project = notification.getProject();
 

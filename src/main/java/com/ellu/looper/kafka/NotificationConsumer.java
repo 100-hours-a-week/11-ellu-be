@@ -1,5 +1,7 @@
 package com.ellu.looper.kafka;
 
+import static com.ellu.looper.commons.util.CacheService.addJitter;
+
 import com.ellu.looper.commons.enums.Role;
 import com.ellu.looper.fastapi.service.FastApiService;
 import com.ellu.looper.kafka.dto.NotificationMessage;
@@ -73,14 +75,14 @@ public class NotificationConsumer implements Runnable {
   @Value("${kafka.topics.notification}")
   public String NOTIFICATION_TOPIC;
 
-  @Value("${cache.notification.ttl-minutes}")
-  private long NOTIFICATION_CACHE_TTL_MINUTES;
+  @Value("${cache.notification.ttl-seconds}")
+  private long NOTIFICATION_CACHE_TTL_SECONDS;
 
   @Value("${cache.notification.user-key-prefix}")
   private String NOTIFICATION_CACHE_KEY_PREFIX;
 
-  @Value("${cache.project.ttl-hours}")
-  private long PROJECT_CACHE_TTL_HOURS;
+  @Value("${cache.project.ttl-seconds}")
+  private long PROJECT_CACHE_TTL_SECONDS;
 
   @Value("${cache.project.detail-key-prefix}")
   private String PROJECT_DETAIL_CACHE_KEY_PREFIX;
@@ -219,9 +221,10 @@ public class NotificationConsumer implements Runnable {
           notificationRepository.findByReceiverIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId);
 
       List<NotificationDto> dtoList = notificationService.toDtoList(notifications);
+      long notificationTtlWithJitter = addJitter(NOTIFICATION_CACHE_TTL_SECONDS, 0.1);
       redisTemplate
           .opsForValue()
-          .set(cacheKey, dtoList, NOTIFICATION_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+          .set(cacheKey, dtoList, notificationTtlWithJitter, TimeUnit.MINUTES);
 
       // 초대 수락 알림 시 DB와 캐시 업데이트 (write-through)
       if (event.getType().equals("INVITATION_PROCESSED")
@@ -252,24 +255,20 @@ public class NotificationConsumer implements Runnable {
                   projectService.getProjectListResponses(
                       originalNotification.getReceiver().getId());
 
-              String projectMemberCacheKey =
-                  PROJECT_LIST_CACHE_KEY_PREFIX + pm.getUser().getId();
+              long ttlWithJitter = addJitter(PROJECT_CACHE_TTL_SECONDS, 0.001);
+              String projectMemberCacheKey = PROJECT_LIST_CACHE_KEY_PREFIX + pm.getUser().getId();
               redisTemplate
                   .opsForValue()
-                  .set(
-                      projectMemberCacheKey,
-                      projectListDto,
-                      PROJECT_CACHE_TTL_HOURS,
-                      TimeUnit.HOURS);
+                  .set(projectMemberCacheKey, projectListDto, ttlWithJitter, TimeUnit.HOURS);
             });
 
         // Redis에 해당 프로젝트 정보 업데이트
         CreatorExcludedProjectResponse projectDto =
             projectService.getCreatorExcludedProjectResponse(project.getMember().getId(), project);
+
+        long ttlWithJitter = addJitter(PROJECT_CACHE_TTL_SECONDS, 0.001);
         String projectCacheKey = PROJECT_DETAIL_CACHE_KEY_PREFIX + project.getId();
-        redisTemplate
-            .opsForValue()
-            .set(projectCacheKey, projectDto, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
+        redisTemplate.opsForValue().set(projectCacheKey, projectDto, ttlWithJitter, TimeUnit.HOURS);
 
       } else if (event.getType().equals("PROJECT_EXPELLED")) {
         // Redis에 프로젝트 멤버들의 프로젝트 리스트 업데이트
@@ -280,24 +279,21 @@ public class NotificationConsumer implements Runnable {
               List<ProjectResponse> projectListDto =
                   projectService.getProjectListResponses(notification.getSender().getId());
 
-              String projectMemberCacheKey =
-                  PROJECT_LIST_CACHE_KEY_PREFIX + pm.getUser().getId();
+              String projectMemberCacheKey = PROJECT_LIST_CACHE_KEY_PREFIX + pm.getUser().getId();
+
+              long ttlWithJitter = addJitter(PROJECT_CACHE_TTL_SECONDS, 0.001);
               redisTemplate
                   .opsForValue()
-                  .set(
-                      projectMemberCacheKey,
-                      projectListDto,
-                      PROJECT_CACHE_TTL_HOURS,
-                      TimeUnit.HOURS);
+                  .set(projectMemberCacheKey, projectListDto, ttlWithJitter, TimeUnit.HOURS);
             });
 
         // Redis에 해당 프로젝트 정보 업데이트
         CreatorExcludedProjectResponse projectDto =
             projectService.getCreatorExcludedProjectResponse(project.getMember().getId(), project);
         String projectCacheKey = PROJECT_DETAIL_CACHE_KEY_PREFIX + project.getId();
-        redisTemplate
-            .opsForValue()
-            .set(projectCacheKey, projectDto, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
+
+        long ttlWithJitter = addJitter(PROJECT_CACHE_TTL_SECONDS, 0.001);
+        redisTemplate.opsForValue().set(projectCacheKey, projectDto, ttlWithJitter, TimeUnit.HOURS);
 
       } else if (event.getType().equals("PROJECT_DELETED")) {
         Project deletedProject = project.toBuilder().deletedAt(LocalDateTime.now()).build();
@@ -323,7 +319,8 @@ public class NotificationConsumer implements Runnable {
         projectScheduleRepository.saveAll(schedules);
 
         // 프로젝트 멤버 삭제
-        List<ProjectMember> members = projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
+        List<ProjectMember> members =
+            projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
         for (ProjectMember member : members) {
           member.setDeletedAt(LocalDateTime.now());
           // 캐시 무효화

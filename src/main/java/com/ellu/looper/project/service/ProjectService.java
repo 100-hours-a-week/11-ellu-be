@@ -1,5 +1,7 @@
 package com.ellu.looper.project.service;
 
+import static com.ellu.looper.commons.util.CacheService.addJitter;
+
 import com.ellu.looper.commons.enums.Color;
 import com.ellu.looper.commons.enums.NotificationType;
 import com.ellu.looper.commons.enums.Role;
@@ -53,8 +55,8 @@ public class ProjectService {
   private final NotificationService notificationService;
   private final RedisTemplate<String, Object> redisTemplate;
 
-  @Value("${cache.project.ttl-hours}")
-  private long PROJECT_CACHE_TTL_HOURS;
+  @Value("${cache.project.ttl-seconds}")
+  private long PROJECT_CACHE_TTL_SECONDS;
 
   @Value("${cache.project.detail-key-prefix}")
   private String PROJECT_DETAIL_CACHE_KEY_PREFIX;
@@ -174,7 +176,9 @@ public class ProjectService {
     List<ProjectResponse> responses = getProjectListResponses(userId);
 
     log.info("Found {} projects for user: {}", responses.size(), userId);
-    redisTemplate.opsForValue().set(cacheKey, responses, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
+
+    long ttlWithJitter = addJitter(PROJECT_CACHE_TTL_SECONDS, 0.001);
+    redisTemplate.opsForValue().set(cacheKey, responses, ttlWithJitter, TimeUnit.HOURS);
     return responses;
   }
 
@@ -199,14 +203,18 @@ public class ProjectService {
       CreatorExcludedProjectResponse response =
           new CreatorExcludedProjectResponse(
               project.getId(), project.getTitle(), project.getColor().name(), null, null, null);
-      redisTemplate.opsForValue().set(cacheKey, response, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
+
+      long ttlWithJitter = addJitter(PROJECT_CACHE_TTL_SECONDS, 0.001);
+      redisTemplate.opsForValue().set(cacheKey, response, ttlWithJitter, TimeUnit.HOURS);
       return response;
     }
 
     // 프로젝트 생성자인 경우
     CreatorExcludedProjectResponse response = getCreatorExcludedProjectResponse(userId, project);
     // redis에 프로젝트 정보 캐싱
-    redisTemplate.opsForValue().set(cacheKey, response, PROJECT_CACHE_TTL_HOURS, TimeUnit.HOURS);
+
+    long ttlWithJitter = addJitter(PROJECT_CACHE_TTL_SECONDS, 0.001);
+    redisTemplate.opsForValue().set(cacheKey, response, ttlWithJitter, TimeUnit.HOURS);
     return response;
   }
 
@@ -303,7 +311,7 @@ public class ProjectService {
                 pm ->
                     !pm.getUser().getId().equals(userId)
                         && updatedUsers.stream()
-                        .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
+                            .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
             .collect(Collectors.toList());
     toRemove.forEach(
         pm -> {

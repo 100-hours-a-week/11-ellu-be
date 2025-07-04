@@ -112,11 +112,11 @@ kafka:
 
 cache:
   project:
-    ttl-hours: 3
+    ttl-seconds: 10800
     detail-key-prefix: "project:"
     list-key-prefix: "projects:user:"
   notification:
-    ttl-minutes: 10
+    ttl-seconds: 600
     user-key-prefix: "notifications:user:"
 
 info:
