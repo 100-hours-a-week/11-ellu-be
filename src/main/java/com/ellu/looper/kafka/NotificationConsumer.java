@@ -181,7 +181,7 @@ public class NotificationConsumer implements Runnable {
               .orElseThrow(
                   () ->
                       new EntityNotFoundException(
-                          "Project with id " + event.getProjectId() + "Not found"));
+                          "Project with id " + event.getProjectId() + "not found"));
 
       NotificationTemplate notificationTemplate =
           notificationTemplateRepository
@@ -216,19 +216,29 @@ public class NotificationConsumer implements Runnable {
           .set(cacheKey, dtoList, NOTIFICATION_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
 
       // 초대 수락 알림 시 DB와 캐시 업데이트 (write-through)
-      if (event.getType().equals("INVITATION_PROCESSED") && event.getInviteStatus().equals("수락")) {
+      if (event.getType().equals("INVITATION_PROCESSED")
+          && event.getInviteStatus() != null
+          && event.getInviteStatus().equals("수락")) {
+        Notification originalNotification =
+            notificationRepository
+                .findByIdAndDeletedAtIsNull(event.getNotificationId())
+                .orElseThrow(
+                    () ->
+                        new EntityNotFoundException(
+                            "Notification with id " + event.getNotificationId() + "not found"));
+
         ProjectMember member =
             ProjectMember.builder()
                 .project(project)
-                .user(notification.getReceiver())
+                .user(originalNotification.getReceiver())
                 .role(Role.PARTICIPANT)
-                .position(notification.getPayload().get("position").toString())
+                .position(originalNotification.getPayload().get("position").toString())
                 .build();
         ProjectMember savedMember = projectMemberRepository.save(member);
 
         // Redis에 프로젝트 멤버들의 프로젝트 리스트 업데이트
         List<ProjectResponse> projectListDto =
-            projectService.getProjectListResponses(notification.getReceiver().getId());
+            projectService.getProjectListResponses(originalNotification.getReceiver().getId());
         String projectMemberCacheKey =
             PROJECT_LIST_CACHE_KEY_PREFIX + savedMember.getUser().getId();
         redisTemplate

@@ -15,6 +15,7 @@ import com.ellu.looper.project.entity.Project;
 import com.ellu.looper.project.entity.ProjectMember;
 import com.ellu.looper.project.repository.ProjectMemberRepository;
 import com.ellu.looper.user.entity.User;
+import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -72,25 +73,45 @@ public class NotificationService {
 
   public List<NotificationResponse> getNotifications(Long userId) {
     String cacheKey = NOTIFICATION_CACHE_KEY_PREFIX + userId;
-    List<NotificationResponse> cached =
-        (List<NotificationResponse>) redisTemplate.opsForValue().get(cacheKey);
+    List<Notification> notifications;
+    List<NotificationDto> cached =
+        (List<NotificationDto>) redisTemplate.opsForValue().get(cacheKey);
     if (cached != null) {
       log.info("Cache hit for notifications: {}", userId);
-      return cached;
+
+      notifications =
+          cached.stream()
+              .map(
+                  cachedDto -> {
+                    NotificationTemplate template =
+                        notificationTemplateRepository
+                            .findById(cachedDto.getTemplateId())
+                            .orElseThrow(
+                                () ->
+                                    new EntityNotFoundException(
+                                        "Notification template with id "
+                                            + cachedDto.getTemplateId()
+                                            + " not found."));
+                    return Notification.builder()
+                        .payload(cachedDto.getPayload())
+                        .template(template)
+                        .inviteStatus(cachedDto.getInviteStatus())
+                        .createdAt(cachedDto.getCreatedAt())
+                        .build();
+                  })
+              .collect(Collectors.toList());
+
+    } else {
+      log.info("Cache miss for notifications: {}", userId);
+      notifications =
+          notificationRepository.findByReceiverIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId);
     }
-
-    log.info("Cache miss for notifications: {}", userId);
-
-    List<Notification> notifications =
-        notificationRepository.findByReceiverIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId);
-
-    List<NotificationResponse> notificationDtoList =
+    List<NotificationResponse> notificationResponseList =
         notifications.stream()
             .map(
                 n -> {
                   String message;
                   NotificationType type = n.getTemplate().getType();
-
                   if (type.equals(NotificationType.PROJECT_INVITED)) {
                     message = renderInvitationTemplate(n.getTemplate().getTemplate(), n);
                   } else if (type.equals(NotificationType.PROJECT_DELETED)
@@ -109,7 +130,7 @@ public class NotificationService {
 
                   return NotificationResponse.builder()
                       .id(n.getId())
-                      .senderNickname(n.getSender().getNickname())
+                      //                      .senderNickname(n.getSender().getNickname())
                       .message(message)
                       .inviteStatus(n.getInviteStatus())
                       .createdAt(n.getCreatedAt())
@@ -117,10 +138,12 @@ public class NotificationService {
                 })
             .collect(Collectors.toList());
 
+    List<NotificationDto> notificationDtoList =
+        notifications.stream().map(this::toDto).collect(Collectors.toList());
     redisTemplate
         .opsForValue()
         .set(cacheKey, notificationDtoList, NOTIFICATION_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
-    return notificationDtoList;
+    return notificationResponseList;
   }
 
   private String renderInvitationResponseTemplate(String template, Notification notification) {
@@ -301,7 +324,7 @@ public class NotificationService {
             renderInvitationResponseTemplate(inviteResponseTemplate.getTemplate(), notification),
             inviteResponseTemplate.getId(),
             payload,
-            status);
+            null);
 
     notificationProducer.sendNotification(message);
   }
