@@ -258,7 +258,8 @@ public class NotificationConsumer implements Runnable {
                       originalNotification.getReceiver().getId());
 
               String projectMemberCacheKey = PROJECT_LIST_CACHE_KEY_PREFIX + pm.getUser().getId();
-              cacheService.setProjectCache(projectMemberCacheKey, projectListDto, PROJECT_CACHE_TTL_SECONDS);
+              cacheService.setProjectCache(
+                  projectMemberCacheKey, projectListDto, PROJECT_CACHE_TTL_SECONDS);
             });
 
         // Redis에 해당 프로젝트 정보 업데이트
@@ -278,7 +279,8 @@ public class NotificationConsumer implements Runnable {
                   projectService.getProjectListResponses(notification.getSender().getId());
 
               String projectMemberCacheKey = PROJECT_LIST_CACHE_KEY_PREFIX + pm.getUser().getId();
-              cacheService.setProjectCache(projectMemberCacheKey, projectListDto, PROJECT_CACHE_TTL_SECONDS);
+              cacheService.setProjectCache(
+                  projectMemberCacheKey, projectListDto, PROJECT_CACHE_TTL_SECONDS);
             });
 
         // Redis에 해당 프로젝트 정보 업데이트

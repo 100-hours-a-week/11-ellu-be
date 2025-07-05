@@ -143,7 +143,8 @@ public class NotificationService {
 
     List<NotificationDto> notificationDtoList =
         notifications.stream().map(this::toDto).collect(Collectors.toList());
-    cacheService.setNotificationCache(cacheKey, notificationDtoList, NOTIFICATION_CACHE_TTL_SECONDS);
+    cacheService.setNotificationCache(
+        cacheKey, notificationDtoList, NOTIFICATION_CACHE_TTL_SECONDS);
     return notificationResponseList;
   }
 
@@ -267,7 +268,8 @@ public class NotificationService {
             notification.getReceiver().getId());
 
     List<NotificationDto> receiverDtoList = toDtoList(receiverNotifications);
-    cacheService.setNotificationCache(receiverCacheKey, receiverDtoList, NOTIFICATION_CACHE_TTL_SECONDS);
+    cacheService.setNotificationCache(
+        receiverCacheKey, receiverDtoList, NOTIFICATION_CACHE_TTL_SECONDS);
 
     // 초대 요청한 사람의 알림 Redis 저장 (write-through cache)
     String senderCacheKey = NOTIFICATION_CACHE_KEY_PREFIX + notification.getSender().getId();
@@ -277,7 +279,8 @@ public class NotificationService {
             notification.getSender().getId());
 
     List<NotificationDto> senderDtoList = toDtoList(senderNotifications);
-    cacheService.setNotificationCache(senderCacheKey, senderDtoList, NOTIFICATION_CACHE_TTL_SECONDS);
+    cacheService.setNotificationCache(
+        senderCacheKey, senderDtoList, NOTIFICATION_CACHE_TTL_SECONDS);
 
     Project project = notification.getProject();
 

@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -181,25 +180,30 @@ public class ProjectService {
   @Transactional(readOnly = true)
   public CreatorExcludedProjectResponse getProjectDetail(Long projectId, Long userId) {
     String cacheKey = PROJECT_DETAIL_CACHE_KEY_PREFIX + projectId;
-    CreatorExcludedProjectResponse response = cacheService.getWithLock(
-        cacheKey,
-        PROJECT_CACHE_TTL_SECONDS,
-        ()-> {
-          log.info("Cache miss for project detail: {}. Loading from DB.", projectId);
-          Project project =
-              projectRepository
-                  .findByIdAndDeletedAtIsNull(projectId)
-                  .orElseThrow(() -> new IllegalArgumentException("Project not found"));
-          // 프로젝트 생성자가 아닌 경우
-          if (!project.getMember().getId().equals(userId)) {
-            return new CreatorExcludedProjectResponse(
-                    project.getId(), project.getTitle(), project.getColor().name(), null, null, null);
-          }
+    CreatorExcludedProjectResponse response =
+        cacheService.getWithLock(
+            cacheKey,
+            PROJECT_CACHE_TTL_SECONDS,
+            () -> {
+              log.info("Cache miss for project detail: {}. Loading from DB.", projectId);
+              Project project =
+                  projectRepository
+                      .findByIdAndDeletedAtIsNull(projectId)
+                      .orElseThrow(() -> new IllegalArgumentException("Project not found"));
+              // 프로젝트 생성자가 아닌 경우
+              if (!project.getMember().getId().equals(userId)) {
+                return new CreatorExcludedProjectResponse(
+                    project.getId(),
+                    project.getTitle(),
+                    project.getColor().name(),
+                    null,
+                    null,
+                    null);
+              }
 
-          // 프로젝트 생성자인 경우
-          return getCreatorExcludedProjectResponse(userId, project);
-        }
-    );
+              // 프로젝트 생성자인 경우
+              return getCreatorExcludedProjectResponse(userId, project);
+            });
     return response;
   }
 
