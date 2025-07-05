@@ -26,7 +26,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Table(
     indexes = {
       @Index(name = "IDX_SCHEDULE_MEMBER_ID_DELETED_AT", columnList = "member_id, deleted_at"),
-      //      @Index(name = "IDX_SCHEDULE_IS_COMPLETED", columnList = "is_completed")
+      @Index(name = "IDX_SCHEDULE_USER_COMPLETED", columnList = "member_id, is_completed"),
+      @Index(name = "IDX_SCHEDULE_USER_CREATED_AT", columnList = "member_id, created_at")
+      // CREATE INDEX idx_schedule_plan_stats ON schedule(user_id, plan_id, is_completed);
     })
 @Getter
 @NoArgsConstructor
@@ -79,4 +81,8 @@ public class Schedule {
 
   @Column(name = "deleted_at")
   private LocalDateTime deletedAt;
+
+  public boolean isCompleted() {
+    return this.isCompleted;
+  }
 }
