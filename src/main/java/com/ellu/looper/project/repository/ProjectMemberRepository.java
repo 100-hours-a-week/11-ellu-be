@@ -30,6 +30,10 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
   // 특정 프로젝트의 멤버들 조회 (soft-delete 제외)
   List<ProjectMember> findByProjectAndDeletedAtIsNull(Project project);
 
+  @Query(
+      "SELECT pm FROM ProjectMember pm JOIN FETCH pm.user u WHERE pm.project = :project AND pm.deletedAt IS NULL")
+  List<ProjectMember> findByProjectAndDeletedAtIsNullWithUser(@Param("project") Project project);
+
   List<ProjectMember> findByProjectIdAndDeletedAtIsNull(Long projectId);
 
   // 프로젝트 id와 사용자 id로 프로젝트 멤버 조회 (soft-delete 제외)
@@ -40,4 +44,3 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
   // 프로젝트 id와 포지션(BE, FE, CLOUD, etc)으로 해당되는 프로젝트 멤버들 조회 (soft-delete 제외)
   List<ProjectMember> findByProjectIdAndPositionAndDeletedAtIsNull(Long projectId, String position);
 }
-

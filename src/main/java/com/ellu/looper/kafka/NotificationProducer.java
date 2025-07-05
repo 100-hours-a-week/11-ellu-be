@@ -49,6 +49,7 @@ public class NotificationProducer {
 
   public void sendNotification(NotificationMessage event) {
     try {
+      log.info("TRYING TO SEND KAFKA MESSAGE: {}", event.getMessage());
       for (Long userId : event.getReceiverId()) {
         String key = userId.toString();
         String value = objectMapper.writeValueAsString(event);

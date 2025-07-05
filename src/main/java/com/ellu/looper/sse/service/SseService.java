@@ -1,7 +1,7 @@
 package com.ellu.looper.sse.service;
 
 import com.ellu.looper.kafka.dto.NotificationMessage;
-import com.ellu.looper.notification.dto.NotificationDto;
+import com.ellu.looper.notification.dto.NotificationResponse;
 import com.ellu.looper.notification.entity.Notification;
 import java.io.IOException;
 import java.util.Map;
@@ -41,7 +41,7 @@ public class SseService {
       try {
 
         // 로그 출력 추가
-        log.info("Sending SSE notification to user {}: {}", userId, dto);
+        log.info("Sending SSE notification to user {}: {}", userId, dto.getMessage());
 
         emitter.send(SseEmitter.event().name("notification").data(dto));
       } catch (IOException e) {
@@ -53,8 +53,8 @@ public class SseService {
     }
   }
 
-  private NotificationDto notificationToDto(Notification notification) {
-    return NotificationDto.builder()
+  private NotificationResponse notificationToDto(Notification notification) {
+    return NotificationResponse.builder()
         .id(notification.getId())
         .message(renderTemplate(notification.getTemplate().getTemplate(), notification))
         .build();

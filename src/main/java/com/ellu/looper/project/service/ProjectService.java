@@ -3,6 +3,7 @@ package com.ellu.looper.project.service;
 import com.ellu.looper.commons.enums.Color;
 import com.ellu.looper.commons.enums.NotificationType;
 import com.ellu.looper.commons.enums.Role;
+import com.ellu.looper.commons.util.CacheService;
 import com.ellu.looper.fastapi.service.FastApiService;
 import com.ellu.looper.notification.service.NotificationService;
 import com.ellu.looper.project.dto.AddedMember;
@@ -15,10 +16,6 @@ import com.ellu.looper.project.entity.Project;
 import com.ellu.looper.project.entity.ProjectMember;
 import com.ellu.looper.project.repository.ProjectMemberRepository;
 import com.ellu.looper.project.repository.ProjectRepository;
-import com.ellu.looper.schedule.entity.Assignee;
-import com.ellu.looper.schedule.entity.ProjectSchedule;
-import com.ellu.looper.schedule.repository.AssigneeRepository;
-import com.ellu.looper.schedule.repository.ProjectScheduleRepository;
 import com.ellu.looper.user.dto.MemberDto;
 import com.ellu.looper.user.entity.User;
 import com.ellu.looper.user.repository.UserRepository;
@@ -36,8 +33,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Slf4j
 @Service
@@ -47,11 +48,20 @@ public class ProjectService {
   private final ProjectRepository projectRepository;
   private final ProjectMemberRepository projectMemberRepository;
   private final UserRepository userRepository;
-  private final ProjectScheduleRepository projectScheduleRepository;
   private final FastApiService fastApiService;
   private final ProfileImageService profileImageService;
   private final NotificationService notificationService;
-  private final AssigneeRepository assigneeRepository;
+  private final CacheService cacheService;
+  private final RedisTemplate<String, Object> redisTemplate;
+
+  @Value("${cache.project.ttl-seconds}")
+  private long PROJECT_CACHE_TTL_SECONDS;
+
+  @Value("${cache.project.detail-key-prefix}")
+  private String PROJECT_DETAIL_CACHE_KEY_PREFIX;
+
+  @Value("${cache.project.list-key-prefix}")
+  private String PROJECT_LIST_CACHE_KEY_PREFIX;
 
   @Transactional
   public void createProject(ProjectCreateRequest request, Long creatorId) {
@@ -136,116 +146,65 @@ public class ProjectService {
       fastApiService.createWiki(project.getId(), wikiRequest);
     }
 
-    log.info("Sending invitation notification to project members");
-    // 초대 알림 보내기
-    notificationService.sendInvitationNotification(
-        addedUsers, creator, project, request.getAdded_members());
-
+    TransactionSynchronizationManager.registerSynchronization(
+        new TransactionSynchronizationAdapter() {
+          @Override
+          public void afterCommit() {
+            log.info("Sending invitation notification to project members");
+            // 초대 알림 보내기
+            notificationService.sendInvitationNotification(
+                addedUsers, creator, project, request.getAdded_members());
+          }
+        });
     log.info("Project created successfully with ID: {}", project.getId());
+    redisTemplate.delete(PROJECT_LIST_CACHE_KEY_PREFIX + creatorId);
   }
 
   @Transactional(readOnly = true)
   public List<ProjectResponse> getProjects(Long userId) {
-    log.info("Getting projects for user: {}", userId);
+    String cacheKey = PROJECT_LIST_CACHE_KEY_PREFIX + userId;
+    List<ProjectResponse> cached =
+        (List<ProjectResponse>) redisTemplate.opsForValue().get(cacheKey);
+    if (cached != null) {
+      log.info("Cache hit for project list: {}", userId);
+      return cached;
+    }
 
-    // 사용자가 user인 ProjectMember + Project + User를 fetch join으로 한 번에 로딩
-    List<ProjectMember> userProjectMembers =
-        projectMemberRepository.findWithProjectAndUserByUserId(userId);
-
-    // 중복 제거된 프로젝트 리스트 생성
-    List<Project> distinctProjects =
-        userProjectMembers.stream()
-            .map(ProjectMember::getProject)
-            .filter(project -> project.getDeletedAt() == null)
-            .distinct()
-            .collect(Collectors.toList());
-
-    // 프로젝트 ID 리스트 추출
-    List<Long> projectIds =
-        distinctProjects.stream().map(Project::getId).collect(Collectors.toList());
-
-    // 전체 프로젝트의 모든 멤버를 한 번에 fetch join으로 로딩
-    List<ProjectMember> allProjectMembers =
-        projectMemberRepository.findByProjectIdsWithUser(projectIds);
-
-    // projectId로 그룹화
-    Map<Long, List<ProjectMember>> projectMemberMap =
-        allProjectMembers.stream().collect(Collectors.groupingBy(pm -> pm.getProject().getId()));
-
-    List<ProjectResponse> responses =
-        distinctProjects.stream()
-            .map(
-                project -> {
-                  List<ProjectMember> members =
-                      projectMemberMap.getOrDefault(project.getId(), List.of());
-
-                  List<MemberDto> memberDtos =
-                      members.stream()
-                          .map(
-                              pm ->
-                                  new MemberDto(
-                                      pm.getUser().getId(),
-                                      pm.getUser().getNickname(),
-                                      profileImageService.getProfileImageUrl(
-                                          pm.getUser().getFileName()),
-                                      pm.getPosition()))
-                          .collect(Collectors.toList());
-
-                  return new ProjectResponse(
-                      project.getId(),
-                      project.getTitle(),
-                      project.getColor() != null ? project.getColor().name() : "E3EEFC",
-                      memberDtos,
-                      project.getWiki());
-                })
-            .collect(Collectors.toList());
-
+    log.info("Cache miss for project list: {}", userId);
+    List<ProjectResponse> responses = getProjectListResponses(userId);
     log.info("Found {} projects for user: {}", responses.size(), userId);
+    cacheService.setProjectCache(cacheKey, responses, PROJECT_CACHE_TTL_SECONDS);
     return responses;
   }
 
   @Transactional(readOnly = true)
   public CreatorExcludedProjectResponse getProjectDetail(Long projectId, Long userId) {
-    log.info("Getting project details for project: {} and user: {}", projectId, userId);
-    Project project =
-        projectRepository
-            .findByIdAndDeletedAtIsNull(projectId)
-            .orElseThrow(() -> new IllegalArgumentException("Project not found"));
+    String cacheKey = PROJECT_DETAIL_CACHE_KEY_PREFIX + projectId;
+    CreatorExcludedProjectResponse response =
+        cacheService.getWithLock(
+            cacheKey,
+            PROJECT_CACHE_TTL_SECONDS,
+            () -> {
+              log.info("Cache miss for project detail: {}. Loading from DB.", projectId);
+              Project project =
+                  projectRepository
+                      .findByIdAndDeletedAtIsNull(projectId)
+                      .orElseThrow(() -> new IllegalArgumentException("Project not found"));
+              // 프로젝트 생성자가 아닌 경우
+              if (!project.getMember().getId().equals(userId)) {
+                return new CreatorExcludedProjectResponse(
+                    project.getId(),
+                    project.getTitle(),
+                    project.getColor().name(),
+                    null,
+                    null,
+                    null);
+              }
 
-    if (!project.getMember().getId().equals(userId)) {
-      return new CreatorExcludedProjectResponse(
-          project.getId(), project.getTitle(), project.getColor().name(), null, null, null);
-    }
-
-    List<ProjectMember> members = projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
-
-    // 생성자 추출 (ADMIN 역할이면서 userId와 일치하는 사용자)
-    ProjectMember creator =
-        members.stream()
-            .filter(pm -> pm.getRole() == Role.ADMIN && pm.getUser().getId().equals(userId))
-            .findFirst()
-            .orElseThrow(() -> new IllegalStateException("프로젝트 생성자가 존재하지 않습니다."));
-
-    // 생성자 제외한 멤버 리스트 생성
-    List<MemberDto> memberDtos =
-        members.stream()
-            .filter(pm -> !pm.getUser().getId().equals(userId)) // 생성자 제외
-            .map(
-                pm ->
-                    new MemberDto(
-                        pm.getUser().getId(),
-                        pm.getUser().getNickname(),
-                        profileImageService.getProfileImageUrl(pm.getUser().getFileName()),
-                        pm.getPosition()))
-            .collect(Collectors.toList());
-
-    return new CreatorExcludedProjectResponse(
-        project.getId(),
-        project.getTitle(),
-        project.getColor() != null ? project.getColor().name() : "E3EEFC",
-        creator.getPosition(), // 생성자의 position만 포함
-        memberDtos,
-        project.getWiki());
+              // 프로젝트 생성자인 경우
+              return getCreatorExcludedProjectResponse(userId, project);
+            });
+    return response;
   }
 
   @Transactional
@@ -259,35 +218,7 @@ public class ProjectService {
       throw new SecurityException("Only project creator can delete this project");
     }
 
-    Project deltetedProject = project.toBuilder().deletedAt(LocalDateTime.now()).build();
-    projectRepository.save(deltetedProject);
-
-    // delete project schedule assignees
-    List<Assignee> assignees =
-        assigneeRepository.findByProjectIdThroughScheduleAndDeletedAtIsNull(projectId);
-    for (Assignee assignee : assignees) {
-      assignee.softDelete();
-    }
-    assigneeRepository.saveAll(assignees);
-
-    // 프로젝트의 스케줄 삭제
-    List<ProjectSchedule> schedules =
-        projectScheduleRepository.findByProjectAndDeletedAtIsNull(project);
-    for (ProjectSchedule schedule : schedules) {
-      schedule.softDelete();
-    }
-    projectScheduleRepository.saveAll(schedules);
-
-    // 프로젝트 멤버 삭제
     List<ProjectMember> members = projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
-    for (ProjectMember member : members) {
-      member.setDeletedAt(LocalDateTime.now());
-    }
-    projectMemberRepository.saveAll(members);
-
-    // send wiki deletion request to FastApi
-    fastApiService.deleteWiki(projectId);
-
     // send deletion notification
     notificationService.sendProjectNotification(
         NotificationType.PROJECT_DELETED, members, userId, project);
@@ -339,12 +270,15 @@ public class ProjectService {
             .updatedAt(LocalDateTime.now())
             .build();
     projectRepository.save(project);
+    // 캐시 무효화
+    redisTemplate.delete(PROJECT_DETAIL_CACHE_KEY_PREFIX + projectId);
 
     // 멤버 업데이트
-
     // 기존 멤버 목록
     List<ProjectMember> existingMembers =
         projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
+    existingMembers.forEach(
+        member -> redisTemplate.delete(PROJECT_LIST_CACHE_KEY_PREFIX + member.getUser().getId()));
 
     ProjectMember creator =
         existingMembers.stream()
@@ -366,9 +300,12 @@ public class ProjectService {
                 pm ->
                     !pm.getUser().getId().equals(userId)
                         && updatedUsers.stream()
-                        .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
+                            .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
             .collect(Collectors.toList());
-    toRemove.forEach(pm -> pm.setDeletedAt(LocalDateTime.now()));
+    toRemove.forEach(
+        pm -> {
+          pm.setDeletedAt(LocalDateTime.now());
+        });
     projectMemberRepository.saveAll(toRemove);
 
     // send expulsion notification
@@ -426,5 +363,93 @@ public class ProjectService {
     }
 
     log.info("Project updated successfully: {}", projectId);
+  }
+
+  @Transactional(readOnly = true)
+  public CreatorExcludedProjectResponse getCreatorExcludedProjectResponse(
+      Long userId, Project project) {
+    List<ProjectMember> members =
+        projectMemberRepository.findByProjectAndDeletedAtIsNullWithUser(project);
+    ProjectMember creator =
+        members.stream()
+            .filter(pm -> pm.getRole() == Role.ADMIN && pm.getUser().getId().equals(userId))
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("프로젝트 생성자가 존재하지 않습니다."));
+
+    List<MemberDto> memberDtos =
+        members.stream()
+            .filter(pm -> !pm.getUser().getId().equals(userId))
+            .map(
+                pm ->
+                    new MemberDto(
+                        pm.getUser().getId(),
+                        pm.getUser().getNickname(),
+                        profileImageService.getProfileImageUrl(pm.getUser().getFileName()),
+                        pm.getPosition()))
+            .collect(Collectors.toList());
+    CreatorExcludedProjectResponse response =
+        new CreatorExcludedProjectResponse(
+            project.getId(),
+            project.getTitle(),
+            project.getColor() != null ? project.getColor().name() : "E3EEFC",
+            creator.getPosition(),
+            memberDtos,
+            project.getWiki());
+    return response;
+  }
+
+  public List<ProjectResponse> getProjectListResponses(Long userId) {
+    // 사용자가 user인 ProjectMember + Project + User를 fetch join으로 한 번에 로딩
+    List<ProjectMember> userProjectMembers =
+        projectMemberRepository.findWithProjectAndUserByUserId(userId);
+
+    // 중복 제거된 프로젝트 리스트 생성
+    List<Project> distinctProjects =
+        userProjectMembers.stream()
+            .map(ProjectMember::getProject)
+            .filter(project -> project.getDeletedAt() == null)
+            .distinct()
+            .collect(Collectors.toList());
+
+    // 프로젝트 ID 리스트 추출
+    List<Long> projectIds =
+        distinctProjects.stream().map(Project::getId).collect(Collectors.toList());
+
+    // 전체 프로젝트의 모든 멤버를 한 번에 fetch join으로 로딩
+    List<ProjectMember> allProjectMembers =
+        projectMemberRepository.findByProjectIdsWithUser(projectIds);
+
+    // projectId로 그룹화
+    Map<Long, List<ProjectMember>> projectMemberMap =
+        allProjectMembers.stream().collect(Collectors.groupingBy(pm -> pm.getProject().getId()));
+
+    List<ProjectResponse> responses =
+        distinctProjects.stream()
+            .map(
+                project -> {
+                  List<ProjectMember> members =
+                      projectMemberMap.getOrDefault(project.getId(), List.of());
+
+                  List<MemberDto> memberDtos =
+                      members.stream()
+                          .map(
+                              pm ->
+                                  new MemberDto(
+                                      pm.getUser().getId(),
+                                      pm.getUser().getNickname(),
+                                      profileImageService.getProfileImageUrl(
+                                          pm.getUser().getFileName()),
+                                      pm.getPosition()))
+                          .collect(Collectors.toList());
+
+                  return new ProjectResponse(
+                      project.getId(),
+                      project.getTitle(),
+                      project.getColor() != null ? project.getColor().name() : "E3EEFC",
+                      memberDtos,
+                      project.getWiki());
+                })
+            .collect(Collectors.toList());
+    return responses;
   }
 }

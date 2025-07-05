@@ -3,7 +3,7 @@ package com.ellu.looper.notification.controller;
 import com.ellu.looper.commons.ApiResponse;
 import com.ellu.looper.commons.CurrentUser;
 import com.ellu.looper.notification.dto.InvitationProcessRequest;
-import com.ellu.looper.notification.dto.NotificationDto;
+import com.ellu.looper.notification.dto.NotificationResponse;
 import com.ellu.looper.notification.service.NotificationService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -23,17 +23,17 @@ public class NotificationController {
   private final NotificationService notificationService;
 
   @GetMapping
-  public ApiResponse<List<NotificationDto>> getNotifications(@CurrentUser Long userId) {
+  public ApiResponse<List<NotificationResponse>> getNotifications(@CurrentUser Long userId) {
     return ApiResponse.success(
         "notifications_fetched", notificationService.getNotifications(userId));
   }
 
   @PatchMapping("/{id}")
-  public ApiResponse<NotificationDto> respondToInvitation(
+  public ApiResponse<NotificationResponse> respondToInvitation(
       @PathVariable Long id,
       @CurrentUser Long userId,
       @RequestBody @Valid InvitationProcessRequest request) {
-    NotificationDto notificationDto =
+    NotificationResponse notificationDto =
         notificationService.respondToInvitation(id, userId, request.getInviteStatus());
     return ApiResponse.success("invitation_processed", notificationDto);
   }
