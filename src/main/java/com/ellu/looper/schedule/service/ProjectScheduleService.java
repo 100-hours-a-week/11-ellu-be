@@ -18,6 +18,7 @@ import com.ellu.looper.project.repository.ProjectMemberRepository;
 import com.ellu.looper.project.repository.ProjectRepository;
 import com.ellu.looper.schedule.dto.AssigneeDto;
 import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest;
+import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest.ProjectScheduleDto;
 import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
 import com.ellu.looper.schedule.dto.StompProjectScheduleUpdateRequest;
 import com.ellu.looper.schedule.entity.Assignee;
@@ -155,11 +156,10 @@ public class ProjectScheduleService {
           schedule);
     }
 
-    //    List<ProjectScheduleDto> projectSchedules = request.getProject_schedules();
-    //    if (request.getAi_recommended() && projectSchedules != null &&
-    // !projectSchedules.isEmpty()) {
-    //      fastApiService.sendSelectionResult(projectId, request.getProject_schedules());
-    //    }
+    List<ProjectScheduleDto> projectSchedules = request.getProject_schedules();
+    if (request.getAi_recommended() && projectSchedules != null && !projectSchedules.isEmpty()) {
+      fastApiService.sendSelectionResult(projectId, request.getProject_schedules());
+    }
     return responses;
   }
 
