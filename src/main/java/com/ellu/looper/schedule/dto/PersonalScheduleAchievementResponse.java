@@ -1,4 +1,4 @@
 package com.ellu.looper.schedule.dto;
 
 public record PersonalScheduleAchievementResponse(
-    Long totalSchedules, Long completedSchedules, double achievementRate) {}
+    Long total_schedules, Long completed_schedules, double achievement_rate) {}
