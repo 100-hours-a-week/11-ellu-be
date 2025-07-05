@@ -3,6 +3,7 @@ package com.ellu.looper.kafka;
 import static com.ellu.looper.commons.util.CacheService.addJitter;
 
 import com.ellu.looper.commons.enums.Role;
+import com.ellu.looper.commons.util.CacheService;
 import com.ellu.looper.fastapi.service.FastApiService;
 import com.ellu.looper.kafka.dto.NotificationMessage;
 import com.ellu.looper.notification.dto.NotificationDto;
@@ -68,6 +69,7 @@ public class NotificationConsumer implements Runnable {
   private final AssigneeRepository assigneeRepository;
   private final FastApiService fastApiService;
   private final RedisTemplate<String, Object> redisTemplate;
+  private final CacheService cacheService;
 
   @Value("${spring.kafka.bootstrap-servers}")
   private String bootstrapServers;
@@ -255,20 +257,16 @@ public class NotificationConsumer implements Runnable {
                   projectService.getProjectListResponses(
                       originalNotification.getReceiver().getId());
 
-              long ttlWithJitter = addJitter(PROJECT_CACHE_TTL_SECONDS, 0.001);
               String projectMemberCacheKey = PROJECT_LIST_CACHE_KEY_PREFIX + pm.getUser().getId();
-              redisTemplate
-                  .opsForValue()
-                  .set(projectMemberCacheKey, projectListDto, ttlWithJitter, TimeUnit.HOURS);
+              cacheService.setProjectCache(projectMemberCacheKey, projectListDto, PROJECT_CACHE_TTL_SECONDS);
             });
 
         // Redis에 해당 프로젝트 정보 업데이트
         CreatorExcludedProjectResponse projectDto =
             projectService.getCreatorExcludedProjectResponse(project.getMember().getId(), project);
 
-        long ttlWithJitter = addJitter(PROJECT_CACHE_TTL_SECONDS, 0.001);
         String projectCacheKey = PROJECT_DETAIL_CACHE_KEY_PREFIX + project.getId();
-        redisTemplate.opsForValue().set(projectCacheKey, projectDto, ttlWithJitter, TimeUnit.HOURS);
+        cacheService.setProjectCache(projectCacheKey, projectDto, PROJECT_CACHE_TTL_SECONDS);
 
       } else if (event.getType().equals("PROJECT_EXPELLED")) {
         // Redis에 프로젝트 멤버들의 프로젝트 리스트 업데이트
@@ -280,11 +278,7 @@ public class NotificationConsumer implements Runnable {
                   projectService.getProjectListResponses(notification.getSender().getId());
 
               String projectMemberCacheKey = PROJECT_LIST_CACHE_KEY_PREFIX + pm.getUser().getId();
-
-              long ttlWithJitter = addJitter(PROJECT_CACHE_TTL_SECONDS, 0.001);
-              redisTemplate
-                  .opsForValue()
-                  .set(projectMemberCacheKey, projectListDto, ttlWithJitter, TimeUnit.HOURS);
+              cacheService.setProjectCache(projectMemberCacheKey, projectListDto, PROJECT_CACHE_TTL_SECONDS);
             });
 
         // Redis에 해당 프로젝트 정보 업데이트
@@ -292,8 +286,7 @@ public class NotificationConsumer implements Runnable {
             projectService.getCreatorExcludedProjectResponse(project.getMember().getId(), project);
         String projectCacheKey = PROJECT_DETAIL_CACHE_KEY_PREFIX + project.getId();
 
-        long ttlWithJitter = addJitter(PROJECT_CACHE_TTL_SECONDS, 0.001);
-        redisTemplate.opsForValue().set(projectCacheKey, projectDto, ttlWithJitter, TimeUnit.HOURS);
+        cacheService.setProjectCache(projectCacheKey, projectDto, PROJECT_CACHE_TTL_SECONDS);
 
       } else if (event.getType().equals("PROJECT_DELETED")) {
         Project deletedProject = project.toBuilder().deletedAt(LocalDateTime.now()).build();

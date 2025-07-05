@@ -1,10 +1,9 @@
 package com.ellu.looper.project.service;
 
-import static com.ellu.looper.commons.util.CacheService.addJitter;
-
 import com.ellu.looper.commons.enums.Color;
 import com.ellu.looper.commons.enums.NotificationType;
 import com.ellu.looper.commons.enums.Role;
+import com.ellu.looper.commons.util.CacheService;
 import com.ellu.looper.fastapi.service.FastApiService;
 import com.ellu.looper.notification.service.NotificationService;
 import com.ellu.looper.project.dto.AddedMember;
@@ -53,6 +52,7 @@ public class ProjectService {
   private final FastApiService fastApiService;
   private final ProfileImageService profileImageService;
   private final NotificationService notificationService;
+  private final CacheService cacheService;
   private final RedisTemplate<String, Object> redisTemplate;
 
   @Value("${cache.project.ttl-seconds}")
@@ -172,49 +172,34 @@ public class ProjectService {
     }
 
     log.info("Cache miss for project list: {}", userId);
-
     List<ProjectResponse> responses = getProjectListResponses(userId);
-
     log.info("Found {} projects for user: {}", responses.size(), userId);
-
-    long ttlWithJitter = addJitter(PROJECT_CACHE_TTL_SECONDS, 0.001);
-    redisTemplate.opsForValue().set(cacheKey, responses, ttlWithJitter, TimeUnit.HOURS);
+    cacheService.setProjectCache(cacheKey, responses, PROJECT_CACHE_TTL_SECONDS);
     return responses;
   }
 
   @Transactional(readOnly = true)
   public CreatorExcludedProjectResponse getProjectDetail(Long projectId, Long userId) {
     String cacheKey = PROJECT_DETAIL_CACHE_KEY_PREFIX + projectId;
-    CreatorExcludedProjectResponse cached =
-        (CreatorExcludedProjectResponse) redisTemplate.opsForValue().get(cacheKey);
-    if (cached != null) {
-      log.info("Cache hit for project detail: {}", projectId);
-      return cached;
-    }
+    CreatorExcludedProjectResponse response = cacheService.getWithLock(
+        cacheKey,
+        PROJECT_CACHE_TTL_SECONDS,
+        ()-> {
+          log.info("Cache miss for project detail: {}. Loading from DB.", projectId);
+          Project project =
+              projectRepository
+                  .findByIdAndDeletedAtIsNull(projectId)
+                  .orElseThrow(() -> new IllegalArgumentException("Project not found"));
+          // 프로젝트 생성자가 아닌 경우
+          if (!project.getMember().getId().equals(userId)) {
+            return new CreatorExcludedProjectResponse(
+                    project.getId(), project.getTitle(), project.getColor().name(), null, null, null);
+          }
 
-    log.info("Cache miss for project detail: {}. Loading from DB.", projectId);
-    Project project =
-        projectRepository
-            .findByIdAndDeletedAtIsNull(projectId)
-            .orElseThrow(() -> new IllegalArgumentException("Project not found"));
-
-    // 프로젝트 생성자가 아닌 경우
-    if (!project.getMember().getId().equals(userId)) {
-      CreatorExcludedProjectResponse response =
-          new CreatorExcludedProjectResponse(
-              project.getId(), project.getTitle(), project.getColor().name(), null, null, null);
-
-      long ttlWithJitter = addJitter(PROJECT_CACHE_TTL_SECONDS, 0.001);
-      redisTemplate.opsForValue().set(cacheKey, response, ttlWithJitter, TimeUnit.HOURS);
-      return response;
-    }
-
-    // 프로젝트 생성자인 경우
-    CreatorExcludedProjectResponse response = getCreatorExcludedProjectResponse(userId, project);
-    // redis에 프로젝트 정보 캐싱
-
-    long ttlWithJitter = addJitter(PROJECT_CACHE_TTL_SECONDS, 0.001);
-    redisTemplate.opsForValue().set(cacheKey, response, ttlWithJitter, TimeUnit.HOURS);
+          // 프로젝트 생성자인 경우
+          return getCreatorExcludedProjectResponse(userId, project);
+        }
+    );
     return response;
   }
 

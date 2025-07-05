@@ -1,9 +1,8 @@
 package com.ellu.looper.notification.service;
 
-import static com.ellu.looper.commons.util.CacheService.addJitter;
-
 import com.ellu.looper.commons.enums.InviteStatus;
 import com.ellu.looper.commons.enums.NotificationType;
+import com.ellu.looper.commons.util.CacheService;
 import com.ellu.looper.kafka.NotificationProducer;
 import com.ellu.looper.kafka.dto.NotificationMessage;
 import com.ellu.looper.notification.dto.NotificationDto;
@@ -23,7 +22,6 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,18 +42,13 @@ public class NotificationService {
   private final NotificationTemplateRepository notificationTemplateRepository;
   private final NotificationProducer notificationProducer;
   private final RedisTemplate<String, Object> redisTemplate;
+  private final CacheService cacheService;
 
   @Value("${cache.notification.ttl-seconds}")
   private long NOTIFICATION_CACHE_TTL_SECONDS;
 
   @Value("${cache.notification.user-key-prefix}")
   private String NOTIFICATION_CACHE_KEY_PREFIX;
-
-  @Value("${cache.project.detail-key-prefix}")
-  private String PROJECT_DETAIL_CACHE_KEY_PREFIX;
-
-  @Value("${cache.project.list-key-prefix}")
-  private String PROJECT_LIST_CACHE_KEY_PREFIX;
 
   @Transactional
   public void softDeleteOldNotifications() {
@@ -150,8 +143,7 @@ public class NotificationService {
 
     List<NotificationDto> notificationDtoList =
         notifications.stream().map(this::toDto).collect(Collectors.toList());
-    long ttlWithJitter = addJitter(NOTIFICATION_CACHE_TTL_SECONDS, 0.1);
-    redisTemplate.opsForValue().set(cacheKey, notificationDtoList, ttlWithJitter, TimeUnit.MINUTES);
+    cacheService.setNotificationCache(cacheKey, notificationDtoList, NOTIFICATION_CACHE_TTL_SECONDS);
     return notificationResponseList;
   }
 
@@ -275,10 +267,7 @@ public class NotificationService {
             notification.getReceiver().getId());
 
     List<NotificationDto> receiverDtoList = toDtoList(receiverNotifications);
-    long ttlWithJitter = addJitter(NOTIFICATION_CACHE_TTL_SECONDS, 0.1);
-    redisTemplate
-        .opsForValue()
-        .set(receiverCacheKey, receiverDtoList, ttlWithJitter, TimeUnit.MINUTES);
+    cacheService.setNotificationCache(receiverCacheKey, receiverDtoList, NOTIFICATION_CACHE_TTL_SECONDS);
 
     // 초대 요청한 사람의 알림 Redis 저장 (write-through cache)
     String senderCacheKey = NOTIFICATION_CACHE_KEY_PREFIX + notification.getSender().getId();
@@ -288,8 +277,7 @@ public class NotificationService {
             notification.getSender().getId());
 
     List<NotificationDto> senderDtoList = toDtoList(senderNotifications);
-    ttlWithJitter = addJitter(NOTIFICATION_CACHE_TTL_SECONDS, 0.1);
-    redisTemplate.opsForValue().set(senderCacheKey, senderDtoList, ttlWithJitter, TimeUnit.MINUTES);
+    cacheService.setNotificationCache(senderCacheKey, senderDtoList, NOTIFICATION_CACHE_TTL_SECONDS);
 
     Project project = notification.getProject();
 
