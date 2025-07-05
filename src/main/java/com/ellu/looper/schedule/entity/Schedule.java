@@ -79,4 +79,8 @@ public class Schedule {
 
   @Column(name = "deleted_at")
   private LocalDateTime deletedAt;
+
+  public boolean isCompleted() {
+    return this.isCompleted;
+  }
 }

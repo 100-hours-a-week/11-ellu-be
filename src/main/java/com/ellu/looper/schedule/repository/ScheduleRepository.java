@@ -35,4 +35,6 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
       @Param("end") LocalDateTime end);
 
   Optional<Schedule> findByIdAndUserIdAndDeletedAtIsNull(Long id, Long userId);
+
+  List<Schedule> findByUserIdAndDeletedAtIsNull(Long userId);
 }
