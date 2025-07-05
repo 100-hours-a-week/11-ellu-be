@@ -13,19 +13,6 @@ spring:
     init:
       mode: never
   jpa:
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        highlight_sql: true
-        use_sql_comments: true
-        generate_statistics: true
-        session:
-          events:
-            log:
-              LOG_QUERIES_SLOWER_THAN_MS:
-                10
-    generate-ddl: false
     hibernate:
       ddl-auto: update
   jackson:
@@ -43,6 +30,11 @@ spring:
     streams:
       bootstrap-servers: ${KAFKA_BASE_URL:localhost:9092}
       application-id: looper-streams-app
+  data:
+    redis:
+      host: ${REDIS_HOSTNAME:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
 
 server:
   forward-headers-strategy: framework
@@ -118,13 +110,17 @@ kafka:
     group-id: chat-group
     preview-group-id: preview-consumer-group
 
+cache:
+  project:
+    ttl-seconds: 10800
+    detail-key-prefix: "project:"
+    list-key-prefix: "projects:user:"
+  notification:
+    ttl-seconds: 600
+    user-key-prefix: "notifications:user:"
 
 info:
   app:
     name: ${spring.application.name}
     version: 1.0.1
     description: Looper API 서버
-
-#logging:
-#  level:
-#    com.zaxxer.hikari: DEBUG
