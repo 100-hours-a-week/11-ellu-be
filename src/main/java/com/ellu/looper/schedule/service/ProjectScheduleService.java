@@ -121,11 +121,6 @@ public class ProjectScheduleService {
     List<ProjectScheduleResponse> responses = new ArrayList<>();
 
     for (ProjectScheduleCreateRequest.ProjectScheduleDto dto : request.getProject_schedules()) {
-      // match by project id and position
-      List<ProjectMember> matchedMembers =
-          projectMemberRepository.findByProjectIdAndPositionAndDeletedAtIsNull(
-              projectId, dto.getPosition());
-
       ProjectSchedule schedule =
           ProjectSchedule.builder()
               .project(project)
@@ -138,19 +133,18 @@ public class ProjectScheduleService {
               .position(dto.getPosition())
               .build();
 
-      for (ProjectMember member : matchedMembers) {
-        Assignee assignee = Assignee.builder().user(member.getUser()).build();
-        schedule.addAssignee(assignee);
-      }
-
       schedule = projectScheduleRepository.save(schedule);
 
       responses.add(toResponse(schedule));
 
+      // get project members
+      List<ProjectMember> projectMembers =
+          projectMemberRepository.findByProjectIdAndDeletedAtIsNull(projectId);
+
       // Send schedule creation notification
       sendScheduleNotification(
           NotificationType.SCHEDULE_CREATED,
-          matchedMembers.stream().map(ProjectMember::getUser).toList(),
+          projectMembers.stream().map(ProjectMember::getUser).toList(),
           userId,
           project,
           schedule);
