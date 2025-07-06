@@ -198,55 +198,79 @@ public class FastApiService {
   }
 
   public void sendSelectionResult(Long projectId, List<ProjectScheduleDto> projectSchedules) {
+
+    Map<String, Map<String, Set<String>>> groupedSchedules =
+        groupSchedulesByPositionAndTask(projectSchedules);
+    List<SchedulePreview> content = convertGroupedSchedulesToPreviews(groupedSchedules);
+    TaskSelectionResultRequest request = new TaskSelectionResultRequest(content);
+
+    log.info("Sending task selection result to AI server for project {}", projectId);
+    log.info("Request content: {}", content);
+
+    sendRequestToFastApi(projectId, request);
+  }
+
+  private Map<String, Map<String, Set<String>>> groupSchedulesByPositionAndTask(
+      List<ProjectScheduleDto> projectSchedules) {
     Map<String, Map<String, Set<String>>> grouped = new ConcurrentHashMap<>();
 
-    projectSchedules.forEach(
-        dto -> {
-          String position = dto.getPosition();
-          String task = dto.getTitle();
-          String subtask = dto.getDescription();
+    projectSchedules.stream()
+        .filter(this::isValidSchedule)
+        .forEach(schedule -> addToGroupedSchedules(grouped, schedule));
 
-          if (position == null || task == null || subtask == null) return;
+    return grouped;
+  }
 
-          grouped
-              .computeIfAbsent(position, k -> new ConcurrentHashMap<>())
-              .computeIfAbsent(task, k -> ConcurrentHashMap.newKeySet())
-              .add(subtask);
-        });
+  private boolean isValidSchedule(ProjectScheduleDto schedule) {
+    return schedule.getPosition() != null
+        && schedule.getTitle() != null
+        && schedule.getDescription() != null;
+  }
 
-    List<SchedulePreview> content =
-        grouped.entrySet().stream()
-            .flatMap(
-                positionEntry ->
-                    positionEntry.getValue().entrySet().stream()
-                        .map(
-                            taskEntry ->
-                                new SchedulePreview(
-                                    positionEntry.getKey(),
-                                    taskEntry.getKey(),
-                                    new ArrayList<>(taskEntry.getValue()))))
-            .toList();
-    TaskSelectionResultRequest request = new TaskSelectionResultRequest(projectId, content);
+  private void addToGroupedSchedules(
+      Map<String, Map<String, Set<String>>> grouped, ProjectScheduleDto schedule) {
+    String position = schedule.getPosition();
+    String task = schedule.getTitle();
+    String subtask = schedule.getDescription();
 
+    grouped
+        .computeIfAbsent(position, k -> new ConcurrentHashMap<>())
+        .computeIfAbsent(task, k -> ConcurrentHashMap.newKeySet())
+        .add(subtask);
+  }
+
+  private List<SchedulePreview> convertGroupedSchedulesToPreviews(
+      Map<String, Map<String, Set<String>>> groupedSchedules) {
+    return groupedSchedules.entrySet().stream()
+        .flatMap(
+            positionEntry ->
+                positionEntry.getValue().entrySet().stream()
+                    .map(taskEntry -> createSchedulePreview(positionEntry.getKey(), taskEntry)))
+        .toList();
+  }
+
+  private SchedulePreview createSchedulePreview(
+      String position, Map.Entry<String, Set<String>> taskEntry) {
+    return new SchedulePreview(position, taskEntry.getKey(), new ArrayList<>(taskEntry.getValue()));
+  }
+
+  private void sendRequestToFastApi(Long projectId, TaskSelectionResultRequest request) {
     fastApiSummaryWebClient
         .post()
-        .uri(uriBuilder -> uriBuilder.path("/projects/{projectId}/notes/results").build(projectId))
+        .uri(uriBuilder -> uriBuilder.path("/projects/{projectId}/insert").build(projectId))
         .contentType(MediaType.APPLICATION_JSON)
         .bodyValue(request)
         .retrieve()
         .bodyToMono(Void.class)
         .timeout(Duration.ofMinutes(10))
         .doOnSuccess(
-            response -> {
-              log.info("Successfully sent selected result for project {}.", projectId);
-            })
+            response -> log.info("Successfully sent selected result for project {}.", projectId))
         .doOnError(
-            error -> {
-              log.error(
-                  "Failed to send selected result for project {}, error: {}",
-                  projectId,
-                  error.getMessage());
-            })
+            error ->
+                log.error(
+                    "Failed to send selected result for project {}, error: {}",
+                    projectId,
+                    error.getMessage()))
         .subscribe();
   }
 }
