@@ -1,7 +1,6 @@
 package com.ellu.looper.schedule.service;
 
 import com.ellu.looper.exception.ValidationException;
-import com.ellu.looper.fastapi.service.FastApiService;
 import com.ellu.looper.schedule.dto.PlanCreateRequest;
 import com.ellu.looper.schedule.dto.ScheduleCreateRequest;
 import com.ellu.looper.schedule.dto.ScheduleResponse;
@@ -33,7 +32,6 @@ public class ScheduleService {
   private final ScheduleRepository scheduleRepository;
   private final UserRepository memberRepository;
   private final PlanRepository planRepository;
-  private final FastApiService fastApiService;
 
   private void validateTimeOrder(LocalDateTime startTime, LocalDateTime endTime) {
     if (endTime.isEqual(startTime) || endTime.isBefore(startTime)) {
@@ -114,7 +112,7 @@ public class ScheduleService {
     }
 
     List<ScheduleResponse> responses = new ArrayList<>();
-    Plan plan = Plan.builder().user(user).title(request.getPlan_title()).build();
+    Plan plan = Plan.builder().user(user).title(request.getPlan_title()).category(request.getCategory()).build();
     plan = planRepository.save(plan);
 
     List<Schedule> schedulesToSave = new ArrayList<>();

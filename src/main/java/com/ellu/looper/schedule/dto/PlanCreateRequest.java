@@ -24,7 +24,7 @@ public class PlanCreateRequest {
 
   @NotNull private String plan_title;
 
-  private String color;
+  private String category;
 
   @Getter
   @Builder
