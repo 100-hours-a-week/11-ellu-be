@@ -75,6 +75,7 @@ public class SseEmitterService {
   public void sendSchedulePreview(
       String userId,
       String taskTitle,
+      String category,
       String subtaskTitle,
       String startTime,
       String endTime,
@@ -85,6 +86,7 @@ public class SseEmitterService {
         // JSON 객체 생성을 위해 ObjectMapper 사용
         ObjectNode rootNode = objectMapper.createObjectNode();
         rootNode.put("task_title", taskTitle);
+        rootNode.put("category", category);
 
         ArrayNode schedulePreviewArray = objectMapper.createArrayNode();
         ObjectNode subtaskObject = objectMapper.createObjectNode();

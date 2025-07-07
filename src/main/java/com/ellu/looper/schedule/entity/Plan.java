@@ -35,6 +35,9 @@ public class Plan {
   @Column(length = 100)
   private String title;
 
+  @Column(length = 100)
+  private String category;
+
   @Column(name = "created_at", nullable = false, updatable = false)
   private LocalDateTime createdAt;
 
