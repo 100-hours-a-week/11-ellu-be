@@ -61,31 +61,16 @@ public class ChatService {
     LocalDateTime start = request.start();
     LocalDateTime end = request.end();
 
-    // 필수 아님
     String keyword = request.task_title_keyword();
     String category = request.category();
 
     List<RelatedScheduleResponse> response = new ArrayList<>();
-    // title, description에 keyword가 들어간 스케줄을 모두 반환
-    List<Schedule> keywordSchedules =
-        scheduleRepository.findRelatedSchedules(userId, start, end, keyword);
-    for (Schedule schedule : keywordSchedules) {
-      response.add(
-          new RelatedScheduleResponse(
-              schedule.getTitle(),
-              schedule.getDescription(),
-              schedule.getStartTime(),
-              schedule.getEndTime()));
-    }
 
-    // plan중에 category가 같고 created_at가 start이후인 plan 조회
-    List<Plan> relatedPlans =
-        planRepository.findByUserIdAndCategoryAndCreatedAtAfterAndCreatedAtBefore(
-            userId, category, start, end);
-    // 해당 플랜에 관련된 스케줄을 모두 반환
-    for (Plan plan : relatedPlans) {
-      List<Schedule> schedules = scheduleRepository.findPlanSchedules(plan.getId(), start, end);
-      for (Schedule schedule : schedules) {
+    // title, description에 keyword가 들어간 스케줄을 모두 반환
+    if (keyword != null) {
+      List<Schedule> keywordSchedules =
+          scheduleRepository.findRelatedSchedules(userId, start, end, keyword);
+      for (Schedule schedule : keywordSchedules) {
         response.add(
             new RelatedScheduleResponse(
                 schedule.getTitle(),
@@ -94,6 +79,36 @@ public class ChatService {
                 schedule.getEndTime()));
       }
     }
+    if (category != null) {
+      // plan중에 category가 같고 created_at가 start이후인 plan 조회
+      List<Plan> relatedPlans =
+          planRepository.findByUserIdAndCategoryAndCreatedAtAfterAndCreatedAtBefore(
+              userId, category, start, end);
+      // 해당 플랜에 관련된 스케줄을 모두 반환
+      for (Plan plan : relatedPlans) {
+        List<Schedule> schedules = scheduleRepository.findPlanSchedules(plan.getId(), start, end);
+        for (Schedule schedule : schedules) {
+          response.add(
+              new RelatedScheduleResponse(
+                  schedule.getTitle(),
+                  schedule.getDescription(),
+                  schedule.getStartTime(),
+                  schedule.getEndTime()));
+        }
+      }
+    }
+    if (keyword == null && category == null) {
+      List<Schedule> allSchedules = scheduleRepository.findSchedulesBetween(userId, start, end);
+      for (Schedule schedule : allSchedules) {
+        response.add(
+            new RelatedScheduleResponse(
+                schedule.getTitle(),
+                schedule.getDescription(),
+                schedule.getStartTime(),
+                schedule.getEndTime()));
+      }
+    }
+
     return response.stream().distinct().collect(Collectors.toList());
   }
 }

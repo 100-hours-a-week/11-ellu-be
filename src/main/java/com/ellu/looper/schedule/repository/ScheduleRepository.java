@@ -74,9 +74,12 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
           + "WHERE s.user.id = :userId "
           + "AND s.deletedAt IS NULL "
           + "AND s.startTime <=:end "
-          + "AND s.endTime>= :start"
-          + "AND (s.title LIKE %:keyword% "
-          + "OR s.description LIKE %:keyword%)")
+          + "AND s.endTime>= :start "
+          + "AND (s.title LIKE CONCAT('%', :keyword, '%') "
+          + "OR s.description LIKE CONCAT('%', :keyword, '%'))")
+
+  //  AND (s.title LIKE CONCAT('%', :keyword, '%') "
+  //      + "OR s.description LIKE CONCAT('%', :keyword, '%'))
   List<Schedule> findRelatedSchedules(
       @Param("userId") Long userId,
       @Param("start") LocalDateTime start,

@@ -112,7 +112,12 @@ public class ScheduleService {
     }
 
     List<ScheduleResponse> responses = new ArrayList<>();
-    Plan plan = Plan.builder().user(user).title(request.getPlan_title()).category(request.getCategory()).build();
+    Plan plan =
+        Plan.builder()
+            .user(user)
+            .title(request.getPlan_title())
+            .category(request.getCategory())
+            .build();
     plan = planRepository.save(plan);
 
     List<Schedule> schedulesToSave = new ArrayList<>();
