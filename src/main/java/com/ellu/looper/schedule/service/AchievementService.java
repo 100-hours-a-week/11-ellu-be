@@ -21,11 +21,11 @@ public class AchievementService {
   private final ScheduleRepository scheduleRepository;
   private final PlanRepository planRepository;
 
-  // 지난 30일간 일 단위로 생성한 일정의 개수 조회
+  // 지난 3달 간 일 단위로 생성한 일정의 개수 조회
   public List<DailyAchievementResponse> getDailyAchievement(Long userId) {
     List<DailyAchievementResponse> response = new ArrayList<>();
     LocalDate endDate = LocalDate.now();
-    LocalDate startDate = endDate.minusDays(29);
+    LocalDate startDate = endDate.minusMonths(3);
 
     List<Object[]> dailyCounts =
         scheduleRepository.countSchedulesByDateRange(
@@ -39,7 +39,7 @@ public class AchievementService {
       countMap.put(date, count);
     }
 
-    // 30일간의 모든 날짜에 대해 응답 생성 (0개인 날도 포함)
+    // 3달 간의 모든 날짜에 대해 응답 생성 (0개인 날도 포함)
     for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
       Long count = countMap.getOrDefault(date, 0L);
       response.add(
