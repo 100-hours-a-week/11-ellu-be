@@ -36,7 +36,6 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
   Optional<Schedule> findByIdAndUserIdAndDeletedAtIsNull(Long id, Long userId);
 
-
   @Query(
       "SELECT COUNT(s) FROM Schedule s " + "WHERE s.user.id = :userId " + "AND s.deletedAt IS NULL")
   Long countByUserIdAndDeletedAtIsNull(@Param("userId") Long userId);
@@ -69,4 +68,29 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
           + "AND s.plan IS NOT NULL "
           + "GROUP BY s.plan.id")
   List<Object[]> getPlanAchievementStats(@Param("userId") Long userId);
+
+  @Query(
+      "SELECT s FROM Schedule s "
+          + "WHERE s.user.id = :userId "
+          + "AND s.deletedAt IS NULL "
+          + "AND s.startTime <=:end "
+          + "AND s.endTime>= :start"
+          + "AND (s.title LIKE %:keyword% "
+          + "OR s.description LIKE %:keyword%)")
+  List<Schedule> findRelatedSchedules(
+      @Param("userId") Long userId,
+      @Param("start") LocalDateTime start,
+      @Param("end") LocalDateTime end,
+      @Param("keyword") String keyword);
+
+  @Query(
+      "SELECT s FROM Schedule s "
+          + "WHERE s.plan.id = :planId "
+          + "AND s.deletedAt IS NULL "
+          + "AND s.startTime <=:end "
+          + "AND s.endTime>= :start")
+  List<Schedule> findPlanSchedules(
+      @Param("planId") Long planId,
+      @Param("start") LocalDateTime start,
+      @Param("end") LocalDateTime end);
 }
