@@ -109,7 +109,7 @@ public class KafkaStreamsConfig {
               }
 
               sseEmitterService.sendSchedulePreview(
-                  key, planTitle, subtaskTitle, startTime, endTime, done);
+                  key, planTitle, category, subtaskTitle, startTime, endTime, done);
 
             } else { // 일반적인 대화 메시지
               String token = dataNode.get("token").asText();

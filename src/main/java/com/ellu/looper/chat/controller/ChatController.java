@@ -2,6 +2,8 @@ package com.ellu.looper.chat.controller;
 
 import com.ellu.looper.chat.dto.ChatMessageResponse;
 import com.ellu.looper.chat.dto.MessageRequest;
+import com.ellu.looper.chat.dto.RelatedScheduleRequest;
+import com.ellu.looper.chat.dto.RelatedScheduleResponse;
 import com.ellu.looper.chat.service.ChatService;
 import com.ellu.looper.commons.ApiResponse;
 import com.ellu.looper.commons.CurrentUser;
@@ -31,5 +33,12 @@ public class ChatController {
   public ResponseEntity<ApiResponse<?>> getRecentHistory(@CurrentUser Long userId) {
     List<ChatMessageResponse> history = chatService.getRecentHistory(userId);
     return ResponseEntity.ok(ApiResponse.success("history_fetched", Map.of("history", history)));
+  }
+
+  @PostMapping("/query")
+  public ResponseEntity<ApiResponse<?>> getRelatedSchedules(
+      @RequestBody RelatedScheduleRequest request) {
+    List<RelatedScheduleResponse> relatedSchedules = chatService.getRelatedSchedules(request);
+    return ResponseEntity.ok(ApiResponse.success("calendar_query_result", relatedSchedules));
   }
 }

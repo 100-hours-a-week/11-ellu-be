@@ -37,7 +37,8 @@ public class SecurityConfig {
                         "/ai-callback/**",
                         "/sse/**",
                         "/admin/**",
-                        "/connect/**")
+                        "/connect/**",
+                        "/chat/query")
                     .permitAll()
                     .requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll() // Preflight 요청 허용

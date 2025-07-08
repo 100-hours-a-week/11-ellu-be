@@ -36,7 +36,7 @@ public class StompController {
       Message<?> headers) {
     Long scheduleId = deleteRequest.schedule_id();
     Long userId = extractUserId(headers);
-    stompService.deleteSchedule(projectId, scheduleId, deleteRequest, userId);
+    stompService.deleteSchedule(projectId, scheduleId, userId);
   }
 
   @MessageMapping("/{projectId}/create")

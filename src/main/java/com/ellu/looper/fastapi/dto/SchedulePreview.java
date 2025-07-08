@@ -1,21 +1,23 @@
 package com.ellu.looper.fastapi.dto;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
-// AI 서버 응답
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
-@Builder(toBuilder = true)
-public class MeetingNoteResponse {
+@ToString
+public class SchedulePreview {
+  @JsonProperty("position")
+  private String position;
 
-  @JsonProperty("message")
-  private String message;
+  @JsonProperty("task")
+  private String task;
 
-  @JsonProperty("detail")
-  private List<SchedulePreview> detail;
+  @JsonProperty("subtasks")
+  private List<String> subtasks;
 }
