@@ -1,3 +1,42 @@
+# [1.4.0](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.3.0...v1.4.0) (2025-07-08)
+
+
+### Bug Fixes
+
+* add support for LocalDateTime serialization in Redis configuration ([0aed0eb](https://github.com/100-hours-a-week/11-ellu-be/commit/0aed0ebdd7bbda8f4d853fc5afdf1ae7733449fc))
+* adjust locking mechanism to mitigate cache stampede risk(revise lock acquisition logic) ([a57cc6b](https://github.com/100-hours-a-week/11-ellu-be/commit/a57cc6b2730400ff509b9cf02f6f11207fabf894))
+* change payload for /achievements/daily ([e491312](https://github.com/100-hours-a-week/11-ellu-be/commit/e49131268904109b9182e0a659005b72926c69bf))
+* circular dependency 해결(책임 분리) ([8f88ea4](https://github.com/100-hours-a-week/11-ellu-be/commit/8f88ea4eaad4b06c21d4f2e21d981b3e914b7a37))
+* fastapi api 수정에 따른 수정 및 코드 리팩토링 ([81018da](https://github.com/100-hours-a-week/11-ellu-be/commit/81018da1a0804595d894e39e188e775c94601f46))
+* kafka consumer에서 db에 저장하도록 수정 ([c59938b](https://github.com/100-hours-a-week/11-ellu-be/commit/c59938b022f8e133e25ea89702bb8f7f5f880b84))
+* notification ttl 변경(3시간->5분) ([ed57d71](https://github.com/100-hours-a-week/11-ellu-be/commit/ed57d711321d73858dcc4dca1012beb36461cf3b))
+* plan 저장 시 category도 저장하도록 수정 ([fdf5522](https://github.com/100-hours-a-week/11-ellu-be/commit/fdf5522d30057527dc5a94503bdda02ce5c1c855))
+* plan 저장 시 category도 저장하도록 수정 ([#172](https://github.com/100-hours-a-week/11-ellu-be/issues/172)) ([79a593e](https://github.com/100-hours-a-week/11-ellu-be/commit/79a593e01d0ffdebb3b95860b3f72284f1d10a23))
+* query 수정 ([a4b3833](https://github.com/100-hours-a-week/11-ellu-be/commit/a4b3833fc0fce2a3e41218b8fb70f466144868e7))
+* redis lock 직접 구현한 파일 삭제 ([cf1cae1](https://github.com/100-hours-a-week/11-ellu-be/commit/cf1cae1c996ded64ad9355228ebdd86c81e3737b))
+* redisson 적용 ([15e418e](https://github.com/100-hours-a-week/11-ellu-be/commit/15e418ea2107e399c3e58863d6e7bf4824b99eb1))
+* transaction이 끝난 후 kafka에 produce하도록 수정(proxy 문제 해결) ([8f6a262](https://github.com/100-hours-a-week/11-ellu-be/commit/8f6a262dd5ee125ba44fe3f64fef79197a14169c))
+* unify notification DTO to resolve inconsistency in Redis caching ([95e853e](https://github.com/100-hours-a-week/11-ellu-be/commit/95e853ee855ed1b986af3497e055d41e4ebd4b33))
+* 사용자 스케줄 및 plan 생성 시 save를 saveAll로 수정함 ([041d4bc](https://github.com/100-hours-a-week/11-ellu-be/commit/041d4bc3966b6573c1ffc5b0287c5a0483f4e6cf))
+* 새로운 일정 생성 시 알림 수신 대상 변경 ([ed7c6eb](https://github.com/100-hours-a-week/11-ellu-be/commit/ed7c6eb1e5959cbb9691c5238736c130b4b878c1))
+* 초대 알림 수락 시 초대 처리 알림 수신자와 발신자의 프로젝트 목록 캐시 업데이트 ([e8c7223](https://github.com/100-hours-a-week/11-ellu-be/commit/e8c7223a2c36f19aae0fdf2d08a03a2bcf8c89c0))
+* 프로젝트 수정 시 프로젝트에서 방출된 사람, 새로 초대된 사람의 캐시 업데이트 ([e41b5ec](https://github.com/100-hours-a-week/11-ellu-be/commit/e41b5ec2c2a1b51723f1be27ca23056d2d77cc0b))
+* 프로젝트 캐싱 버그 수정 ([a2b8bcd](https://github.com/100-hours-a-week/11-ellu-be/commit/a2b8bcd261811b3eec183336040d01a3b4878562))
+
+
+### Features
+
+* ai server 관련 스케줄 조회 기능 api 구현 ([f4cf9bc](https://github.com/100-hours-a-week/11-ellu-be/commit/f4cf9bca7fd8a555022143101b70423c06d51890))
+* ai 서버에 사용자가 선택한 스케줄에 대한 정보 제공하는 api 구현 ([9bfc574](https://github.com/100-hours-a-week/11-ellu-be/commit/9bfc57498e50607a85a18bb55816c13361244cc7))
+* applied redis lock to prevent cache stampede ([36c326a](https://github.com/100-hours-a-week/11-ellu-be/commit/36c326a37a1d5afa5986a88e354ede3ad549637c))
+* implemented apis for schedule achievement report ([acc7ff5](https://github.com/100-hours-a-week/11-ellu-be/commit/acc7ff54177f5c163687de8862f6c0522cafa2e0))
+* redis caching for notification ([442445e](https://github.com/100-hours-a-week/11-ellu-be/commit/442445e422691610bdec9be509260e0d039e4241))
+* redis for caching project information ([2c6baba](https://github.com/100-hours-a-week/11-ellu-be/commit/2c6baba4dd6f09575d91acff77ce68540b3e2d2a))
+* Rewrote commented-out API call for AI schedule recommendation ([db59cac](https://github.com/100-hours-a-week/11-ellu-be/commit/db59cacf36c7c6a1b95da3064ecd329735d9f681))
+* ttl에 jitter 적용 ([30fdddf](https://github.com/100-hours-a-week/11-ellu-be/commit/30fdddfab94bd77c87c76946909f4728ec83b775))
+* 스케줄 완료율 대시보드 ([#170](https://github.com/100-hours-a-week/11-ellu-be/issues/170)) ([d45a27b](https://github.com/100-hours-a-week/11-ellu-be/commit/d45a27bfcf797a7b74f8768d0bd6d55f5e728830))
+* 유저의 회의록 선택 결과 전송  ([#168](https://github.com/100-hours-a-week/11-ellu-be/issues/168)) ([06f5dde](https://github.com/100-hours-a-week/11-ellu-be/commit/06f5dde8dcc223baf01d4cc631d8ba562e780ce8))
+
 # [1.3.0](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.2.0...v1.3.0) (2025-07-03)
 
 
