@@ -5,6 +5,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +16,7 @@ import org.springframework.stereotype.Service;
 public class CacheService {
 
   private final RedisTemplate<String, Object> redisTemplate;
-  private final RedisLockUtil redisLockUtil;
+  private final RedissonClient redissonClient;
 
   public static long addJitter(long baseTtl, double jitterPercent) {
     long jitter = (long) (baseTtl * jitterPercent);
@@ -49,40 +51,43 @@ public class CacheService {
 
     // Cache miss -> try to acquire lock
     String lockKey = "lock:" + cacheKey;
-    String lockValue = null;
+    RLock lock = redissonClient.getLock(lockKey);
 
     try {
       // Try to acquire lock
-      lockValue = redisLockUtil.tryLock(lockKey);
-      if (lockValue != null) {
+      if (lock.tryLock(1, 10, TimeUnit.SECONDS)) { // Wait 1s, lease 10s
+        try {
+          // Double check cache after acquiring lock
+          cached = (T) redisTemplate.opsForValue().get(cacheKey);
+          if (cached != null) {
+            log.debug("Cache populated by another thread for key: {}", cacheKey);
+            return cached;
+          }
 
-        // Double check cache after acquiring lock
-        cached = (T) redisTemplate.opsForValue().get(cacheKey);
-        if (cached != null) {
-          log.debug("Cache populated by another thread for key: {}", cacheKey);
-          return cached;
+          // Load data from db and cache it
+          log.debug("Loading data from database for key: {}", cacheKey);
+          T data = dataSupplier.get();
+
+          if (data != null) {
+            setProjectCache(cacheKey, data, ttlSeconds);
+          }
+
+          return data;
+        } finally {
+          lock.unlock();
+          log.debug("Lock released for key: {}", cacheKey);
         }
-
-        // Load data from db and cache it
-        log.debug("Loading data from database for key: {}", cacheKey);
-        T data = dataSupplier.get();
-
-        if (data != null) {
-          setProjectCache(cacheKey, data, ttlSeconds);
-        }
-
-        return data;
       } else {
-        // Lock acquisition failed, wait for cache to be populated
+        // Lock acquisition failed, another thread is likely updating the cache.
+        // Wait for the cache to be populated by the thread that acquired the lock.
         log.debug("Lock acquisition failed for key: {}. Waiting for cache update.", cacheKey);
         return waitForCacheUpdate(cacheKey, dataSupplier);
       }
-    } finally {
-      // Release lock if we acquired it
-      if (lockValue != null) {
-        redisLockUtil.releaseLock(lockKey, lockValue);
-        log.debug("Lock released for key: {}", cacheKey);
-      }
+    } catch (InterruptedException e) {
+      log.error("Interrupted while acquiring lock for key: {}", cacheKey, e);
+      Thread.currentThread().interrupt();
+      // In case of interruption, consider falling back to dataSupplier if critical
+      return dataSupplier.get();
     }
   }
 
