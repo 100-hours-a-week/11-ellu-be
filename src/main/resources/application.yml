@@ -20,6 +20,7 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_BASE_URL:localhost:9092}
     producer:
+      acks: all
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     consumer:
@@ -27,9 +28,15 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
+      auto-offset-reset: earliest
+      group-id: consumer-group
     streams:
       bootstrap-servers: ${KAFKA_BASE_URL:localhost:9092}
       application-id: looper-streams-app
+    properties:
+      retries:
+        3
+
   data:
     redis:
       host: ${REDIS_HOSTNAME:localhost}
