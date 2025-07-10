@@ -42,7 +42,7 @@ public class ChatService {
     log.info("UserId {} fetched chat history. ", userId);
     LocalDateTime cutoff = LocalDateTime.now().minusHours(24);
     ChatConversation recentConversation =
-        conversationRepository.findTop1ByUser_IdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
+        conversationRepository.findTop1ByUserIdAndUpdatedAtGreaterThanEqualOrderByCreatedAtDesc(
             userId, cutoff);
 
     if (recentConversation == null) {
