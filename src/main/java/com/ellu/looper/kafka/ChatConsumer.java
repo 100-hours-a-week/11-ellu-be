@@ -20,7 +20,7 @@ public class ChatConsumer {
 
   @KafkaListener(
       topics = "${kafka.topics.chatbot.user-input}",
-      groupId = "${kafka.consumer.group-id}")
+      groupId = "${kafka.consumer.chat-group-id}")
   public void consumeUserMessage(ConsumerRecord<String, String> record) {
     try {
       String key = record.key(); // userId

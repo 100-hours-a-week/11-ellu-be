@@ -114,8 +114,8 @@ kafka:
     preview:
       preview-result
   consumer:
-    group-id: chat-group
-    preview-group-id: preview-consumer-group
+    chat-group-id: chat-consumer-${info.pod.name}
+    preview-group-id: preview-consumer-${info.pod.name}
 
 cache:
   project:
@@ -131,3 +131,5 @@ info:
     name: ${spring.application.name}
     version: 1.0.1
     description: Looper API 서버
+  pod:
+    name: ${HOSTNAME}

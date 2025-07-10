@@ -99,7 +99,8 @@ public class NotificationConsumer implements Runnable {
   }
 
   public void start() {
-    String groupId = "notification-service-group";
+    // groupId를 각 Pod마다 고유하게 생성
+    String groupId = "notification-service-group-" + java.util.UUID.randomUUID();
 
     // Create consumer properties
     Properties properties = new Properties();

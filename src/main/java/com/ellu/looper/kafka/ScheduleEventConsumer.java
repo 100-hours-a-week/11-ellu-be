@@ -43,6 +43,9 @@ public class ScheduleEventConsumer implements Runnable {
   @Value("${kafka.topics.schedule}")
   public String SCHEDULE_TOPIC;
 
+  @Value("${info.pod.name}")
+  private String podName;
+
   @PostConstruct
   public void init() {
     log.info("ScheduleEventConsumer init() called");
@@ -50,7 +53,8 @@ public class ScheduleEventConsumer implements Runnable {
   }
 
   public void start() {
-    String groupId = "schedule-service-group";
+    // groupId를 각 Pod마다 고유하게 생성
+    String groupId = "schedule-service-group-" + podName;
 
     Properties properties = new Properties();
     properties.setProperty("bootstrap.servers", bootstrapServers);
