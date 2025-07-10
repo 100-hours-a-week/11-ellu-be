@@ -3,6 +3,7 @@ package com.ellu.looper.kafka.config;
 import static org.apache.kafka.streams.StreamsConfig.*;
 
 import com.ellu.looper.sse.service.SseEmitterService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
