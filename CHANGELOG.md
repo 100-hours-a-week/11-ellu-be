@@ -1,3 +1,11 @@
+## [1.4.1](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.4.0...v1.4.1) (2025-07-10)
+
+
+### Bug Fixes
+
+* ChatConversationRepository 쿼리 메소드명 수정 ([6df19c1](https://github.com/100-hours-a-week/11-ellu-be/commit/6df19c11321c61e8f37d8a42d72bce875d5cf5cb))
+* ChatService에서 수정된 repository 메소드명 사용 ([2cdb06d](https://github.com/100-hours-a-week/11-ellu-be/commit/2cdb06d564adaa87d4bbc7bf3d43728af7ca95d8))
+
 # [1.4.0](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.3.0...v1.4.0) (2025-07-08)
 
 
