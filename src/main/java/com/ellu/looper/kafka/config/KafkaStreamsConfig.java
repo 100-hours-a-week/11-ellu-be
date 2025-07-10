@@ -118,8 +118,12 @@ public class KafkaStreamsConfig {
               sseEmitterService.sendMessage(key, token, done);
             }
 
+          } catch (JsonProcessingException e) {
+            log.error("Invalid JSON format in Kafka message: {}", value, e);
+          } catch (NullPointerException e) {
+            log.error("Missing expected fields in Kafka message: {}", value, e);
           } catch (Exception e) {
-            log.error("Kafka MESSAGE PARSING ERROR", e);
+            log.error("Unexpected error while processing Kafka message: {}", value, e);
           }
         });
 
