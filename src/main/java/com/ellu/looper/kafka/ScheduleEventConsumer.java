@@ -50,7 +50,9 @@ public class ScheduleEventConsumer implements Runnable {
   }
 
   public void start() {
-    String groupId = "schedule-service-group";
+    // Pod별로 고유한 group.id 생성
+    String podId = "pod-" + System.currentTimeMillis() + "-" + (int) (Math.random() * 1000);
+    String groupId = "schedule-service-group-" + podId;
 
     Properties properties = new Properties();
     properties.setProperty("bootstrap.servers", bootstrapServers);

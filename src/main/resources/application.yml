@@ -114,7 +114,7 @@ kafka:
     preview:
       preview-result
   consumer:
-    group-id: chat-group
+    chat-group-id: chat-group
     preview-group-id: preview-consumer-group
 
 cache:
@@ -125,6 +125,20 @@ cache:
   notification:
     ttl-seconds: 600
     user-key-prefix: "notifications:user:"
+
+sse:
+  routing:
+    key-prefix: "user:pod:"
+    ttl-hours: 24
+    cleanup-interval-minutes: 5
+    health-check-interval-minutes: 2
+  internal:
+    endpoint: "/internal/sse/forward"
+    key: "internal-sse-key"
+  retry:
+    max-attempts: 3
+    initial-delay-ms: 1000
+    backoff-multiplier: 2
 
 info:
   app:

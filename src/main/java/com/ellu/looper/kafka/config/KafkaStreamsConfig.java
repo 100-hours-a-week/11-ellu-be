@@ -2,7 +2,7 @@ package com.ellu.looper.kafka.config;
 
 import static org.apache.kafka.streams.StreamsConfig.*;
 
-import com.ellu.looper.sse.service.SseEmitterService;
+import com.ellu.looper.sse.service.SseService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,7 +37,11 @@ public class KafkaStreamsConfig {
   @Bean(name = KafkaStreamsDefaultConfiguration.DEFAULT_STREAMS_CONFIG_BEAN_NAME)
   public KafkaStreamsConfiguration kStreamsConfig() {
     Map<String, Object> props = new HashMap<>();
-    props.put(APPLICATION_ID_CONFIG, applicationId);
+    // Pod별로 고유한 application.id 생성
+    String podId = "pod-" + System.currentTimeMillis() + "-" + (int) (Math.random() * 1000);
+    String uniqueApplicationId = applicationId + "-" + podId;
+
+    props.put(APPLICATION_ID_CONFIG, uniqueApplicationId);
     props.put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
     props.put(DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
     props.put(DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
@@ -48,7 +52,7 @@ public class KafkaStreamsConfig {
 
   @Bean
   public KStream<String, String> chatResponseStream(
-      StreamsBuilder streamsBuilder, SseEmitterService sseEmitterService) {
+      StreamsBuilder streamsBuilder, SseService sseService) {
     KStream<String, String> stream =
         streamsBuilder.stream(responseTopic, Consumed.with(Serdes.String(), Serdes.String()));
 
@@ -82,7 +86,7 @@ public class KafkaStreamsConfig {
               String text = dataNode.get("text").asText();
               boolean done = dataNode.get("done").asBoolean();
 
-              sseEmitterService.sendMessage(key, text, done);
+              sseService.sendMessage(key, text, done);
 
             } else if (messageNode.asText().equals("task_response")) { // 스케줄 데이터가 포함된 메시지
               JsonNode taskTitleNode = dataNode.get("task_title");
@@ -109,14 +113,14 @@ public class KafkaStreamsConfig {
                 endTime = detailNode.get("end_time").asText();
               }
 
-              sseEmitterService.sendSchedulePreview(
+              sseService.sendSchedulePreview(
                   key, planTitle, category, subtaskTitle, startTime, endTime, done);
 
             } else { // 일반적인 대화 메시지
               String token = dataNode.get("token").asText();
               boolean done = dataNode.get("done").asBoolean();
 
-              sseEmitterService.sendMessage(key, token, done);
+              sseService.sendMessage(key, token, done);
             }
 
           } catch (JsonProcessingException e) {

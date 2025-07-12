@@ -54,7 +54,7 @@ public class NotificationConsumer implements Runnable {
   private static final Logger log =
       LoggerFactory.getLogger(NotificationConsumer.class.getSimpleName());
   private final ObjectMapper objectMapper;
-  private final SseService sseEmitterService;
+  private final SseService sseService;
   private KafkaConsumer<String, String> consumer;
   private volatile boolean running = true;
 
@@ -99,7 +99,9 @@ public class NotificationConsumer implements Runnable {
   }
 
   public void start() {
-    String groupId = "notification-service-group";
+    // Pod별로 고유한 group.id 생성
+    String podId = "pod-" + System.currentTimeMillis() + "-" + (int) (Math.random() * 1000);
+    String groupId = "notification-service-group-" + podId;
 
     // Create consumer properties
     Properties properties = new Properties();
@@ -328,8 +330,7 @@ public class NotificationConsumer implements Runnable {
       }
 
       // SSE 구독 중인 유저에게 전송
-      sseEmitterService.sendNotification(
-          userId, event.toBuilder().notificationId(saved.getId()).build());
+      sseService.sendNotification(userId, event.toBuilder().notificationId(saved.getId()).build());
     }
   }
 }
