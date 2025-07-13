@@ -118,6 +118,8 @@ kafka:
   consumer:
     chat-group-id: chat-group
     preview-group-id: preview-consumer-group
+    notification-group-id: notification-consumer-group
+    schedule-group-id: schedule-consumer-group
 
 cache:
   project:
