@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class InternalStompController {
   private final StompService stompService;
 
-  @Value("${stomp.internal.key:internal-stomp-key}")
+  @Value("${stomp.internal.key}")
   private String internalKey;
 
   @PostMapping("/forward")

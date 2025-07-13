@@ -142,7 +142,7 @@ sse:
     health-check-interval-minutes: 2
   internal:
     endpoint: "/internal/sse/forward"
-    key: "internal-sse-key"
+    key: ${INTERNAL_KEY}
   retry:
     max-attempts: 3
     initial-delay-ms: 1000
@@ -153,7 +153,7 @@ stomp:
     key-prefix: "stomp:user:pod:"
     ttl-hours: 24
   internal:
-    key: internal-stomp-key
+    key: ${INTERNAL_KEY}
     endpoint: "/internal/stomp/forward"
 
 info:
