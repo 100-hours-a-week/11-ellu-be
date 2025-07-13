@@ -241,9 +241,10 @@ public class NotificationConsumer implements Runnable {
                             "Notification with id " + event.getNotificationId() + "not found"));
 
         // 중복 멤버 추가 방지
-        boolean memberExists = projectMemberRepository
-            .existsByProjectAndUserAndDeletedAtIsNull(project, originalNotification.getReceiver());
-        
+        boolean memberExists =
+            projectMemberRepository.existsByProjectAndUserAndDeletedAtIsNull(
+                project, originalNotification.getReceiver());
+
         if (!memberExists) {
           ProjectMember member =
               ProjectMember.builder()

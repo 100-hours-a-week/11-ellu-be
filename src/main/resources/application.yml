@@ -148,6 +148,14 @@ sse:
     initial-delay-ms: 1000
     backoff-multiplier: 2
 
+stomp:
+  routing:
+    key-prefix: "stomp:user:pod:"
+    ttl-hours: 24
+  internal:
+    key: internal-stomp-key
+    endpoint: "/internal/stomp/forward"
+
 info:
   app:
     name: ${spring.application.name}

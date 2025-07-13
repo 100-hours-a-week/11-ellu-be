@@ -1,6 +1,6 @@
 package com.ellu.looper.sse.scheduler;
 
-import com.ellu.looper.sse.service.SseService;
+import com.ellu.looper.sse.service.NotificationSseService;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,9 +15,9 @@ import org.springframework.stereotype.Component;
 public class SseRoutingCleanupScheduler {
 
   private final RedisTemplate<String, Object> redisTemplate;
-  private final SseService sseService;
+  private final NotificationSseService sseService;
 
-  @Value("${sse.routing.key-prefix:user:pod:}")
+  @Value("${sse.routing.chat.key-prefix}")
   private String routingKeyPrefix;
 
   /** 주기적으로 라우팅 정보를 정리 - 더 이상 존재하지 않는 emitter에 대한 라우팅 정보 제거 - 오래된 라우팅 정보 정리 */

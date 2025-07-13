@@ -38,7 +38,9 @@ public class SecurityConfig {
                         "/sse/**",
                         "/admin/**",
                         "/connect/**",
-                        "/chat/query")
+                        "/chat/query",
+                        "/internal/stomp/forward",
+                        "/internal/sse/forward")
                     .permitAll()
                     .requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll() // Preflight 요청 허용

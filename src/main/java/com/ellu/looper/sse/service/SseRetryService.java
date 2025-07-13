@@ -14,17 +14,17 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class SseRetryService {
 
-  private final SseService sseService;
+  private final NotificationSseService sseService;
   private final ConcurrentHashMap<String, RetryInfo> retryQueue = new ConcurrentHashMap<>();
   private final ScheduledExecutorService retryExecutor = Executors.newScheduledThreadPool(2);
 
-  @Value("${sse.retry.max-attempts:3}")
+  @Value("${sse.retry.max-attempts}")
   private int maxRetryAttempts;
 
-  @Value("${sse.retry.initial-delay-ms:1000}")
+  @Value("${sse.retry.initial-delay-ms}")
   private long initialDelayMs;
 
-  @Value("${sse.retry.backoff-multiplier:2}")
+  @Value("${sse.retry.backoff-multiplier}")
   private double backoffMultiplier;
 
   /** 메시지 전송 실패 시 재시도 큐에 추가 */
@@ -58,9 +58,7 @@ public class SseRetryService {
             // 재시도 실행
             boolean success =
                 sseService.sendMessageWithRetry(
-                    retryInfo.getUserId(),
-                    retryInfo.getEventName(),
-                    retryInfo.getData());
+                    retryInfo.getUserId(), retryInfo.getEventName(), retryInfo.getData());
 
             if (success) {
               // 성공 시 큐에서 제거

@@ -22,7 +22,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -31,7 +30,6 @@ public class ScheduleEventConsumer implements Runnable {
   private static final Logger log =
       LoggerFactory.getLogger(ScheduleEventConsumer.class.getSimpleName());
   private final ObjectMapper objectMapper;
-  private final SimpMessagingTemplate messagingTemplate;
   private KafkaConsumer<String, String> consumer;
   private volatile boolean running = true;
 
@@ -124,7 +122,9 @@ public class ScheduleEventConsumer implements Runnable {
                 Long.valueOf(event.getProjectId()), event.getUserId(), event.getCreateRequest());
         for (ProjectScheduleResponse response : createdList) {
           event = event.toBuilder().schedule(projectScheduleService.toDto(response)).build();
-          stompService.sendMessage(event.getUserId(), "/topic/" + event.getProjectId(), event);
+
+          // WebSocket 브로드캐스트
+          stompService.sendMessage("/topic/" + event.getProjectId(), event);
         }
         break;
 
@@ -132,32 +132,42 @@ public class ScheduleEventConsumer implements Runnable {
         ProjectScheduleResponse projectScheduleResponse =
             projectScheduleService.updateSchedule(
                 event.getScheduleId(), event.getUserId(), event.getUpdateRequest());
+
         event =
             event.toBuilder()
                 .schedule(projectScheduleService.toDto(projectScheduleResponse))
                 .build();
-        stompService.sendMessage(event.getUserId(), "/topic/" + event.getProjectId(), event);
+
+        // WebSocket 브로드캐스트
+        stompService.sendMessage("/topic/" + event.getProjectId(), event);
         break;
 
       case "SCHEDULE_TAKEN":
         projectScheduleService.takeSchedule(
             Long.valueOf(event.getProjectId()), event.getScheduleId(), event.getUserId());
+
+        // 반영된 스케줄 정보 조회
         ProjectSchedule updatedSchedule =
             projectScheduleRepository
                 .findWithDetailsById(event.getScheduleId())
                 .orElseThrow(() -> new EntityNotFoundException("Project schedule not found"));
+
         event =
             event.toBuilder()
                 .schedule(
                     projectScheduleService.toDto(
                         projectScheduleService.toResponse(updatedSchedule)))
                 .build();
-        stompService.sendMessage(event.getUserId(), "/topic/" + event.getProjectId(), event);
+
+        // WebSocket 브로드캐스트
+        stompService.sendMessage("/topic/" + event.getProjectId(), event);
         break;
 
       case "SCHEDULE_DELETED":
         projectScheduleService.deleteSchedule(event.getScheduleId(), event.getUserId());
-        stompService.sendMessage(event.getUserId(), "/topic/" + event.getProjectId(), event);
+
+        // WebSocket 브로드캐스트
+        stompService.sendMessage("/topic/" + event.getProjectId(), event);
         break;
     }
   }
