@@ -1,11 +1,13 @@
 package com.ellu.looper.stomp;
 
 import com.ellu.looper.stomp.service.StompService;
+import jakarta.annotation.PostConstruct;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
@@ -27,7 +29,18 @@ public class StompEventListener {
   private final Map<String, Long> sessionIdToUserId = new ConcurrentHashMap<>();
   private final StompService stompService;
 
-  private final String podId = generatePodId();
+  @Value("${server.port}")
+  private int serverPort;
+
+  @Value("${server.ip}")
+  private String podIp;
+
+  private String podId;
+
+  @PostConstruct
+  public void initPodId() {
+    this.podId = "POD-" + podIp + "-" + serverPort;
+  }
 
   @EventListener
   public void connectHandle(SessionConnectEvent event) {

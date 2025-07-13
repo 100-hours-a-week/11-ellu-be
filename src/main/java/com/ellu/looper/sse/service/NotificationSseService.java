@@ -4,6 +4,7 @@ import com.ellu.looper.commons.PodInfo;
 import com.ellu.looper.kafka.dto.NotificationMessage;
 import com.ellu.looper.sse.dto.SseMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -49,7 +50,12 @@ public class NotificationSseService {
   @Value("${server.ip}")
   private String podIp;
 
-  private final String podId = generatePodId();
+  private String podId;
+
+  @PostConstruct
+  public void initPodId() {
+    this.podId = "POD-" + podIp + "-" + serverPort;
+  }
 
   /** 알림용 SSE 연결 */
   public SseEmitter subscribe(Long userId) {
@@ -186,7 +192,7 @@ public class NotificationSseService {
       HttpEntity<SseMessage> request = new HttpEntity<>(message, headers);
 
       restTemplate.postForEntity(url, request, String.class);
-      log.debug("Forwarded message to pod {} for user {}", targetPod.getPodId(), userId);
+      log.info("Forwarded message to pod {} for user {}", targetPod.getPodId(), userId);
 
     } catch (Exception e) {
       log.error("Failed to forward message to pod {} for user {}", targetPod.getPodId(), userId, e);
@@ -214,7 +220,7 @@ public class NotificationSseService {
       HttpEntity<SseMessage> request = new HttpEntity<>(message, headers);
 
       restTemplate.postForEntity(url, request, String.class);
-      log.debug("Forwarded message to pod {} for user {} (retry)", targetPod.getPodId(), userId);
+      log.info("Forwarded message to pod {} for user {} (retry)", targetPod.getPodId(), userId);
       return true;
 
     } catch (Exception e) {

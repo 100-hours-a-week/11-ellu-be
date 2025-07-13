@@ -46,9 +46,20 @@ public class ScheduleEventConsumer implements Runnable {
   @Value("${kafka.consumer.schedule-group-id}")
   private String SCHEDULE_GROUP_ID;
 
+  @Value("${server.port}")
+  private int serverPort;
+
+  @Value("${server.ip}")
+  private String podIp;
+
+  private String podId;
+  private String uniqueGroupId;
+
   @PostConstruct
   public void init() {
-    log.info("ScheduleEventConsumer init() called");
+    this.podId = "POD-" + podIp + "-" + serverPort;
+    this.uniqueGroupId = SCHEDULE_GROUP_ID + "-" + podId;
+    log.info("ScheduleEventConsumer init() called with group ID: {}", uniqueGroupId);
     this.start();
   }
 
@@ -57,7 +68,7 @@ public class ScheduleEventConsumer implements Runnable {
     properties.setProperty("bootstrap.servers", bootstrapServers);
     properties.setProperty("key.deserializer", StringDeserializer.class.getName());
     properties.setProperty("value.deserializer", StringDeserializer.class.getName());
-    properties.setProperty("group.id", SCHEDULE_GROUP_ID);
+    properties.setProperty("group.id", uniqueGroupId);
     properties.setProperty("auto.offset.reset", "earliest");
 
     consumer = new KafkaConsumer<>(properties);
@@ -115,6 +126,13 @@ public class ScheduleEventConsumer implements Runnable {
   }
 
   private void processScheduleEvent(ScheduleEventMessage event) {
+    log.info(
+        "Processing schedule event: type={}, projectId={}, userId={}, scheduleId={}",
+        event.getType(),
+        event.getProjectId(),
+        event.getUserId(),
+        event.getScheduleId());
+
     switch (event.getType()) {
       case "SCHEDULE_CREATED":
         List<ProjectScheduleResponse> createdList =
@@ -124,6 +142,7 @@ public class ScheduleEventConsumer implements Runnable {
           event = event.toBuilder().schedule(projectScheduleService.toDto(response)).build();
 
           // WebSocket 브로드캐스트
+          log.info("Broadcasting SCHEDULE_CREATED to /topic/{}", event.getProjectId());
           stompService.sendMessage("/topic/" + event.getProjectId(), event);
         }
         break;
@@ -139,6 +158,7 @@ public class ScheduleEventConsumer implements Runnable {
                 .build();
 
         // WebSocket 브로드캐스트
+        log.info("Broadcasting SCHEDULE_UPDATED to /topic/{}", event.getProjectId());
         stompService.sendMessage("/topic/" + event.getProjectId(), event);
         break;
 
@@ -160,6 +180,7 @@ public class ScheduleEventConsumer implements Runnable {
                 .build();
 
         // WebSocket 브로드캐스트
+        log.info("Broadcasting SCHEDULE_TAKEN to /topic/{}", event.getProjectId());
         stompService.sendMessage("/topic/" + event.getProjectId(), event);
         break;
 
@@ -167,6 +188,7 @@ public class ScheduleEventConsumer implements Runnable {
         projectScheduleService.deleteSchedule(event.getScheduleId(), event.getUserId());
 
         // WebSocket 브로드캐스트
+        log.info("Broadcasting SCHEDULE_DELETED to /topic/{}", event.getProjectId());
         stompService.sendMessage("/topic/" + event.getProjectId(), event);
         break;
     }

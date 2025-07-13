@@ -5,6 +5,7 @@ import com.ellu.looper.sse.dto.SseMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.annotation.PostConstruct;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -50,7 +51,12 @@ public class ChatSseService {
   @Value("${server.ip}")
   private String podIp;
 
-  private final String podId = generatePodId();
+  private String podId;
+
+  @PostConstruct
+  public void initPodId() {
+    this.podId = "POD-" + podIp + "-" + serverPort;
+  }
 
   /** 채팅 스트림용 SSE 연결 */
   public SseEmitter createEmitter(String userId) {

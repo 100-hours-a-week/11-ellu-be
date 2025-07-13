@@ -8,6 +8,7 @@ import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest;
 import com.ellu.looper.schedule.dto.ProjectScheduleTakeRequest;
 import com.ellu.looper.schedule.dto.StompProjectScheduleUpdateRequest;
 import com.ellu.looper.stomp.dto.StompMessage;
+import jakarta.annotation.PostConstruct;
 import java.util.HashSet;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +48,12 @@ public class StompService {
   @Value("${server.ip}")
   private String podIp;
 
-  private final String podId = generatePodId();
+  private String podId;
+
+  @PostConstruct
+  public void initPodId() {
+    this.podId = "POD-" + podIp + "-" + serverPort;
+  }
 
   @Transactional
   public void updateSchedule(
@@ -132,7 +138,7 @@ public class StompService {
   public void sendToLocalUser(String destination, Object payload) {
     try {
       messagingTemplate.convertAndSend(destination, payload);
-      log.debug("Broadcasted stomp message to destination {} for team members", destination);
+      log.info("Broadcasted stomp message to destination {} for team members", destination);
     } catch (Exception e) {
       log.error("Error broadcasting stomp message to destination {}", destination, e);
     }
@@ -142,41 +148,61 @@ public class StompService {
     try {
       // Redis에서 해당 프로젝트에 연결된 모든 pod 정보를 조회
       String projectKey = "stomp:" + projectId + ":pods";
-      Set<Object> podIds = redisTemplate.opsForSet().members(projectKey);
+      Set<Object> podInfos = redisTemplate.opsForSet().members(projectKey);
 
-      if (podIds == null || podIds.isEmpty()) {
+      if (podInfos == null || podInfos.isEmpty()) {
         log.debug("No pods found for project {}", projectId);
         return;
       }
 
-      Set<String> targetPodIds = new HashSet<>();
+      log.debug("Found {} total pods for project {}: {}", podInfos.size(), projectId, podInfos);
 
-      for (Object podIdObj : podIds) {
-        if (podIdObj instanceof String) {
-          String podId = (String) podIdObj;
+      Set<PodInfo> targetPods = new HashSet<>();
+
+      for (Object podInfoObj : podInfos) {
+        if (podInfoObj instanceof PodInfo) {
+          PodInfo podInfo = (PodInfo) podInfoObj;
+          log.debug(
+              "Processing pod: {} ({}:{})",
+              podInfo.getPodId(),
+              podInfo.getHost(),
+              podInfo.getPort());
           // 현재 pod가 아닌 다른 pod들만 대상으로 함
-          if (!podId.equals(this.podId)) {
-            targetPodIds.add(podId);
+          if (!podInfo.getPodId().equals(this.podId)) {
+            targetPods.add(podInfo);
+            log.debug(
+                "Added target pod: {} ({}:{})",
+                podInfo.getPodId(),
+                podInfo.getHost(),
+                podInfo.getPort());
+          } else {
+            log.debug("Skipping current pod: {}", this.podId);
           }
+        } else {
+          log.warn("Unexpected pod info type: {}", podInfoObj.getClass().getName());
         }
       }
 
+      log.info(
+          "Found {} other pods for project {} (current pod: {})",
+          targetPods.size(),
+          projectId,
+          this.podId);
+
       // 각 pod에 브로드캐스트 전송
-      for (String targetPodId : targetPodIds) {
-        PodInfo targetPod =
-            PodInfo.builder()
-                .podId(targetPodId)
-                .host(podIp)
-                .port(serverPort)
-                .connectedAt(System.currentTimeMillis())
-                .build();
+      for (PodInfo targetPod : targetPods) {
+        log.debug(
+            "Forwarding to pod: {} ({}:{})",
+            targetPod.getPodId(),
+            targetPod.getHost(),
+            targetPod.getPort());
         forwardToPod(targetPod, destination, payload);
       }
 
-      if (!targetPodIds.isEmpty()) {
-        log.debug(
+      if (!targetPods.isEmpty()) {
+        log.info(
             "Broadcasted to {} other pods for project {} for destination {}",
-            targetPodIds.size(),
+            targetPods.size(),
             projectId,
             destination);
       }
@@ -232,9 +258,19 @@ public class StompService {
   public void registerPodToProject(String projectId) {
     try {
       String projectKey = "stomp:" + projectId + ":pods";
-      redisTemplate.opsForSet().add(projectKey, podId);
+
+      // Pod 정보를 JSON 형태로 저장
+      PodInfo podInfo =
+          PodInfo.builder()
+              .podId(podId)
+              .host(podIp)
+              .port(serverPort)
+              .connectedAt(System.currentTimeMillis())
+              .build();
+
+      redisTemplate.opsForSet().add(projectKey, podInfo);
       redisTemplate.expire(projectKey, java.time.Duration.ofHours(routingTtlHours));
-      log.debug("Registered pod {} to project {}", podId, projectId);
+      log.info("Registered pod {} ({}:{}) to project {}", podId, podIp, serverPort, projectId);
     } catch (Exception e) {
       log.error("Error registering pod {} to project {}", podId, projectId, e);
     }
@@ -244,7 +280,17 @@ public class StompService {
   public void unregisterPodFromProject(String projectId) {
     try {
       String projectKey = "stomp:" + projectId + ":pods";
-      redisTemplate.opsForSet().remove(projectKey, podId);
+
+      // Pod 정보를 JSON 형태로 제거
+      PodInfo podInfo =
+          PodInfo.builder()
+              .podId(podId)
+              .host(podIp)
+              .port(serverPort)
+              .connectedAt(System.currentTimeMillis())
+              .build();
+
+      redisTemplate.opsForSet().remove(projectKey, podInfo);
       log.debug("Unregistered pod {} from project {}", podId, projectId);
     } catch (Exception e) {
       log.error("Error unregistering pod {} from project {}", podId, projectId, e);
