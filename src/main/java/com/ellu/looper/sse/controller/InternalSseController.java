@@ -1,7 +1,8 @@
 package com.ellu.looper.sse.controller;
 
 import com.ellu.looper.sse.dto.SseMessage;
-import com.ellu.looper.sse.service.SseService;
+import com.ellu.looper.sse.service.ChatSseService;
+import com.ellu.looper.sse.service.NotificationSseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,9 +19,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/internal/sse")
 public class InternalSseController {
 
-  private final SseService sseService;
+  private final NotificationSseService notificationSseService;
+  private final ChatSseService chatSseService;
 
-  @Value("${sse.internal.key:internal-sse-key}")
+  @Value("${sse.internal.key}")
   private String internalKey;
 
   /** 다른 Pod에서 전달받은 메시지를 로컬 사용자에게 전송 */
@@ -42,9 +44,17 @@ public class InternalSseController {
           message.getEventName(),
           message.getData());
 
-      // 로컬 사용자에게 직접 전송
-      sseService.sendToLocalUserDirectly(
-          message.getUserId(), message.getEventName(), message.getData());
+      // 이벤트 타입에 따라 적절한 서비스 선택
+      String eventName = message.getEventName();
+      if ("notification".equals(eventName)) {
+        // 알림 이벤트는 NotificationSseService 사용
+        notificationSseService.sendToLocalUser(
+            message.getUserId(), message.getEventName(), message.getData());
+      } else {
+        // 채팅 관련 이벤트(token, message, schedule)는 ChatSseService 사용
+        chatSseService.sendToLocalUser(
+            message.getUserId(), message.getEventName(), message.getData());
+      }
 
       return ResponseEntity.ok("Message forwarded successfully");
     } catch (Exception e) {

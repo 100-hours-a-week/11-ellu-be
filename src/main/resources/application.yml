@@ -45,6 +45,8 @@ spring:
 
 server:
   forward-headers-strategy: framework
+  port: ${SERVER_PORT:8080}
+  ip: ${SERVER_HOST:localhost}
 
 cloud:
   aws:
@@ -128,8 +130,12 @@ cache:
 
 sse:
   routing:
-    key-prefix: "user:pod:"
-    ttl-hours: 24
+    chat:
+      key-prefix: "chat:user:pod:"
+      ttl-hours: 24
+    notification:
+      key-prefix: "notification:user:pod:"
+      ttl-hours: 24
     cleanup-interval-minutes: 5
     health-check-interval-minutes: 2
   internal:

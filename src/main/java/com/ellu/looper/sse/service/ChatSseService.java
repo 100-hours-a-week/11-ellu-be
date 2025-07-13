@@ -1,9 +1,6 @@
 package com.ellu.looper.sse.service;
 
-import com.ellu.looper.kafka.dto.NotificationMessage;
-import com.ellu.looper.notification.dto.NotificationResponse;
-import com.ellu.looper.notification.entity.Notification;
-import com.ellu.looper.sse.dto.PodInfo;
+import com.ellu.looper.commons.PodInfo;
 import com.ellu.looper.sse.dto.SseMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -25,61 +22,35 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class SseService {
+public class ChatSseService {
 
   private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   private final RedisTemplate<String, Object> redisTemplate;
   private final RestTemplate restTemplate;
-//  private final SseRetryService retryService;
 
-  @Value("${server.port:8080}")
-  private int serverPort;
+  //  private final SseRetryService retryService;
 
-  @Value("${sse.routing.key-prefix:user:pod:}")
+  @Value("${sse.routing.chat.key-prefix}")
   private String routingKeyPrefix;
 
-  @Value("${sse.routing.ttl-hours:24}")
+  @Value("${sse.routing.chat.ttl-hours}")
   private long routingTtlHours;
 
-  @Value("${sse.internal.endpoint:/internal/sse/forward}")
+  @Value("${sse.internal.endpoint}")
   private String internalEndpoint;
 
-  @Value("${sse.internal.key:internal-sse-key}")
+  @Value("${sse.internal.key}")
   private String internalKey;
 
-  @Value("${POD_NAME:localhost}")
-  private String podName;
+  @Value("${server.port}")
+  private int serverPort;
 
-  @Value("${POD_IP:localhost}")
+  @Value("${server.ip}")
   private String podIp;
 
   private final String podId = generatePodId();
-
-  /** 알림용 SSE 연결 */
-  public SseEmitter subscribe(Long userId) {
-    SseEmitter emitter = new SseEmitter(60L * 1000 * 60); // 60분 타임아웃
-    String userIdStr = userId.toString();
-    emitters.put(userIdStr, emitter);
-    log.info("UserId {} is connected to sse. ", userId);
-
-    emitter.onCompletion(
-        () -> {
-          emitters.remove(userIdStr);
-          unregisterUser(userIdStr);
-          log.info("UserId {} is disconnected to sse.", userId);
-        });
-    emitter.onTimeout(
-        () -> {
-          emitters.remove(userIdStr);
-          unregisterUser(userIdStr);
-          log.info("UserId {}'s connection timed out.", userId);
-        });
-
-    registerUser(userIdStr);
-    return emitter;
-  }
 
   /** 채팅 스트림용 SSE 연결 */
   public SseEmitter createEmitter(String userId) {
@@ -110,18 +81,6 @@ public class SseService {
 
     registerUser(userId);
     return emitter;
-  }
-
-  /** 알림 전송 */
-  public void sendNotification(Long userId, NotificationMessage dto) {
-    try {
-      // JSON 변환
-      String jsonData = objectMapper.writeValueAsString(dto);
-      sendMessage(userId.toString(), "notification", jsonData);
-      log.info("Sending SSE notification to user {}: {}", userId, dto.getMessage());
-    } catch (Exception e) {
-      log.error("Failed to send notification to user {}", userId, e);
-    }
   }
 
   /** 채팅 토큰 전송 */
@@ -165,20 +124,6 @@ public class SseService {
     }
   }
 
-  private NotificationResponse notificationToDto(Notification notification) {
-    return NotificationResponse.builder()
-        .id(notification.getId())
-        .message(renderTemplate(notification.getTemplate().getTemplate(), notification))
-        .build();
-  }
-
-  private String renderTemplate(String template, Notification notification) {
-    // 실제 초대 메시지로 변환: "{{creator}}님이 {{project}}에 초대했습니다."
-    return template
-        .replace("{{creator}}", notification.getSender().getNickname())
-        .replace("{{project}}", notification.getProject().getTitle());
-  }
-
   /** 특정 사용자의 emitter 반환 */
   public SseEmitter getEmitter(String userId) {
     return emitters.get(userId);
@@ -189,23 +134,21 @@ public class SseService {
     emitters.remove(userId);
   }
 
-  /**
-   * Methods for Routing
-   */
+  /** Methods for Routing */
 
-  /** 사용자 연결 시 라우팅 정보를 Redis에 저장  */
+  /** 사용자 연결 시 라우팅 정보를 Redis에 저장 */
   public void registerUser(String userId) {
     PodInfo podInfo =
         PodInfo.builder()
             .podId(podId)
-            .host(podIp) // 실제 환경에서는 환경변수나 설정으로 관리
+            .host(podIp)
             .port(serverPort)
             .connectedAt(System.currentTimeMillis())
             .build();
 
     String key = routingKeyPrefix + userId;
     redisTemplate.opsForValue().set(key, podInfo, routingTtlHours, TimeUnit.HOURS);
-    log.info("Registered user {} to pod {} ({})", userId, podId, podName);
+    log.info("Registered user {} to pod {}", userId, podId);
   }
 
   /** 사용자 연결 해제 시 라우팅 정보를 Redis에서 제거 */
@@ -261,23 +204,6 @@ public class SseService {
       log.error("Error during retry for user {}: {}", userId, e.getMessage());
       return false;
     }
-  }
-
-  /** 현재 Pod가 대상 Pod인지 확인 */
-  private boolean isCurrentPod(PodInfo podInfo) {
-    return podId.equals(podInfo.getPodId());
-  }
-
-  /** Redis에서 대상 Pod 정보 조회 */
-  private PodInfo getTargetPod(String userId) {
-    String key = routingKeyPrefix + userId;
-    Object value = redisTemplate.opsForValue().get(key);
-
-    if (value instanceof PodInfo) {
-      return (PodInfo) value;
-    }
-
-    return null;
   }
 
   /** 다른 Pod로 메시지 전달 */
@@ -339,9 +265,8 @@ public class SseService {
   }
 
   /** 로컬 사용자에게 메시지 전송 */
-  private void sendToLocalUser(String userId, String eventName, String data) {
+  public void sendToLocalUser(String userId, String eventName, String data) {
     try {
-      // 통합된 SseService에서 emitter 찾기
       SseEmitter emitter = getEmitter(userId);
       if (emitter != null) {
         emitter.send(SseEmitter.event().name(eventName).data(data));
@@ -368,8 +293,20 @@ public class SseService {
     return podId;
   }
 
-  /** 로컬 사용자에게 직접 메시지 전송 (내부 API용) */
-  public void sendToLocalUserDirectly(String userId, String eventName, String data) {
-    sendToLocalUser(userId, eventName, data);
+  /** 현재 Pod가 대상 Pod인지 확인 */
+  private boolean isCurrentPod(PodInfo podInfo) {
+    return podId.equals(podInfo.getPodId());
+  }
+
+  /** Redis에서 대상 Pod 정보 조회 */
+  private PodInfo getTargetPod(String userId) {
+    String key = routingKeyPrefix + userId;
+    Object value = redisTemplate.opsForValue().get(key);
+
+    if (value instanceof PodInfo) {
+      return (PodInfo) value;
+    }
+
+    return null;
   }
 }
