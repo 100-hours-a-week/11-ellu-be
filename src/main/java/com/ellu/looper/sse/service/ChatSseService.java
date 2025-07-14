@@ -102,7 +102,8 @@ public class ChatSseService {
   }
 
   private boolean isCurrentSession(Long userId, String sessionId) {
-    return sessionId.equals(redisTemplate.opsForValue().get(routingKeyPrefix + userId));
+    Object redisSession = redisTemplate.opsForValue().get(routingKeyPrefix + userId);
+    return sessionId.equals(redisSession) && emitters.containsKey(sessionId);
   }
 
   private void forwardToSession(String targetSessionId, String eventName, String data) {
@@ -134,7 +135,7 @@ public class ChatSseService {
         log.warn("No routing information found for session {}", sessionId);
         return;
       }
-      if (isCurrentSession(userId, targetSessionId)) {
+      if (isCurrentSession(userId, sessionId)) {
 
         SseEmitter localEmitter = getEmitter(sessionId);
         if (localEmitter != null) {

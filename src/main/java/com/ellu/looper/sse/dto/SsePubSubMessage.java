@@ -1,6 +1,5 @@
 package com.ellu.looper.sse.dto;
 
-import com.ellu.looper.kafka.dto.NotificationMessage;
 import java.io.Serializable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
