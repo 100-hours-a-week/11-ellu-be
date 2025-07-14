@@ -12,7 +12,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Service
 @Slf4j
-public class SseService {
+public class NotificationSseService {
 
   private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
 
@@ -51,19 +51,5 @@ public class SseService {
     } else {
       log.info("No active emitter for user {}", userId);
     }
-  }
-
-  private NotificationResponse notificationToDto(Notification notification) {
-    return NotificationResponse.builder()
-        .id(notification.getId())
-        .message(renderTemplate(notification.getTemplate().getTemplate(), notification))
-        .build();
-  }
-
-  private String renderTemplate(String template, Notification notification) {
-    // 실제 초대 메시지로 변환: "{{creator}}님이 {{project}}에 초대했습니다."
-    return template
-        .replace("{{creator}}", notification.getSender().getNickname())
-        .replace("{{project}}", notification.getProject().getTitle());
   }
 }

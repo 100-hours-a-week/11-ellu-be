@@ -12,7 +12,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Slf4j
 @Service
-public class SseEmitterService {
+public class ChatSseService {
   private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
   private final ObjectMapper objectMapper = new ObjectMapper();
 
