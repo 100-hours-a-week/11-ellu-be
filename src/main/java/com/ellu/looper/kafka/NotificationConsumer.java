@@ -92,6 +92,10 @@ public class NotificationConsumer implements Runnable {
   @Value("${cache.project.list-key-prefix}")
   private String PROJECT_LIST_CACHE_KEY_PREFIX;
 
+  @Value("${kafka.consumer.notification-group-id}")
+  private String NOTIFICATION_GROUP_ID;
+
+
   @PostConstruct
   public void init() {
     log.info("NotificationConsumer init() called");
@@ -99,14 +103,13 @@ public class NotificationConsumer implements Runnable {
   }
 
   public void start() {
-    String groupId = "notification-service-group";
 
     // Create consumer properties
     Properties properties = new Properties();
     properties.setProperty("bootstrap.servers", bootstrapServers);
     properties.setProperty("key.deserializer", StringDeserializer.class.getName());
     properties.setProperty("value.deserializer", StringDeserializer.class.getName());
-    properties.setProperty("group.id", groupId);
+    properties.setProperty("group.id", NOTIFICATION_GROUP_ID);
     properties.setProperty("auto.offset.reset", "earliest");
 
     // Create consumer
@@ -239,14 +242,20 @@ public class NotificationConsumer implements Runnable {
                         new EntityNotFoundException(
                             "Notification with id " + event.getNotificationId() + "not found"));
 
-        ProjectMember member =
-            ProjectMember.builder()
-                .project(project)
-                .user(originalNotification.getReceiver())
-                .role(Role.PARTICIPANT)
-                .position(originalNotification.getPayload().get("position").toString())
-                .build();
-        ProjectMember savedMember = projectMemberRepository.save(member);
+        // 중복 멤버 추가 방지
+        boolean memberExists = projectMemberRepository
+            .existsByProjectAndUserAndDeletedAtIsNull(project, originalNotification.getReceiver());
+
+        if (!memberExists) {
+          ProjectMember member =
+              ProjectMember.builder()
+                  .project(project)
+                  .user(originalNotification.getReceiver())
+                  .role(Role.PARTICIPANT)
+                  .position(originalNotification.getPayload().get("position").toString())
+                  .build();
+          ProjectMember savedMember = projectMemberRepository.save(member);
+        }
 
         // Redis에 프로젝트 멤버들의 프로젝트 리스트 업데이트
         List<ProjectMember> projectMembers =
