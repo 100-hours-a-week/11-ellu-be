@@ -1,55 +1,156 @@
 package com.ellu.looper.sse.service;
 
 import com.ellu.looper.kafka.dto.NotificationMessage;
-import com.ellu.looper.notification.dto.NotificationResponse;
-import com.ellu.looper.notification.entity.Notification;
-import java.io.IOException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import com.ellu.looper.sse.dto.SsePubSubMessage;
+import org.springframework.data.redis.core.RedisTemplate;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class NotificationSseService {
 
-  private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
+  private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
+  private final RedisTemplate<String, Object> redisTemplate;
+  private final ObjectMapper objectMapper = new ObjectMapper();
+  private static final String SSE_CHANNEL = "sse:events";
+  private static final String routingKeyPrefix = "sse:routing:notification:";
 
-  public SseEmitter subscribe(Long userId) {
+  public SseEmitter subscribe(HttpServletRequest request, Long userId) {
+    String sessionId = request.getSession().getId();
     SseEmitter emitter = new SseEmitter(60L * 1000 * 60); // 60분 타임아웃
-    emitters.put(userId, emitter);
-    log.info("UserId {} is connected to sse. ", userId);
+    emitters.put(sessionId, emitter);
+    log.info("SessionId {} is connected to notification sse.", sessionId);
 
     emitter.onCompletion(
         () -> {
-          emitters.remove(userId);
-          log.info("UserId {} is disconnected to sse.", userId);
-        });
-    emitter.onTimeout(
-        () -> {
-          emitters.remove(userId);
-          log.info("UserId {}'s connection timed out.", userId);
+          emitters.remove(sessionId);
+          unregisterSession(userId);
+          log.info("SessionId {} is disconnected from notification sse.", sessionId);
         });
 
+    emitter.onTimeout(
+        () -> {
+          emitters.remove(sessionId);
+          unregisterSession(userId);
+          log.info("SSE timeout for session: {}", sessionId);
+        });
+
+    emitter.onError(
+        e -> {
+          log.error("SSE error for session: {}", sessionId, e);
+          emitters.remove(sessionId);
+          unregisterSession(userId);
+        });
+    registerSession(userId, sessionId);
     return emitter;
   }
 
-  public void sendNotification(Long userId, NotificationMessage dto) {
-    SseEmitter emitter = emitters.get(userId);
-    if (emitter != null) {
-      try {
+  public void registerSession(Long userId, String sessionId) {
+    String key = routingKeyPrefix + userId;
+    redisTemplate.opsForValue().set(key, sessionId, 1, java.util.concurrent.TimeUnit.HOURS);
+    log.info("Registered session {} to notification routing.", userId);
+  }
 
-        // 로그 출력 추가
-        log.info("Sending SSE notification to user {}: {}", userId, dto.getMessage());
+  public void unregisterSession(Long userId) {
+    String key = routingKeyPrefix + userId;
+    redisTemplate.delete(key);
+    log.info("Unregistered session {} from notification routing.", userId);
+  }
 
-        emitter.send(SseEmitter.event().name("notification").data(dto));
-      } catch (IOException e) {
-        log.warn("Failed to send SSE to user {}. Removing emitter.", userId, e);
-        emitters.remove(userId);
+  public SseEmitter getEmitter(String sessionId) {
+    return emitters.get(sessionId);
+  }
+
+  public void removeEmitter(String sessionId) {
+    emitters.remove(sessionId);
+  }
+
+  public void sendToLocalSession(String sessionId, String eventName, String data) {
+    try {
+      NotificationMessage notificationMessage = objectMapper.readValue(data, NotificationMessage.class);
+      SseEmitter emitter = getEmitter(sessionId);
+      if (emitter != null) {
+        emitter.send(SseEmitter.event().name(eventName).data(notificationMessage));
+        log.info("Sent notification to local session {}: {} - {}", sessionId, eventName, data);
+        return;
       }
+      log.warn("No emitter found for local session {}", sessionId);
+      throw new IllegalStateException("No emitter found for local session " + sessionId);
+    } catch (Exception e) {
+      log.error("Error sending notification to local session {}: {}", sessionId, e.getMessage(), e);
+      throw new RuntimeException(e);
+    }
+  }
+
+  private String getTargetSession(Long userId) {
+    String key = routingKeyPrefix + userId;
+    Object value = redisTemplate.opsForValue().get(key);
+    if (value instanceof String) {
+      return (String) value;
+    }
+    return null;
+  }
+
+  private boolean isCurrentSession(Long userId, String sessionId) {
+    log.info("sessionId :{}, in redis: {}",sessionId, redisTemplate.opsForValue().get(routingKeyPrefix + userId));
+    return sessionId.equals(redisTemplate.opsForValue().get(routingKeyPrefix + userId));
+  }
+
+  private void forwardToSession(String targetSessionId, String eventName,
+      NotificationMessage data) {
+    try {
+      String jsonData = objectMapper.writeValueAsString(data);
+      SsePubSubMessage message = new SsePubSubMessage(targetSessionId, eventName, jsonData);
+      redisTemplate.convertAndSend(SSE_CHANNEL, message);
+      log.info("Published notification SSE message to channel {} for session {}", SSE_CHANNEL,
+          targetSessionId);
+    } catch (Exception e) {
+      log.error("Error publishing notification SSE message to channel {}: {}", SSE_CHANNEL,
+          e.getMessage());
+    }
+  }
+
+
+
+  // userId로부터 sessionId를 조회해 메시지 전송
+  public void sendNotificationToUser(Long userId, NotificationMessage dto) {
+    String sessionId = (String) redisTemplate.opsForValue().get(routingKeyPrefix + userId);
+    if (sessionId != null) {
+      sendNotification(userId, sessionId, dto);
     } else {
-      log.info("No active emitter for user {}", userId);
+      log.warn("No sessionId found for userId {} when trying to send message", userId);
+    }
+  }
+
+  public void sendNotification(Long userId, String sessionId, NotificationMessage dto) {
+    try {
+      String targetSessionId = getTargetSession(userId);
+      if (targetSessionId == null) {
+        log.warn("No routing information found for session {}", sessionId);
+        return;
+      }
+      if (isCurrentSession(userId, sessionId)) {
+        SseEmitter localEmitter = getEmitter(sessionId);
+        if (localEmitter != null) {
+          String msg = objectMapper.writeValueAsString(dto);
+          sendToLocalSession(sessionId, "notification", msg);
+        }
+      } else {
+        forwardToSession(targetSessionId, "notification", dto);
+      }
+    } catch (Exception e) {
+      log.error("Error sending notification message to session {}: {}", sessionId, e.getMessage());
+      removeEmitter(sessionId);
+      unregisterSession(userId);
     }
   }
 }
