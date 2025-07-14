@@ -43,6 +43,9 @@ public class ScheduleEventConsumer implements Runnable {
   @Value("${kafka.topics.schedule}")
   public String SCHEDULE_TOPIC;
 
+  @Value("${kafka.consumer.schedule-group-id}")
+  private String SCHEDULE_GROUP_ID;
+
   @PostConstruct
   public void init() {
     log.info("ScheduleEventConsumer init() called");
@@ -50,13 +53,11 @@ public class ScheduleEventConsumer implements Runnable {
   }
 
   public void start() {
-    String groupId = "schedule-service-group";
-
     Properties properties = new Properties();
     properties.setProperty("bootstrap.servers", bootstrapServers);
     properties.setProperty("key.deserializer", StringDeserializer.class.getName());
     properties.setProperty("value.deserializer", StringDeserializer.class.getName());
-    properties.setProperty("group.id", groupId);
+    properties.setProperty("group.id", SCHEDULE_GROUP_ID);
     properties.setProperty("auto.offset.reset", "earliest");
 
     consumer = new KafkaConsumer<>(properties);
