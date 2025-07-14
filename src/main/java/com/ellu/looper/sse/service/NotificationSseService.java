@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -101,8 +100,8 @@ public class NotificationSseService {
   }
 
   private boolean isCurrentSession(Long userId, String sessionId) {
-    log.info("sessionId :{}, in redis: {}",sessionId, redisTemplate.opsForValue().get(routingKeyPrefix + userId));
-    return sessionId.equals(redisTemplate.opsForValue().get(routingKeyPrefix + userId));
+    Object redisSession = redisTemplate.opsForValue().get(routingKeyPrefix + userId);
+    return sessionId.equals(redisSession) && emitters.containsKey(sessionId);
   }
 
   private void forwardToSession(String targetSessionId, String eventName,
