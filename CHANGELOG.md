@@ -1,3 +1,23 @@
+## [1.4.3](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.4.2...v1.4.3) (2025-07-15)
+
+
+### Bug Fixes
+
+* broadcast schedule created by chatbot ([2c35a77](https://github.com/100-hours-a-week/11-ellu-be/commit/2c35a7729fd9f0561f09ff7a8b16afaa0941da9f))
+* broadcast schedule created by chatbot ([#185](https://github.com/100-hours-a-week/11-ellu-be/issues/185)) ([fa9d9f5](https://github.com/100-hours-a-week/11-ellu-be/commit/fa9d9f5856692db8297577b56e155ca9f1b072b3))
+* caching 수정 ([03eee41](https://github.com/100-hours-a-week/11-ellu-be/commit/03eee4103ed1366be31b6725c54be5be1758ab20))
+* changed query for fetching chat history ([fd9b5c8](https://github.com/100-hours-a-week/11-ellu-be/commit/fd9b5c8387a15aef46a13c15d2bc87e3bedb387d))
+* ChatConversationRepository 쿼리 메소드명 수정 ([14ff36e](https://github.com/100-hours-a-week/11-ellu-be/commit/14ff36e39f2afa12d7287d8ed010485ee865d8b0))
+* ChatService에서 수정된 repository 메소드명 사용 ([033556c](https://github.com/100-hours-a-week/11-ellu-be/commit/033556c8fef6807f3b980a19d1b6aa5fcc38f8cf))
+* deleted unused files ([903fb41](https://github.com/100-hours-a-week/11-ellu-be/commit/903fb41d95e47b4b5dda11de484092e6ece8a8ec))
+* deleted unused files ([#183](https://github.com/100-hours-a-week/11-ellu-be/issues/183)) ([082130d](https://github.com/100-hours-a-week/11-ellu-be/commit/082130d3ace4ea3a42f15b6c62a8ab65e8292bfc))
+* implement user-to-pod routing via Redis for SSE message delivery ([95b92c0](https://github.com/100-hours-a-week/11-ellu-be/commit/95b92c0877065c0fad330c9b07604455be82e34f))
+* implement user-to-pod routing via Redis for STOMP message delivery ([61991b8](https://github.com/100-hours-a-week/11-ellu-be/commit/61991b8fa4d76d350d11c72f25c4131fa0dba6b3))
+* redis에 session 정보 저장 ([#184](https://github.com/100-hours-a-week/11-ellu-be/issues/184)) ([868118b](https://github.com/100-hours-a-week/11-ellu-be/commit/868118bab21f8bd628a1bb210af503d05e9cfc1f))
+* revised forwarding logic ([286228d](https://github.com/100-hours-a-week/11-ellu-be/commit/286228d4e4a46d74c182363fcbabc6c44905c476))
+* revised forwarding logic(notification domain) ([4055dc9](https://github.com/100-hours-a-week/11-ellu-be/commit/4055dc9e2af36e1426ed33e8ea0fa30f6e9a4bcc))
+* 채팅 기록 조회를 위한 쿼리 수정 ([#178](https://github.com/100-hours-a-week/11-ellu-be/issues/178)) ([7e7e106](https://github.com/100-hours-a-week/11-ellu-be/commit/7e7e10606ae27cd74c025a638e374bd67de04456))
+
 ## [1.4.2](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.4.1...v1.4.2) (2025-07-10)
 
 
