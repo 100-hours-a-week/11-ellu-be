@@ -23,6 +23,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.data.redis.core.RedisTemplate;
+import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
 @Service
@@ -36,6 +38,7 @@ public class ScheduleEventConsumer implements Runnable {
 
   private final ProjectScheduleService projectScheduleService;
   private final ProjectScheduleRepository projectScheduleRepository;
+  private final RedisTemplate<String, Object> redisTemplate;
 
   @Value("${spring.kafka.bootstrap-servers}")
   private String bootstrapServers;
@@ -115,6 +118,16 @@ public class ScheduleEventConsumer implements Runnable {
   }
 
   private void processScheduleEvent(ScheduleEventMessage event) {
+    // idempotent 처리: scheduleId/type 조합으로 Redis에 기록
+    String uniqueKey = "schedule:event:" + (event.getScheduleId() != null ? event.getScheduleId() : event.getProjectId() + ":" + event.getType());
+    Boolean alreadyProcessed = redisTemplate.hasKey(uniqueKey);
+    if (Boolean.TRUE.equals(alreadyProcessed)) {
+      log.info("Duplicate schedule event detected, skipping: {}", uniqueKey);
+      return;
+    }
+    // 처리 완료 후 기록 (예: 10분 유지)
+    redisTemplate.opsForValue().set(uniqueKey, "done", 10, TimeUnit.MINUTES);
+
     switch (event.getType()) {
       case "SCHEDULE_CREATED":
         List<ProjectScheduleResponse> createdList =

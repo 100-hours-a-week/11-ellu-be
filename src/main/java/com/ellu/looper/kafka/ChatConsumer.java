@@ -8,6 +8,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import org.springframework.data.redis.core.RedisTemplate;
+import java.time.format.DateTimeFormatter;
+import java.util.concurrent.TimeUnit;
+import java.util.UUID;
 
 @Slf4j
 @Component
@@ -17,10 +21,11 @@ public class ChatConsumer {
   private final ObjectMapper objectMapper;
   private final FastApiService fastApiService;
   private final ChatProducer chatProducer;
+  private final RedisTemplate<String, Object> redisTemplate;
 
   @KafkaListener(
       topics = "${kafka.topics.chatbot.user-input}",
-      groupId = "${kafka.consumer.group-id}")
+      groupId = "${kafka.consumer.chat-group-id}")
   public void consumeUserMessage(ConsumerRecord<String, String> record) {
     try {
       String key = record.key(); // userId
@@ -28,6 +33,17 @@ public class ChatConsumer {
       Long userId = Long.parseLong(key);
 
       MessageRequest message = objectMapper.readValue(value, MessageRequest.class);
+
+      // 메시지에 messageId가 없으면 UUID 생성해서 할당
+      if (message.getMessageId() == null) {
+        message = message.toBuilder().messageId(UUID.randomUUID()).build();
+      }
+      String uniqueKey = "chat:msg:" + message.getMessageId();
+      Boolean success = redisTemplate.opsForValue().setIfAbsent(uniqueKey, "done", 10, TimeUnit.MINUTES);
+      if (!Boolean.TRUE.equals(success)) {
+        log.info("Duplicate chat message detected, skipping: {}", uniqueKey);
+        return;
+      }
 
       log.info("Received message from user {}: {}", userId, message.getMessage());
 
