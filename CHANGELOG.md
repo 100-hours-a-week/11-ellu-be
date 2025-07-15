@@ -1,3 +1,11 @@
+## [1.4.6](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.4.5...v1.4.6) (2025-07-15)
+
+
+### Bug Fixes
+
+* paketo buildpack ([5227f43](https://github.com/100-hours-a-week/11-ellu-be/commit/5227f433fee026f2ace762a66821fc1924c120ec))
+* paketo buildpack ([#189](https://github.com/100-hours-a-week/11-ellu-be/issues/189)) ([d39a335](https://github.com/100-hours-a-week/11-ellu-be/commit/d39a3351a404725bbe11034733c13b6e69d7f7ac))
+
 ## [1.4.5](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.4.4...v1.4.5) (2025-07-15)
 
 
