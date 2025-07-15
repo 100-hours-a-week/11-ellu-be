@@ -109,8 +109,8 @@ public class KafkaStreamsConfig {
                 endTime = detailNode.get("end_time").asText();
               }
 
-              chatSseService.sendSchedulePreview(
-                  key, planTitle, category, subtaskTitle, startTime, endTime, done);
+              chatSseService.sendSchedulePreviewToUser(
+                  Long.valueOf(key), planTitle, category, subtaskTitle, startTime, endTime, done);
 
             } else { // 일반적인 대화 메시지
               String token = dataNode.get("token").asText();

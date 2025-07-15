@@ -4,7 +4,6 @@ import com.ellu.looper.sse.dto.SsePubSubMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
@@ -139,10 +138,12 @@ public class ChatSseService {
 
         SseEmitter localEmitter = getEmitter(sessionId);
         if (localEmitter != null) {
-          sendToLocalSession(sessionId,"token", "{\"token\":\"" + token + "\",\"done\":" + done + "}");
+          sendToLocalSession(sessionId, "token",
+              "{\"token\":\"" + token + "\",\"done\":" + done + "}");
         }
       } else {
-        forwardToSession(targetSessionId, "token","{\"token\":\"" + token + "\",\"done\":" + done + "}");
+        forwardToSession(targetSessionId, "token",
+            "{\"token\":\"" + token + "\",\"done\":" + done + "}");
       }
     } catch (Exception e) {
       log.error("Error sending message to session {}: {}", sessionId, e.getMessage());
@@ -172,10 +173,12 @@ public class ChatSseService {
 
         SseEmitter localEmitter = getEmitter(sessionId);
         if (localEmitter != null) {
-          sendToLocalSession(sessionId,"message", "{\"message\":\"" + message + "\",\"done\":" + done + "}");
+          sendToLocalSession(sessionId, "message",
+              "{\"message\":\"" + message + "\",\"done\":" + done + "}");
         }
       } else {
-        forwardToSession(targetSessionId, "message","{\"message\":\"" + message + "\",\"done\":" + done + "}");
+        forwardToSession(targetSessionId, "message",
+            "{\"message\":\"" + message + "\",\"done\":" + done + "}");
       }
     } catch (Exception e) {
       log.error("Error sending message to session {}: {}", sessionId, e.getMessage());
@@ -184,40 +187,65 @@ public class ChatSseService {
     }
   }
 
-  public void sendSchedulePreview(
-      String userId,
+  // userId로부터 sessionId를 조회해 메시지 전송
+  public void sendSchedulePreviewToUser(Long userId,
       String taskTitle,
       String category,
       String subtaskTitle,
       String startTime,
       String endTime,
       boolean done) {
-    SseEmitter emitter = emitters.get(userId);
-    if (emitter != null) {
-      try {
-        // JSON 객체 생성을 위해 ObjectMapper 사용
-        ObjectNode rootNode = objectMapper.createObjectNode();
-        rootNode.put("task_title", taskTitle);
-        rootNode.put("category", category);
+    String sessionId = (String) redisTemplate.opsForValue().get(routingKeyPrefix + userId);
+    if (sessionId != null) {
+      sendSchedulePreview(userId, sessionId, taskTitle, category, subtaskTitle, startTime, endTime,
+          done);
+    } else {
+      log.warn("No sessionId found for userId {} when trying to send message", userId);
+    }
+  }
 
-        ArrayNode schedulePreviewArray = objectMapper.createArrayNode();
-        ObjectNode subtaskObject = objectMapper.createObjectNode();
-        subtaskObject.put("title", subtaskTitle);
-        subtaskObject.put("start_time", startTime);
-        subtaskObject.put("end_time", endTime);
-        schedulePreviewArray.add(subtaskObject);
-
-        rootNode.set("schedule_preview", schedulePreviewArray);
-        rootNode.put("done", done); // done 필드를 root 레벨에 추가
-
-        emitter.send(
-            SseEmitter.event()
-                .name("schedule") // SSE 이벤트 이름은 "schedule"
-                .data(rootNode.toString())); // JsonNode를 String으로 변환하여 전송
-      } catch (IOException e) {
-        log.error("Error sending SSE to user: {}", userId, e);
-        emitters.remove(userId);
+  public void sendSchedulePreview(
+      Long userId,
+      String sessionId,
+      String taskTitle,
+      String category,
+      String subtaskTitle,
+      String startTime,
+      String endTime,
+      boolean done) {
+    try {
+      String targetSessionId = getTargetSession(userId);
+      if (targetSessionId == null) {
+        log.warn("No routing information found for session {}", sessionId);
+        return;
       }
+      // JSON 객체 생성을 위해 ObjectMapper 사용
+      ObjectNode rootNode = objectMapper.createObjectNode();
+      rootNode.put("task_title", taskTitle);
+      rootNode.put("category", category);
+
+      ArrayNode schedulePreviewArray = objectMapper.createArrayNode();
+      ObjectNode subtaskObject = objectMapper.createObjectNode();
+      subtaskObject.put("title", subtaskTitle);
+      subtaskObject.put("start_time", startTime);
+      subtaskObject.put("end_time", endTime);
+      schedulePreviewArray.add(subtaskObject);
+
+      rootNode.set("schedule_preview", schedulePreviewArray);
+      rootNode.put("done", done); // done 필드를 root 레벨에 추가
+      if (isCurrentSession(userId, targetSessionId)) {
+
+        SseEmitter localEmitter = getEmitter(sessionId);
+        if (localEmitter != null) {
+          sendToLocalSession(sessionId, "schedule", rootNode.toString());
+        }
+      } else {
+        forwardToSession(targetSessionId, "schedule", rootNode.toString());
+      }
+    } catch (Exception e) {
+      log.error("Error sending message to session {}: {}", sessionId, e.getMessage());
+      removeEmitter(sessionId);
+      unregisterSession(userId);
     }
   }
 }
