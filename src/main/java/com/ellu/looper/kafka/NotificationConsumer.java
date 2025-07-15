@@ -13,7 +13,6 @@ import com.ellu.looper.notification.repository.NotificationRepository;
 import com.ellu.looper.notification.repository.NotificationTemplateRepository;
 import com.ellu.looper.notification.service.NotificationService;
 import com.ellu.looper.project.dto.CreatorExcludedProjectResponse;
-import com.ellu.looper.project.dto.ProjectResponse;
 import com.ellu.looper.project.entity.Project;
 import com.ellu.looper.project.entity.ProjectMember;
 import com.ellu.looper.project.repository.ProjectMemberRepository;
@@ -262,13 +261,8 @@ public class NotificationConsumer implements Runnable {
             projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
         projectMembers.forEach(
             pm -> {
-              List<ProjectResponse> projectListDto =
-                  projectService.getProjectListResponses(
-                      originalNotification.getReceiver().getId());
-
               String projectMemberCacheKey = PROJECT_LIST_CACHE_KEY_PREFIX + pm.getUser().getId();
-              cacheService.setProjectCache(
-                  projectMemberCacheKey, projectListDto, PROJECT_CACHE_TTL_SECONDS);
+              redisTemplate.delete(projectMemberCacheKey);
             });
 
         // Redis에 해당 프로젝트 정보 업데이트
@@ -284,12 +278,8 @@ public class NotificationConsumer implements Runnable {
             projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
         projectMembers.forEach(
             pm -> {
-              List<ProjectResponse> projectListDto =
-                  projectService.getProjectListResponses(notification.getSender().getId());
-
               String projectMemberCacheKey = PROJECT_LIST_CACHE_KEY_PREFIX + pm.getUser().getId();
-              cacheService.setProjectCache(
-                  projectMemberCacheKey, projectListDto, PROJECT_CACHE_TTL_SECONDS);
+              redisTemplate.delete(projectMemberCacheKey);
             });
 
         // Redis에 해당 프로젝트 정보 업데이트
