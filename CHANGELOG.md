@@ -1,3 +1,11 @@
+## [1.4.5](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.4.4...v1.4.5) (2025-07-15)
+
+
+### Bug Fixes
+
+* paketo 빌드팩 호환을 위한 otel 버젼 업그레이드 ([0a50f44](https://github.com/100-hours-a-week/11-ellu-be/commit/0a50f44e180e05eaecbade78d0554452d43f75dd))
+* paketo 빌드팩 호환을 위한 otel 버젼 업그레이드 ([#188](https://github.com/100-hours-a-week/11-ellu-be/issues/188)) ([f77a8f6](https://github.com/100-hours-a-week/11-ellu-be/commit/f77a8f6caacabf6c82418c1b9214a2d85955e4b6))
+
 ## [1.4.4](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.4.3...v1.4.4) (2025-07-15)
 
 
