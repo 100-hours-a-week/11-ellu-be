@@ -5,6 +5,7 @@ import com.ellu.looper.schedule.dto.ProjectScheduleResponse;
 import com.ellu.looper.schedule.entity.ProjectSchedule;
 import com.ellu.looper.schedule.repository.ProjectScheduleRepository;
 import com.ellu.looper.schedule.service.ProjectScheduleService;
+import com.ellu.looper.stomp.service.StompSessionRoutingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityNotFoundException;
@@ -12,6 +13,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -21,10 +23,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.data.redis.core.RedisTemplate;
-import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
 @Service
@@ -32,13 +31,12 @@ public class ScheduleEventConsumer implements Runnable {
   private static final Logger log =
       LoggerFactory.getLogger(ScheduleEventConsumer.class.getSimpleName());
   private final ObjectMapper objectMapper;
-  private final SimpMessagingTemplate messagingTemplate;
   private KafkaConsumer<String, String> consumer;
   private volatile boolean running = true;
 
   private final ProjectScheduleService projectScheduleService;
   private final ProjectScheduleRepository projectScheduleRepository;
-  private final RedisTemplate<String, Object> redisTemplate;
+  private final StompSessionRoutingService stompSessionRoutingService;
 
   @Value("${spring.kafka.bootstrap-servers}")
   private String bootstrapServers;
@@ -118,16 +116,12 @@ public class ScheduleEventConsumer implements Runnable {
   }
 
   private void processScheduleEvent(ScheduleEventMessage event) {
-    // idempotent 처리: scheduleId/type 조합으로 Redis에 기록
-    String uniqueKey = "schedule:event:" + (event.getScheduleId() != null ? event.getScheduleId() : event.getProjectId() + ":" + event.getType());
-    Boolean alreadyProcessed = redisTemplate.hasKey(uniqueKey);
-    if (Boolean.TRUE.equals(alreadyProcessed)) {
-      log.info("Duplicate schedule event detected, skipping: {}", uniqueKey);
-      return;
-    }
-    // 처리 완료 후 기록 (예: 10분 유지)
-    redisTemplate.opsForValue().set(uniqueKey, "done", 10, TimeUnit.MINUTES);
-
+    log.info("Processing schedule event: type={}, projectId={}, userId={}, scheduleId={}", 
+        event.getType(), event.getProjectId(), event.getUserId(), event.getScheduleId());
+    
+    // 실제 프로젝트에 접속 중인 세션
+    Long projectId = Long.valueOf(event.getProjectId());
+    Set<String> activeSessionIds = stompSessionRoutingService.getProjectSessionIds(projectId);
     switch (event.getType()) {
       case "SCHEDULE_CREATED":
         List<ProjectScheduleResponse> createdList =
@@ -135,7 +129,11 @@ public class ScheduleEventConsumer implements Runnable {
                 Long.valueOf(event.getProjectId()), event.getUserId(), event.getCreateRequest());
         for (ProjectScheduleResponse response : createdList) {
           event = event.toBuilder().schedule(projectScheduleService.toDto(response)).build();
-          messagingTemplate.convertAndSend("/topic/" + event.getProjectId(), event);
+          // WebSocket 브로드캐스트 (실제 접속 중인 세션에만)
+          for (String sessionId : activeSessionIds) {
+            stompSessionRoutingService.sendMessageToUser(sessionId, "/create",
+                event, event.getProjectId());
+          }
         }
         break;
 
@@ -147,10 +145,11 @@ public class ScheduleEventConsumer implements Runnable {
             event.toBuilder()
                 .schedule(projectScheduleService.toDto(projectScheduleResponse))
                 .build();
-
-        // WebSocket 브로드캐스트
-        messagingTemplate.convertAndSend("/topic/" + event.getProjectId(), event);
-
+        // WebSocket 브로드캐스트 (실제 접속 중인 세션에만)
+        for (String sessionId : activeSessionIds) {
+          stompSessionRoutingService.sendMessageToUser(sessionId, "/update", event,
+              event.getProjectId());
+        }
         break;
 
       case "SCHEDULE_TAKEN":
@@ -168,18 +167,20 @@ public class ScheduleEventConsumer implements Runnable {
                     projectScheduleService.toDto(
                         projectScheduleService.toResponse(updatedSchedule)))
                 .build();
-
-        // WebSocket 브로드캐스트
-        messagingTemplate.convertAndSend("/topic/" + event.getProjectId(), event);
-
+        // WebSocket 브로드캐스트 (실제 접속 중인 세션에만)
+        for (String sessionId : activeSessionIds) {
+          stompSessionRoutingService.sendMessageToUser(sessionId, "/take",event,
+              event.getProjectId());
+        }
         break;
 
       case "SCHEDULE_DELETED":
         projectScheduleService.deleteSchedule(event.getScheduleId(), event.getUserId());
-
-        // WebSocket 브로드캐스트
-        messagingTemplate.convertAndSend("/topic/" + event.getProjectId(), event);
-
+        // WebSocket 브로드캐스트 (실제 접속 중인 세션에만)
+        for (String sessionId : activeSessionIds) {
+          stompSessionRoutingService.sendMessageToUser(sessionId, "/delete", event,
+              event.getProjectId());
+        }
         break;
     }
   }

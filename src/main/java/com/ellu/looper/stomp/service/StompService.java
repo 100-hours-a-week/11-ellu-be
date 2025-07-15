@@ -6,8 +6,6 @@ import com.ellu.looper.kafka.dto.ScheduleEventMessage;
 import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest;
 import com.ellu.looper.schedule.dto.ProjectScheduleTakeRequest;
 import com.ellu.looper.schedule.dto.StompProjectScheduleUpdateRequest;
-import com.ellu.looper.schedule.repository.ProjectScheduleRepository;
-import com.ellu.looper.schedule.service.ProjectScheduleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,10 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class StompService {
 
-  private final ProjectScheduleService projectScheduleService;
   private final ScheduleEventProducer scheduleEventProducer;
-  private final ProjectScheduleRepository projectScheduleRepository;
-
   @Transactional
   public void updateSchedule(
       Long projectId, StompProjectScheduleUpdateRequest scheduleUpdateRequest, Long userId) {

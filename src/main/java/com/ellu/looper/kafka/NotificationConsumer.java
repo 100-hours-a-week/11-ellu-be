@@ -173,16 +173,6 @@ public class NotificationConsumer implements Runnable {
 
   private void processNotification(NotificationMessage event) {
     for (Long userId : event.getReceiverId()) {
-      // idempotent 처리: notificationId + userId 조합으로 Redis에 기록
-      String uniqueKey = "notification:msg:" + event.getNotificationId() + ":" + userId;
-      Boolean alreadyProcessed = redisTemplate.hasKey(uniqueKey);
-      if (Boolean.TRUE.equals(alreadyProcessed)) {
-        log.info("Duplicate notification detected, skipping: {}", uniqueKey);
-        continue;
-      }
-      // 처리 완료 후 기록 (예: 1시간 유지)
-      redisTemplate.opsForValue().set(uniqueKey, "done", 1, TimeUnit.HOURS);
-
       User sender =
           userRepository
               .findById(event.getSenderId())
@@ -337,7 +327,7 @@ public class NotificationConsumer implements Runnable {
       }
 
       // SSE 구독 중인 유저에게 전송
-      notificationSseService.sendNotification(
+      notificationSseService.sendNotificationToUser(
           userId, event.toBuilder().notificationId(saved.getId()).build());
     }
   }
