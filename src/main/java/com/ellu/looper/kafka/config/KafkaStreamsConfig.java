@@ -2,7 +2,7 @@ package com.ellu.looper.kafka.config;
 
 import static org.apache.kafka.streams.StreamsConfig.*;
 
-import com.ellu.looper.sse.service.SseEmitterService;
+import com.ellu.looper.sse.service.ChatSseService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,7 +48,7 @@ public class KafkaStreamsConfig {
 
   @Bean
   public KStream<String, String> chatResponseStream(
-      StreamsBuilder streamsBuilder, SseEmitterService sseEmitterService) {
+      StreamsBuilder streamsBuilder, ChatSseService sseEmitterService) {
     KStream<String, String> stream =
         streamsBuilder.stream(responseTopic, Consumed.with(Serdes.String(), Serdes.String()));
 
