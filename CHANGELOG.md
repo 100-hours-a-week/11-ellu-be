@@ -1,3 +1,10 @@
+## [1.4.4](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.4.3...v1.4.4) (2025-07-15)
+
+
+### Bug Fixes
+
+* otel agent build pack에 추가 하여 agent를 통해 kafka, redis trace 수집 ([#187](https://github.com/100-hours-a-week/11-ellu-be/issues/187)) ([a7bda5f](https://github.com/100-hours-a-week/11-ellu-be/commit/a7bda5fedfd2b161a253337a72acc679cdcfcb1f))
+
 ## [1.4.3](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.4.2...v1.4.3) (2025-07-15)
 
 
