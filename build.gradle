@@ -116,7 +116,7 @@ bootBuildImage {
     imageName = "${project.name}"
     buildpacks = [
         "paketo-buildpacks/java",
-        "gcr.io/paketo-buildpacks/opentelemetry"
+        "paketo-buildpacks/opentelemetry"
     ]
     environment = [
         "BP_JVM_VERSION"          : "21.*",
