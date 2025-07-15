@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'com.ellu.looper'
-version = '1.4.1'
+version = '1.4.2'
 
 java {
     toolchain {
@@ -108,13 +108,16 @@ dependencies {
 }
 dependencyManagement {
     imports {
-        mavenBom("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:2.16.0")
+        mavenBom("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:2.17.0")
     }
 }
 
 bootBuildImage {
     imageName = "${project.name}"
-    environment = ["BP_JVM_VERSION": "21.*"]
+    environment = [
+    "BP_JVM_VERSION"          : "21.*",
+    "BP_OPENTELEMETRY_ENABLED": "true"
+    ]
 
     docker {
         publishRegistry {

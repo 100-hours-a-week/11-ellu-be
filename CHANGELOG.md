@@ -1,3 +1,10 @@
+## [1.4.2](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.4.1...v1.4.2) (2025-07-10)
+
+
+### Bug Fixes
+
+* changed query for fetching chat history ([7e28870](https://github.com/100-hours-a-week/11-ellu-be/commit/7e2887008a219362772340e21708da86ddaa9e64))
+
 ## [1.4.1](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.4.0...v1.4.1) (2025-07-10)
 
 

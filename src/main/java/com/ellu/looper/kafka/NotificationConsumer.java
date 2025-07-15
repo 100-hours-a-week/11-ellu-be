@@ -13,7 +13,6 @@ import com.ellu.looper.notification.repository.NotificationRepository;
 import com.ellu.looper.notification.repository.NotificationTemplateRepository;
 import com.ellu.looper.notification.service.NotificationService;
 import com.ellu.looper.project.dto.CreatorExcludedProjectResponse;
-import com.ellu.looper.project.dto.ProjectResponse;
 import com.ellu.looper.project.entity.Project;
 import com.ellu.looper.project.entity.ProjectMember;
 import com.ellu.looper.project.repository.ProjectMemberRepository;
@@ -23,7 +22,7 @@ import com.ellu.looper.schedule.entity.Assignee;
 import com.ellu.looper.schedule.entity.ProjectSchedule;
 import com.ellu.looper.schedule.repository.AssigneeRepository;
 import com.ellu.looper.schedule.repository.ProjectScheduleRepository;
-import com.ellu.looper.sse.service.SseService;
+import com.ellu.looper.sse.service.NotificationSseService;
 import com.ellu.looper.user.entity.User;
 import com.ellu.looper.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,7 +53,7 @@ public class NotificationConsumer implements Runnable {
   private static final Logger log =
       LoggerFactory.getLogger(NotificationConsumer.class.getSimpleName());
   private final ObjectMapper objectMapper;
-  private final SseService sseEmitterService;
+  private final NotificationSseService notificationSseService;
   private KafkaConsumer<String, String> consumer;
   private volatile boolean running = true;
 
@@ -262,13 +261,8 @@ public class NotificationConsumer implements Runnable {
             projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
         projectMembers.forEach(
             pm -> {
-              List<ProjectResponse> projectListDto =
-                  projectService.getProjectListResponses(
-                      originalNotification.getReceiver().getId());
-
               String projectMemberCacheKey = PROJECT_LIST_CACHE_KEY_PREFIX + pm.getUser().getId();
-              cacheService.setProjectCache(
-                  projectMemberCacheKey, projectListDto, PROJECT_CACHE_TTL_SECONDS);
+              redisTemplate.delete(projectMemberCacheKey);
             });
 
         // Redis에 해당 프로젝트 정보 업데이트
@@ -284,12 +278,8 @@ public class NotificationConsumer implements Runnable {
             projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
         projectMembers.forEach(
             pm -> {
-              List<ProjectResponse> projectListDto =
-                  projectService.getProjectListResponses(notification.getSender().getId());
-
               String projectMemberCacheKey = PROJECT_LIST_CACHE_KEY_PREFIX + pm.getUser().getId();
-              cacheService.setProjectCache(
-                  projectMemberCacheKey, projectListDto, PROJECT_CACHE_TTL_SECONDS);
+              redisTemplate.delete(projectMemberCacheKey);
             });
 
         // Redis에 해당 프로젝트 정보 업데이트
@@ -337,7 +327,7 @@ public class NotificationConsumer implements Runnable {
       }
 
       // SSE 구독 중인 유저에게 전송
-      sseEmitterService.sendNotification(
+      notificationSseService.sendNotification(
           userId, event.toBuilder().notificationId(saved.getId()).build());
     }
   }
