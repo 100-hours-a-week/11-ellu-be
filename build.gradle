@@ -114,17 +114,19 @@ dependencyManagement {
 
 bootBuildImage {
     imageName = "${project.name}"
-    environment = [
-    "BP_JVM_VERSION"          : "21.*",
-    "BP_OPENTELEMETRY_ENABLED": "true"
+    buildpacks = [
+        "paketo-buildpacks/java",
+        "gcr.io/paketo-buildpacks/opentelemetry"
     ]
-
+    environment = [
+        "BP_JVM_VERSION"          : "21.*",
+        "BP_OPENTELEMETRY_ENABLED": "true"
+    ]
     docker {
         publishRegistry {
             username = project.findProperty("registryUsername")
             password = project.findProperty("registryToken")
             url = project.findProperty("registryUrl")
-
         }
     }
 }
