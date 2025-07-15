@@ -114,7 +114,10 @@ dependencyManagement {
 
 bootBuildImage {
     imageName = "${project.name}"
-    environment = ["BP_JVM_VERSION": "21.*"]
+    environment = [
+    "BP_JVM_VERSION"          : "21.*",
+    "BP_OPENTELEMETRY_ENABLED": "true"
+    ]
 
     docker {
         publishRegistry {
