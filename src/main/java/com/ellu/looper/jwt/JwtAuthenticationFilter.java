@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -48,6 +49,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         JwtAuthenticationToken authentication = new JwtAuthenticationToken(userId);
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        if (userId != null) {
+            // 세션에 userId 저장 (SSE 등에서 사용)
+            HttpSession session = request.getSession(true); // 없으면 생성
+            session.setAttribute("userId", userId);
+        }
 
       } catch (JwtException e) {
         if ("Token expired".equals(e.getMessage())) {

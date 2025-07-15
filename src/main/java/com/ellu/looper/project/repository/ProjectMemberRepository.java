@@ -2,6 +2,7 @@ package com.ellu.looper.project.repository;
 
 import com.ellu.looper.project.entity.Project;
 import com.ellu.looper.project.entity.ProjectMember;
+import com.ellu.looper.user.entity.User;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -38,6 +39,8 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
 
   // 프로젝트 id와 사용자 id로 프로젝트 멤버 조회 (soft-delete 제외)
   Optional<ProjectMember> findByProjectIdAndUserIdAndDeletedAtIsNull(Long projectId, Long userId);
+
+  boolean existsByProjectAndUserAndDeletedAtIsNull(Project project, User receiver);
 
   boolean existsByProjectIdAndUserIdAndDeletedAtIsNull(Long id, Long userId);
 

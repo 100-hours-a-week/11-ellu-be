@@ -1,6 +1,6 @@
 package com.ellu.looper.kafka.service;
 
-import com.ellu.looper.sse.service.SseEmitterService;
+import com.ellu.looper.sse.service.ChatSseService;
 import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class ChatStreamService {
-  private final SseEmitterService sseEmitterService;
+  private final ChatSseService chatSseService;
 
   @Bean
   public Consumer<KStream<String, String>> processChatResponse() {
@@ -20,7 +20,7 @@ public class ChatStreamService {
         stream.foreach(
             (userId, token) -> {
               log.debug("Processing response for user {}: {}", userId, token);
-              sseEmitterService.sendToken(userId, token, false);
+              chatSseService.sendTokenToUser(userId, token, false);
             });
   }
 }

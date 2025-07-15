@@ -2,7 +2,7 @@ package com.ellu.looper.kafka.config;
 
 import static org.apache.kafka.streams.StreamsConfig.*;
 
-import com.ellu.looper.sse.service.SseEmitterService;
+import com.ellu.looper.sse.service.ChatSseService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,7 +48,7 @@ public class KafkaStreamsConfig {
 
   @Bean
   public KStream<String, String> chatResponseStream(
-      StreamsBuilder streamsBuilder, SseEmitterService sseEmitterService) {
+      StreamsBuilder streamsBuilder, ChatSseService chatSseService) {
     KStream<String, String> stream =
         streamsBuilder.stream(responseTopic, Consumed.with(Serdes.String(), Serdes.String()));
 
@@ -82,7 +82,7 @@ public class KafkaStreamsConfig {
               String text = dataNode.get("text").asText();
               boolean done = dataNode.get("done").asBoolean();
 
-              sseEmitterService.sendMessage(key, text, done);
+              chatSseService.sendMessageToUser(Long.valueOf(key), text, done);
 
             } else if (messageNode.asText().equals("task_response")) { // 스케줄 데이터가 포함된 메시지
               JsonNode taskTitleNode = dataNode.get("task_title");
@@ -109,14 +109,14 @@ public class KafkaStreamsConfig {
                 endTime = detailNode.get("end_time").asText();
               }
 
-              sseEmitterService.sendSchedulePreview(
-                  key, planTitle, category, subtaskTitle, startTime, endTime, done);
+              chatSseService.sendSchedulePreviewToUser(
+                  Long.valueOf(key), planTitle, category, subtaskTitle, startTime, endTime, done);
 
             } else { // 일반적인 대화 메시지
               String token = dataNode.get("token").asText();
               boolean done = dataNode.get("done").asBoolean();
 
-              sseEmitterService.sendMessage(key, token, done);
+              chatSseService.sendMessageToUser(Long.valueOf(key), token, done);
             }
 
           } catch (JsonProcessingException e) {
