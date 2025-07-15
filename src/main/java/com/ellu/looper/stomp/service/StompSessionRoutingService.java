@@ -38,8 +38,6 @@ public class StompSessionRoutingService {
     // 세션 해제
     public void unregisterSession(Long userId) {
         String key = ROUTING_KEY_PREFIX + userId;
-        log.info("key!!"+ key);
-        log.info("userId!! "+ userId);
         redisTemplate.delete(key);
         String sessionId = getSessionId(userId);
         if (sessionId != null) {

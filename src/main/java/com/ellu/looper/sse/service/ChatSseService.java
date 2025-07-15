@@ -81,7 +81,7 @@ public class ChatSseService {
       SseEmitter emitter = getEmitter(sessionId);
       if (emitter != null) {
         emitter.send(SseEmitter.event().name(eventName).data(data));
-        log.debug("Sent message to local session {}: {} - {}", sessionId, eventName, data);
+        log.info("Sent message to local session {}: {} - {}", sessionId, eventName, data);
         return;
       }
       log.warn("No emitter found for local session {}", sessionId);
