@@ -49,6 +49,9 @@ spring:
 
 server:
   forward-headers-strategy: framework
+  servlet:
+    session:
+      timeout: 60m
 
 cloud:
   aws:
@@ -72,7 +75,7 @@ jwt:
 
 fastapi:
   summary-url: ${FASTAPI_SUMMARY_URL:http://localhost:8000}
-  chatbot-url: ${FASTAPI_CHATBOT_URL:http://localhost:8005}
+  chatbot-url: ${FASTAPI_CHATBOT_URL:http://localhost:8000}
 
 # 현재는 OpenTelemetry가 시스템에 영향을 주지 않도록 완전히 비활성화함
 otel:
