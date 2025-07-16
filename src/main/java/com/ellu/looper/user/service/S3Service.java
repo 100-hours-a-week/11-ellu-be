@@ -39,7 +39,7 @@ public class S3Service {
     metadata.setContentType(file.getContentType());
     metadata.setContentLength(file.getSize());
 
-    amazonS3Client.putObject(bucket, "audio/"+fileName, file.getInputStream(), metadata);
+    amazonS3Client.putObject(bucket, "audio/" + fileName, file.getInputStream(), metadata);
     return generatePresignedUrl(fileName);
   }
 

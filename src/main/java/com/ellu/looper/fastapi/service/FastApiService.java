@@ -230,7 +230,6 @@ public class FastApiService {
         .subscribe();
   }
 
-
   public MeetingNoteResponse sendNoteToAI(MeetingNoteRequest noteRequest) {
     log.info("Sending note to AI server for project: {}", noteRequest.getProject_id());
     return fastApiSummaryWebClient

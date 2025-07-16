@@ -51,9 +51,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         if (userId != null) {
-            // 세션에 userId 저장 (SSE 등에서 사용)
-            HttpSession session = request.getSession(true); // 없으면 생성
-            session.setAttribute("userId", userId);
+          // 세션에 userId 저장 (SSE 등에서 사용)
+          HttpSession session = request.getSession(true); // 없으면 생성
+          session.setAttribute("userId", userId);
         }
 
       } catch (JwtException e) {

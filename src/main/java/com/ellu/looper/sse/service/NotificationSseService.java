@@ -1,17 +1,17 @@
 package com.ellu.looper.sse.service;
 
 import com.ellu.looper.kafka.dto.NotificationMessage;
+import com.ellu.looper.sse.dto.SsePubSubMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import com.ellu.looper.sse.dto.SsePubSubMessage;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Service
 @Slf4j
@@ -86,13 +86,17 @@ public class NotificationSseService {
   public void sendToLocalSession(String sessionId, String eventName, String data) {
     try {
       if (sessionId == null) {
-        log.error("sendToLocalSession called with null sessionId. eventName: {}, data: {}",
-            eventName, data);
+        log.error(
+            "sendToLocalSession called with null sessionId. eventName: {}, data: {}",
+            eventName,
+            data);
         return;
       }
       if (data == null) {
-        log.error("sendToLocalSession called with null data for sessionId: {}, eventName: {}",
-            sessionId, eventName);
+        log.error(
+            "sendToLocalSession called with null data for sessionId: {}, eventName: {}",
+            sessionId,
+            eventName);
         return;
       }
       NotificationMessage notificationMessage;
@@ -101,7 +105,10 @@ public class NotificationSseService {
       } catch (Exception parseEx) {
         log.error(
             "Failed to parse data to NotificationMessage for sessionId: {}, eventName: {}, data: {}",
-            sessionId, eventName, data, parseEx);
+            sessionId,
+            eventName,
+            data,
+            parseEx);
         return;
       }
       SseEmitter emitter = getEmitter(sessionId);
@@ -132,20 +139,23 @@ public class NotificationSseService {
     return sessionId.equals(redisSession) && emitters.containsKey(sessionId);
   }
 
-  private void forwardToSession(String targetSessionId, String eventName,
-      NotificationMessage data) {
+  private void forwardToSession(
+      String targetSessionId, String eventName, NotificationMessage data) {
     try {
       String jsonData = objectMapper.writeValueAsString(data);
       SsePubSubMessage message = new SsePubSubMessage(targetSessionId, eventName, jsonData);
       redisTemplate.convertAndSend(SSE_CHANNEL, message);
-      log.info("Published notification SSE message to channel {} for session {}", SSE_CHANNEL,
+      log.info(
+          "Published notification SSE message to channel {} for session {}",
+          SSE_CHANNEL,
           targetSessionId);
     } catch (Exception e) {
-      log.error("Error publishing notification SSE message to channel {}: {}", SSE_CHANNEL,
+      log.error(
+          "Error publishing notification SSE message to channel {}: {}",
+          SSE_CHANNEL,
           e.getMessage());
     }
   }
-
 
   // userId로부터 sessionId를 조회해 메시지 전송
   public void sendNotificationToUser(Long userId, NotificationMessage dto) {

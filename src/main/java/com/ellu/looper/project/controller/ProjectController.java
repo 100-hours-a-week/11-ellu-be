@@ -46,8 +46,7 @@ public class ProjectController {
 
   @PostMapping("/{projectId}/audio")
   public ResponseEntity<ApiResponse<?>> relayAudioToAI(
-      @PathVariable Long projectId,
-      @RequestParam("file") MultipartFile file) throws IOException {
+      @PathVariable Long projectId, @RequestParam("file") MultipartFile file) throws IOException {
 
     // File size limit: 10MB
     if (file.getSize() > 10 * 1024 * 1024) {
@@ -55,7 +54,8 @@ public class ProjectController {
     }
     // File type limit: mp3, mp4, wav
     String contentType = file.getContentType();
-    if (!("audio/mpeg".equals(contentType) || "audio/mp4".equals(contentType)
+    if (!("audio/mpeg".equals(contentType)
+        || "audio/mp4".equals(contentType)
         || "audio/wav".equals(contentType))) {
       return ResponseEntity.badRequest()
           .body(ApiResponse.error("Only mp3, mp4, and wav audio files are allowed."));
@@ -65,13 +65,15 @@ public class ProjectController {
     formData.add("audio_file", file.getResource());
     formData.add("project_id", projectId.toString());
 
-    String aiResponse = webClient.post()
-        .uri("ai/audio")
-        .contentType(MediaType.MULTIPART_FORM_DATA)
-        .body(BodyInserters.fromMultipartData(formData))
-        .retrieve()
-        .bodyToMono(String.class)
-        .block();
+    String aiResponse =
+        webClient
+            .post()
+            .uri("ai/audio")
+            .contentType(MediaType.MULTIPART_FORM_DATA)
+            .body(BodyInserters.fromMultipartData(formData))
+            .retrieve()
+            .bodyToMono(String.class)
+            .block();
     return ResponseEntity.ok(ApiResponse.success("file_sent_to_ai", aiResponse));
   }
 

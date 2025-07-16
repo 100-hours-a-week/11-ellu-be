@@ -1,15 +1,15 @@
 package com.ellu.looper.stomp;
 
+import com.ellu.looper.stomp.service.StompSessionRoutingService;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
-import com.ellu.looper.stomp.service.StompSessionRoutingService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 import org.springframework.web.socket.messaging.SessionUnsubscribeEvent;
 
@@ -32,7 +32,10 @@ public class StompEventListener {
     log.info("Connect sessionId " + accessor.getSessionId());
     log.info("Total session : " + sessions.size());
     // userId 추출 및 Redis 등록
-    Object userIdObj = accessor.getSessionAttributes() != null ? accessor.getSessionAttributes().get("userId") : null;
+    Object userIdObj =
+        accessor.getSessionAttributes() != null
+            ? accessor.getSessionAttributes().get("userId")
+            : null;
     if (userIdObj instanceof Long) {
       stompSessionRoutingService.registerSession((Long) userIdObj, accessor.getSessionId());
     } else {
@@ -49,11 +52,16 @@ public class StompEventListener {
     // 모든 프로젝트 Set에서 sessionId 제거
     stompSessionRoutingService.removeSessionFromAllProjects(accessor.getSessionId());
     // userId 추출 및 Redis 해제
-    Object userIdObj = accessor.getSessionAttributes() != null ? accessor.getSessionAttributes().get("userId") : null;
+    Object userIdObj =
+        accessor.getSessionAttributes() != null
+            ? accessor.getSessionAttributes().get("userId")
+            : null;
     if (userIdObj instanceof Long) {
       stompSessionRoutingService.unregisterSession((Long) userIdObj);
     } else {
-      log.warn("userId not found in session attributes for sessionId {} (disconnect)", accessor.getSessionId());
+      log.warn(
+          "userId not found in session attributes for sessionId {} (disconnect)",
+          accessor.getSessionId());
     }
   }
 
