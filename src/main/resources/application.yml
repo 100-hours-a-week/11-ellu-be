@@ -29,7 +29,7 @@ spring:
       properties:
         spring.json.trusted.packages: "*"
       auto-offset-reset: earliest
-      group-id: ${server.pod-id}
+      group-id: consumer-group
     streams:
       bootstrap-servers: ${KAFKA_BASE_URL:localhost:9092}
       application-id: looper-streams-app
@@ -45,7 +45,6 @@ spring:
 
 server:
   forward-headers-strategy: framework
-  pod-id: ${POD_UID}
 
 cloud:
   aws:
@@ -68,7 +67,7 @@ jwt:
   secret: ${JWT_SECRET}
 
 fastapi:
-  summary-url: ${FASTAPI_SUMMARY_URL:http://localhost:8004}
+  summary-url: ${FASTAPI_SUMMARY_URL:http://localhost:8000}
   chatbot-url: ${FASTAPI_CHATBOT_URL:http://localhost:8005}
 
 # 현재는 OpenTelemetry가 시스템에 영향을 주지 않도록 완전히 비활성화함
@@ -115,10 +114,10 @@ kafka:
     preview:
       preview-result
   consumer:
-    chat-group-id: ${server.pod-id}
-    preview-group-id: ${server.pod-id}
-    notification-group-id: ${server.pod-id}
-    schedule-group-id: ${server.pod-id}
+    chat-group-id: chat-group
+    preview-group-id: preview-consumer-group
+    notification-group-id: notification-service-group
+    schedule-group-id: schedule-service-group
 
 cache:
   project:

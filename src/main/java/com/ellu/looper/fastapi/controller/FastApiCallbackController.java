@@ -3,9 +3,10 @@ package com.ellu.looper.fastapi.controller;
 import com.ellu.looper.fastapi.dto.MeetingNoteResponse;
 import com.ellu.looper.fastapi.dto.WikiEmbeddingResponse;
 import com.ellu.looper.fastapi.service.FastApiService;
-import com.ellu.looper.kafka.PreviewResultProducer;
+import com.ellu.looper.schedule.dto.PreviewMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,7 +24,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class FastApiCallbackController {
 
   private final FastApiService aiCallbackService;
-  private final PreviewResultProducer previewResultProducer;
+//    private final PreviewResultProducer previewResultProducer;
+  private final RedisTemplate<String, Object> redisTemplate;
 
   @PostMapping("/projects/{projectId}/preview")
   public ResponseEntity<?> receiveAiPreview(
@@ -44,8 +46,8 @@ public class FastApiCallbackController {
       log.warn("[FastApiCallbackController] No data received in the response");
     }
 
-    // Kafka를 통해 메시지 전달
-    previewResultProducer.sendPreviewResult(projectId, aiPreviewResponse);
+    redisTemplate.convertAndSend("preview-complete",
+        new PreviewMessage(projectId, aiPreviewResponse));
 
     log.info(
         "[FastApiCallbackController] Successfully processed callback for project: {}", projectId);
