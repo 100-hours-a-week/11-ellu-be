@@ -10,14 +10,14 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 @Configuration
 @RequiredArgsConstructor
 public class StompPubSubConfig {
-    private final RedisConnectionFactory redisConnectionFactory;
-    private final StompPubSubListener stompPubSubListener;
+  private final RedisConnectionFactory redisConnectionFactory;
+  private final StompPubSubListener stompPubSubListener;
 
-    @Bean
-    public RedisMessageListenerContainer stompRedisMessageListenerContainer() {
-        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
-        container.setConnectionFactory(redisConnectionFactory);
-        container.addMessageListener(stompPubSubListener, new ChannelTopic("stomp:events"));
-        return container;
-    }
-} 
+  @Bean
+  public RedisMessageListenerContainer stompRedisMessageListenerContainer() {
+    RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+    container.setConnectionFactory(redisConnectionFactory);
+    container.addMessageListener(stompPubSubListener, new ChannelTopic("stomp:events"));
+    return container;
+  }
+}

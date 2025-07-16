@@ -4,15 +4,15 @@ import com.ellu.looper.sse.dto.SsePubSubMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.data.redis.core.RedisTemplate;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -24,7 +24,6 @@ public class ChatSseService {
   private final RedisTemplate<String, Object> redisTemplate;
   private static final String routingKeyPrefix = "sse:routing:chat:";
   private static final String SSE_CHANNEL = "sse:events";
-
 
   public SseEmitter createEmitter(HttpServletRequest request, Long userId) {
     String sessionId = request.getSession().getId();
@@ -126,7 +125,6 @@ public class ChatSseService {
     }
   }
 
-
   public void sendToken(Long userId, String sessionId, String token, boolean done) {
     try {
       String targetSessionId = getTargetSession(userId);
@@ -138,12 +136,12 @@ public class ChatSseService {
 
         SseEmitter localEmitter = getEmitter(sessionId);
         if (localEmitter != null) {
-          sendToLocalSession(sessionId, "token",
-              "{\"token\":\"" + token + "\",\"done\":" + done + "}");
+          sendToLocalSession(
+              sessionId, "token", "{\"token\":\"" + token + "\",\"done\":" + done + "}");
         }
       } else {
-        forwardToSession(targetSessionId, "token",
-            "{\"token\":\"" + token + "\",\"done\":" + done + "}");
+        forwardToSession(
+            targetSessionId, "token", "{\"token\":\"" + token + "\",\"done\":" + done + "}");
       }
     } catch (Exception e) {
       log.error("Error sending message to session {}: {}", sessionId, e.getMessage());
@@ -173,12 +171,12 @@ public class ChatSseService {
 
         SseEmitter localEmitter = getEmitter(sessionId);
         if (localEmitter != null) {
-          sendToLocalSession(sessionId, "message",
-              "{\"message\":\"" + message + "\",\"done\":" + done + "}");
+          sendToLocalSession(
+              sessionId, "message", "{\"message\":\"" + message + "\",\"done\":" + done + "}");
         }
       } else {
-        forwardToSession(targetSessionId, "message",
-            "{\"message\":\"" + message + "\",\"done\":" + done + "}");
+        forwardToSession(
+            targetSessionId, "message", "{\"message\":\"" + message + "\",\"done\":" + done + "}");
       }
     } catch (Exception e) {
       log.error("Error sending message to session {}: {}", sessionId, e.getMessage());
@@ -188,7 +186,8 @@ public class ChatSseService {
   }
 
   // userId로부터 sessionId를 조회해 메시지 전송
-  public void sendSchedulePreviewToUser(Long userId,
+  public void sendSchedulePreviewToUser(
+      Long userId,
       String taskTitle,
       String category,
       String subtaskTitle,
@@ -197,8 +196,8 @@ public class ChatSseService {
       boolean done) {
     String sessionId = (String) redisTemplate.opsForValue().get(routingKeyPrefix + userId);
     if (sessionId != null) {
-      sendSchedulePreview(userId, sessionId, taskTitle, category, subtaskTitle, startTime, endTime,
-          done);
+      sendSchedulePreview(
+          userId, sessionId, taskTitle, category, subtaskTitle, startTime, endTime, done);
     } else {
       log.warn("No sessionId found for userId {} when trying to send message", userId);
     }

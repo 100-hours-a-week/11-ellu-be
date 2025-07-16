@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class StompService {
 
   private final ScheduleEventProducer scheduleEventProducer;
+
   @Transactional
   public void updateSchedule(
       Long projectId, StompProjectScheduleUpdateRequest scheduleUpdateRequest, Long userId) {

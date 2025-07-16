@@ -1,16 +1,17 @@
 package com.ellu.looper.sse.service;
 
 import com.ellu.looper.kafka.dto.NotificationMessage;
+import com.ellu.looper.sse.dto.SsePubSubMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import com.ellu.looper.sse.dto.SsePubSubMessage;
-import org.springframework.data.redis.core.RedisTemplate;
 
 @Service
 @Slf4j
@@ -38,9 +39,18 @@ public class NotificationSseService {
 
     emitter.onTimeout(
         () -> {
+          if (sessionId == null) {
+            log.warn("SSE timeout: sessionId is null");
+            return;
+          }
+          if (userId == null) {
+            log.warn("SSE timeout for session {}: userId is null", sessionId);
+            emitters.remove(sessionId);
+            return;
+          }
           emitters.remove(sessionId);
           unregisterSession(userId);
-          log.info("SSE timeout for session: {}", sessionId);
+          log.info("SSE timeout for session: {} (userId: {})", sessionId, userId);
         });
 
     emitter.onError(
@@ -75,7 +85,32 @@ public class NotificationSseService {
 
   public void sendToLocalSession(String sessionId, String eventName, String data) {
     try {
-      NotificationMessage notificationMessage = objectMapper.readValue(data, NotificationMessage.class);
+      if (sessionId == null) {
+        log.error(
+            "sendToLocalSession called with null sessionId. eventName: {}, data: {}",
+            eventName,
+            data);
+        return;
+      }
+      if (data == null) {
+        log.error(
+            "sendToLocalSession called with null data for sessionId: {}, eventName: {}",
+            sessionId,
+            eventName);
+        return;
+      }
+      NotificationMessage notificationMessage;
+      try {
+        notificationMessage = objectMapper.readValue(data, NotificationMessage.class);
+      } catch (Exception parseEx) {
+        log.error(
+            "Failed to parse data to NotificationMessage for sessionId: {}, eventName: {}, data: {}",
+            sessionId,
+            eventName,
+            data,
+            parseEx);
+        return;
+      }
       SseEmitter emitter = getEmitter(sessionId);
       if (emitter != null) {
         emitter.send(SseEmitter.event().name(eventName).data(notificationMessage));
@@ -104,21 +139,23 @@ public class NotificationSseService {
     return sessionId.equals(redisSession) && emitters.containsKey(sessionId);
   }
 
-  private void forwardToSession(String targetSessionId, String eventName,
-      NotificationMessage data) {
+  private void forwardToSession(
+      String targetSessionId, String eventName, NotificationMessage data) {
     try {
       String jsonData = objectMapper.writeValueAsString(data);
       SsePubSubMessage message = new SsePubSubMessage(targetSessionId, eventName, jsonData);
       redisTemplate.convertAndSend(SSE_CHANNEL, message);
-      log.info("Published notification SSE message to channel {} for session {}", SSE_CHANNEL,
+      log.info(
+          "Published notification SSE message to channel {} for session {}",
+          SSE_CHANNEL,
           targetSessionId);
     } catch (Exception e) {
-      log.error("Error publishing notification SSE message to channel {}: {}", SSE_CHANNEL,
+      log.error(
+          "Error publishing notification SSE message to channel {}: {}",
+          SSE_CHANNEL,
           e.getMessage());
     }
   }
-
-
 
   // userId로부터 sessionId를 조회해 메시지 전송
   public void sendNotificationToUser(Long userId, NotificationMessage dto) {
@@ -150,6 +187,21 @@ public class NotificationSseService {
       log.error("Error sending notification message to session {}: {}", sessionId, e.getMessage());
       removeEmitter(sessionId);
       unregisterSession(userId);
+    }
+  }
+
+  /** send keep-alive event to all connected SSE clients every 30 seconds */
+  @Scheduled(fixedRate = 30000)
+  public void sendKeepAlive() {
+    for (Map.Entry<String, SseEmitter> entry : emitters.entrySet()) {
+      String sessionId = entry.getKey();
+      SseEmitter emitter = entry.getValue();
+      try {
+        emitter.send(SseEmitter.event().name("keep-alive").data("ping"));
+        log.debug("Sent keep-alive to session {}", sessionId);
+      } catch (Exception e) {
+        log.warn("Failed to send keep-alive to session {}: {}", sessionId, e.getMessage());
+      }
     }
   }
 }
