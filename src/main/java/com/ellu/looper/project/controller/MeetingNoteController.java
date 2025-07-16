@@ -3,17 +3,17 @@ package com.ellu.looper.project.controller;
 import com.ellu.looper.commons.ApiResponse;
 import com.ellu.looper.commons.CurrentUser;
 import com.ellu.looper.fastapi.dto.MeetingNoteRequest;
+import com.ellu.looper.fastapi.dto.MeetingNoteResponse;
 import com.ellu.looper.fastapi.service.FastApiService;
 import com.ellu.looper.project.entity.ProjectMember;
 import com.ellu.looper.project.repository.ProjectMemberRepository;
-import com.ellu.looper.schedule.service.PreviewHolder;
 import com.ellu.looper.user.repository.UserRepository;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.*;
 public class MeetingNoteController {
 
   private final FastApiService fastApiService;
-  private final PreviewHolder previewHolder;
   private final UserRepository userRepository;
   private final ProjectMemberRepository projectMemberRepository;
 
@@ -30,6 +29,11 @@ public class MeetingNoteController {
       @CurrentUser Long userId,
       @PathVariable Long projectId,
       @RequestBody MeetingNoteRequest request) {
+
+    // 프로젝트 멤버십 확인
+    projectMemberRepository
+        .findByProjectIdAndUserIdAndDeletedAtIsNull(projectId, userId)
+        .orElseThrow(() -> new AccessDeniedException("Not a member of this project"));
 
     if (request.getContent() == null || request.getContent().trim().isEmpty()) {
       return ResponseEntity.badRequest().body(ApiResponse.error("Content must not be empty"));
@@ -46,21 +50,9 @@ public class MeetingNoteController {
             .collect(Collectors.toList());
     request.setPosition(positions);
 
-    fastApiService.sendNoteToAI(
-        request, null, error -> previewHolder.completeWithError(projectId, error));
+    // FastAPI에 동기 HTTP 요청
+    MeetingNoteResponse response = fastApiService.sendNoteToAI(request);
 
-    return ResponseEntity.status(201)
-        .body(
-            ApiResponse.success(
-                "note_uploaded",
-                Map.of(
-                    "project_id", projectId,
-                    "author",
-                        Map.of(
-                            "member_id",
-                            userId,
-                            "nickname",
-                            userRepository.findById(userId).get().getNickname()),
-                    "created_at", LocalDateTime.now())));
+    return ResponseEntity.ok(ApiResponse.success("preview_result", response));
   }
 }
