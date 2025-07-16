@@ -51,12 +51,12 @@ public class ProjectController {
     if (file.getSize() > 10 * 1024 * 1024) {
       return ResponseEntity.badRequest().body(ApiResponse.error("File size exceeds 10MB limit."));
     }
-    // File type limit: mp3, m4a, webm
+    // File type limit: mp3, mp4, wav
     String contentType = file.getContentType();
     if (!("audio/mpeg".equals(contentType) || "audio/mp4".equals(contentType)
-        || "audio/webm".equals(contentType))) {
+        || "audio/wav".equals(contentType))) {
       return ResponseEntity.badRequest()
-          .body(ApiResponse.error("Only mp3, m4a, and webm audio files are allowed."));
+          .body(ApiResponse.error("Only mp3, mp4, and wav audio files are allowed."));
     }
 
     String aiResponse = webClient.post()
