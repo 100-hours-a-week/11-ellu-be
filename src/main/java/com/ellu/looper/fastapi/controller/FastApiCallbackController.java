@@ -1,14 +1,10 @@
 package com.ellu.looper.fastapi.controller;
 
-import com.ellu.looper.fastapi.dto.MeetingNoteResponse;
 import com.ellu.looper.fastapi.dto.WikiEmbeddingResponse;
 import com.ellu.looper.fastapi.service.FastApiService;
-import com.ellu.looper.schedule.dto.PreviewMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,35 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class FastApiCallbackController {
 
   private final FastApiService aiCallbackService;
-//    private final PreviewResultProducer previewResultProducer;
-  private final RedisTemplate<String, Object> redisTemplate;
-
-  @PostMapping("/projects/{projectId}/preview")
-  public ResponseEntity<?> receiveAiPreview(
-      @PathVariable Long projectId, @RequestBody MeetingNoteResponse aiPreviewResponse) {
-
-    log.info("[FastApiCallbackController] Received callback for project: {}", projectId);
-    log.info("[FastApiCallbackController] Response message: {}", aiPreviewResponse.getMessage());
-
-    if (aiPreviewResponse.getDetail() != null) {
-      aiPreviewResponse
-          .getDetail()
-          .forEach(
-              preview -> {
-                log.info("[FastApiCallbackController] Task: {}", preview.getTask());
-                log.info("[FastApiCallbackController] Subtasks: {}", preview.getSubtasks());
-              });
-    } else {
-      log.warn("[FastApiCallbackController] No data received in the response");
-    }
-
-    redisTemplate.convertAndSend("preview-complete",
-        new PreviewMessage(projectId, aiPreviewResponse));
-
-    log.info(
-        "[FastApiCallbackController] Successfully processed callback for project: {}", projectId);
-    return ResponseEntity.ok().build(); // AI에게 200 OK 응답
-  }
 
   @PostMapping("/wiki")
   public ResponseEntity<?> receiveWikiCompletion(
