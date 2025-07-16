@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -59,12 +61,14 @@ public class ProjectController {
           .body(ApiResponse.error("Only mp3, mp4, and wav audio files are allowed."));
     }
 
+    MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
+    formData.add("audio_file", file.getResource());
+    formData.add("project_id", projectId.toString());
+
     String aiResponse = webClient.post()
-        .uri(
-            uriBuilder ->
-                uriBuilder.path("/{projectId}/audio").build(projectId))
+        .uri("ai/audio")
         .contentType(MediaType.MULTIPART_FORM_DATA)
-        .body(BodyInserters.fromMultipartData("file", file.getResource()))
+        .body(BodyInserters.fromMultipartData(formData))
         .retrieve()
         .bodyToMono(String.class)
         .block();
