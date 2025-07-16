@@ -34,19 +34,6 @@ public class ChatConsumer {
 
       MessageRequest message = objectMapper.readValue(value, MessageRequest.class);
 
-      // 메시지에 messageId가 없으면 UUID 생성해서 할당
-      if (message.getMessageId() == null) {
-        message = message.toBuilder().messageId(UUID.randomUUID()).build();
-      }
-      String uniqueKey = "chat:msg:" + message.getMessageId();
-      Boolean success = redisTemplate.opsForValue().setIfAbsent(uniqueKey, "done", 10, TimeUnit.MINUTES);
-      if (!Boolean.TRUE.equals(success)) {
-        log.info("Duplicate chat message detected, skipping: {}", uniqueKey);
-        return;
-      }
-
-      log.info("Received message from user {}: {}", userId, message.getMessage());
-
       fastApiService
           .streamChatResponse(message)
           .doOnNext(
