@@ -36,6 +36,10 @@ spring:
     properties:
       retries:
         3
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
   data:
     redis:

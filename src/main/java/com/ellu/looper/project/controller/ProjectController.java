@@ -7,23 +7,68 @@ import com.ellu.looper.project.dto.ProjectCreateRequest;
 import com.ellu.looper.project.dto.ProjectResponse;
 import com.ellu.looper.project.dto.ProjectUpdateRequest;
 import com.ellu.looper.project.service.ProjectService;
+import java.io.IOException;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/projects")
 public class ProjectController {
 
   private final ProjectService projectService;
+  private final WebClient webClient;
+  private String aiServerUrl;
+
+  public ProjectController(
+      ProjectService projectService,
+      @Qualifier("fastApiSummaryWebClient") WebClient webClient,
+      @Value("${fastapi.summary-url}") String aiServerUrl) {
+    this.projectService = projectService;
+    this.webClient = webClient;
+    this.aiServerUrl = aiServerUrl;
+  }
 
   @PostMapping
   public ResponseEntity<ApiResponse<?>> createProject(
       @CurrentUser Long userId, @RequestBody ProjectCreateRequest request) {
     projectService.createProject(request, userId);
     return ResponseEntity.ok(ApiResponse.success("project_created", null));
+  }
+
+  @PostMapping("/{projectId}/audio")
+  public ResponseEntity<ApiResponse<?>> relayAudioToAI(
+      @PathVariable Long projectId,
+      @RequestParam("file") MultipartFile file) throws IOException {
+
+    // File size limit: 10MB
+    if (file.getSize() > 10 * 1024 * 1024) {
+      return ResponseEntity.badRequest().body(ApiResponse.error("File size exceeds 10MB limit."));
+    }
+    // File type limit: mp3, m4a, webm
+    String contentType = file.getContentType();
+    if (!("audio/mpeg".equals(contentType) || "audio/mp4".equals(contentType)
+        || "audio/webm".equals(contentType))) {
+      return ResponseEntity.badRequest()
+          .body(ApiResponse.error("Only mp3, m4a, and webm audio files are allowed."));
+    }
+
+    String aiResponse = webClient.post()
+        .uri(
+            uriBuilder ->
+                uriBuilder.path("/{projectId}/audio").build(projectId))
+        .contentType(MediaType.MULTIPART_FORM_DATA)
+        .body(BodyInserters.fromMultipartData("file", file.getResource()))
+        .retrieve()
+        .bodyToMono(String.class)
+        .block();
+    return ResponseEntity.ok(ApiResponse.success("file_sent_to_ai", aiResponse));
   }
 
   @GetMapping

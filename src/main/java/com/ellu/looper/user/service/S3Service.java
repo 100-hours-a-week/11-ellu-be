@@ -32,6 +32,17 @@ public class S3Service {
     return generatePresignedUrl(fileName);
   }
 
+  // FE -> BE -> AI server로 전달하는 구조이므로 음성 파일을 따로 S3에 저장하지 않음(추후 필요에 따라 호출)
+  public String uploadAudioFile(MultipartFile file) throws IOException {
+    String fileName = createFileName(file.getOriginalFilename());
+    ObjectMetadata metadata = new ObjectMetadata();
+    metadata.setContentType(file.getContentType());
+    metadata.setContentLength(file.getSize());
+
+    amazonS3Client.putObject(bucket, "audio/"+fileName, file.getInputStream(), metadata);
+    return generatePresignedUrl(fileName);
+  }
+
   private String generatePresignedUrl(String fileName) {
     Date expiration = new Date();
     long expTimeMillis = expiration.getTime();
