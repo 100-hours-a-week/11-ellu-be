@@ -181,6 +181,12 @@ public class ProjectService {
 
   @Transactional(readOnly = true)
   public CreatorExcludedProjectResponse getProjectDetail(Long projectId, Long userId) {
+    boolean isProjectMember = projectMemberRepository.existsByProjectIdAndUserIdAndDeletedAtIsNull(projectId,
+        userId);
+    if (!isProjectMember) {
+      throw new SecurityException("Only project members can view their project detail");
+    }
+
     String cacheKey = PROJECT_DETAIL_CACHE_KEY_PREFIX + projectId;
     CreatorExcludedProjectResponse response =
         cacheService.getWithLock(

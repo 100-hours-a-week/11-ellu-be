@@ -87,6 +87,12 @@ public class ProjectScheduleService {
             .findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("Invalid user ID"));
 
+    boolean isProjectMember = projectMemberRepository.existsByProjectIdAndUserIdAndDeletedAtIsNull(projectId,
+        userId);
+    if (!isProjectMember) {
+      throw new SecurityException("Only project members can view their project detail");
+    }
+
     Map<String, String> errors = new HashMap<>();
 
     int index = 0;
@@ -165,6 +171,12 @@ public class ProjectScheduleService {
             .findByIdAndDeletedAtIsNull(scheduleId)
             .orElseThrow(() -> new IllegalArgumentException("Schedule not found"));
 
+    boolean isProjectMember = projectMemberRepository.existsByProjectIdAndUserIdAndDeletedAtIsNull(schedule.getProject().getId(),
+        userId);
+    if (!isProjectMember) {
+      throw new SecurityException("Only project members can view their project detail");
+    }
+
     validateTimeOrder(request.start_time(), request.end_time());
 
     schedule.update(
@@ -231,6 +243,12 @@ public class ProjectScheduleService {
         projectScheduleRepository
             .findByIdAndDeletedAtIsNull(scheduleId)
             .orElseThrow(() -> new IllegalArgumentException("Schedule not found"));
+
+    boolean isProjectMember = projectMemberRepository.existsByProjectIdAndUserIdAndDeletedAtIsNull(schedule.getProject().getId(),
+        userId);
+    if (!isProjectMember) {
+      throw new SecurityException("Only project members can view their project detail");
+    }
 
     //  delete schedule assignee
     List<Assignee> assignees =
