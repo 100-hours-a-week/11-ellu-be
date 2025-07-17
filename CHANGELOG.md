@@ -1,3 +1,21 @@
+# [1.5.0](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.4.7...v1.5.0) (2025-07-17)
+
+
+### Bug Fixes
+
+* api 형식 수정 ([856a0a5](https://github.com/100-hours-a-week/11-ellu-be/commit/856a0a5435c7a3c70b495ff6d7a952b3991a7733))
+* reverted(group-id config) ([b7224e5](https://github.com/100-hours-a-week/11-ellu-be/commit/b7224e5e49c2cff619fcbc8513bb899e91d06c07))
+* session info stored in redis ([6159bbf](https://github.com/100-hours-a-week/11-ellu-be/commit/6159bbf9b9829017b3ccd3d8236827474094745b))
+* sse 세션 타임아웃 핸들링 ([#196](https://github.com/100-hours-a-week/11-ellu-be/issues/196)) ([1688099](https://github.com/100-hours-a-week/11-ellu-be/commit/1688099c45f37fad90f087637b4447b6ecd20002))
+* updated APIs for extracting TODOs from meeting notes ([6567fe9](https://github.com/100-hours-a-week/11-ellu-be/commit/6567fe9e8f4c25754a26fd77df299ba932c758c6))
+* 프로젝트 회의록 업로드 로직 추가 ([650cc74](https://github.com/100-hours-a-week/11-ellu-be/commit/650cc74edcd8daade0dba77a933e9e661813c074))
+
+
+### Features
+
+* implemented delivering audio file to ai server ([0fcbf82](https://github.com/100-hours-a-week/11-ellu-be/commit/0fcbf82e7e836f439a1b97f5fa42c9bde1cd705a))
+* 업로드 가능한 파일 확장자 수정 ([25f9544](https://github.com/100-hours-a-week/11-ellu-be/commit/25f9544479ea7b33f52e46cc43b561f270caf9cf))
+
 ## [1.4.7](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.4.6...v1.4.7) (2025-07-15)
 
 
