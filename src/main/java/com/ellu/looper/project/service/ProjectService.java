@@ -4,6 +4,8 @@ import com.ellu.looper.commons.enums.Color;
 import com.ellu.looper.commons.enums.NotificationType;
 import com.ellu.looper.commons.enums.Role;
 import com.ellu.looper.commons.util.CacheService;
+import com.ellu.looper.fastapi.dto.MeetingNoteRequest;
+import com.ellu.looper.fastapi.dto.MeetingNoteResponse;
 import com.ellu.looper.fastapi.service.FastApiService;
 import com.ellu.looper.notification.service.NotificationService;
 import com.ellu.looper.project.dto.AddedMember;
@@ -300,7 +302,7 @@ public class ProjectService {
                 pm ->
                     !pm.getUser().getId().equals(userId)
                         && updatedUsers.stream()
-                            .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
+                        .noneMatch(u -> u.getId().equals(pm.getUser().getId())))
             .collect(Collectors.toList());
     toRemove.forEach(
         pm -> {
@@ -451,5 +453,26 @@ public class ProjectService {
                 })
             .collect(Collectors.toList());
     return responses;
+  }
+
+  public MeetingNoteResponse sendNote(Long projectId, Long userId, MeetingNoteRequest request) {
+    projectRepository
+        .findByIdAndDeletedAtIsNull(projectId)
+        .orElseThrow(() -> new IllegalArgumentException("Project not found"));
+
+    request.setProject_id(projectId);
+
+    request.setNickname(userRepository.findById(userId).get().getNickname());
+
+    // 프로젝트 멤버들의 모든 position을 가져옴
+    List<String> positions =
+        projectMemberRepository.findByProjectIdAndDeletedAtIsNull(projectId).stream()
+            .map(ProjectMember::getPosition)
+            .collect(Collectors.toList());
+    request.setPosition(positions);
+
+    // FastAPI에 동기 HTTP 요청
+    MeetingNoteResponse response = fastApiService.sendNoteToAI(request);
+    return response;
   }
 }
