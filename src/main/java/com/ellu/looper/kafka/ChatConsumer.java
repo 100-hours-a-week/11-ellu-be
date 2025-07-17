@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -17,10 +18,11 @@ public class ChatConsumer {
   private final ObjectMapper objectMapper;
   private final FastApiService fastApiService;
   private final ChatProducer chatProducer;
+  private final RedisTemplate<String, Object> redisTemplate;
 
   @KafkaListener(
       topics = "${kafka.topics.chatbot.user-input}",
-      groupId = "${kafka.consumer.group-id}")
+      groupId = "${kafka.consumer.chat-group-id}")
   public void consumeUserMessage(ConsumerRecord<String, String> record) {
     try {
       String key = record.key(); // userId
@@ -28,8 +30,6 @@ public class ChatConsumer {
       Long userId = Long.parseLong(key);
 
       MessageRequest message = objectMapper.readValue(value, MessageRequest.class);
-
-      log.info("Received message from user {}: {}", userId, message.getMessage());
 
       fastApiService
           .streamChatResponse(message)

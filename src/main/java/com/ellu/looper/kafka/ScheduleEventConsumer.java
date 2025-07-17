@@ -116,9 +116,13 @@ public class ScheduleEventConsumer implements Runnable {
   }
 
   private void processScheduleEvent(ScheduleEventMessage event) {
-    log.info("Processing schedule event: type={}, projectId={}, userId={}, scheduleId={}", 
-        event.getType(), event.getProjectId(), event.getUserId(), event.getScheduleId());
-    
+    log.info(
+        "Processing schedule event: type={}, projectId={}, userId={}, scheduleId={}",
+        event.getType(),
+        event.getProjectId(),
+        event.getUserId(),
+        event.getScheduleId());
+
     // 실제 프로젝트에 접속 중인 세션
     Long projectId = Long.valueOf(event.getProjectId());
     Set<String> activeSessionIds = stompSessionRoutingService.getProjectSessionIds(projectId);
@@ -131,8 +135,8 @@ public class ScheduleEventConsumer implements Runnable {
           event = event.toBuilder().schedule(projectScheduleService.toDto(response)).build();
           // WebSocket 브로드캐스트 (실제 접속 중인 세션에만)
           for (String sessionId : activeSessionIds) {
-            stompSessionRoutingService.sendMessageToUser(sessionId, "/create",
-                event, event.getProjectId());
+            stompSessionRoutingService.sendMessageToUser(
+                sessionId, "/create", event, event.getProjectId());
           }
         }
         break;
@@ -147,8 +151,8 @@ public class ScheduleEventConsumer implements Runnable {
                 .build();
         // WebSocket 브로드캐스트 (실제 접속 중인 세션에만)
         for (String sessionId : activeSessionIds) {
-          stompSessionRoutingService.sendMessageToUser(sessionId, "/update", event,
-              event.getProjectId());
+          stompSessionRoutingService.sendMessageToUser(
+              sessionId, "/update", event, event.getProjectId());
         }
         break;
 
@@ -169,8 +173,8 @@ public class ScheduleEventConsumer implements Runnable {
                 .build();
         // WebSocket 브로드캐스트 (실제 접속 중인 세션에만)
         for (String sessionId : activeSessionIds) {
-          stompSessionRoutingService.sendMessageToUser(sessionId, "/take",event,
-              event.getProjectId());
+          stompSessionRoutingService.sendMessageToUser(
+              sessionId, "/take", event, event.getProjectId());
         }
         break;
 
@@ -178,8 +182,8 @@ public class ScheduleEventConsumer implements Runnable {
         projectScheduleService.deleteSchedule(event.getScheduleId(), event.getUserId());
         // WebSocket 브로드캐스트 (실제 접속 중인 세션에만)
         for (String sessionId : activeSessionIds) {
-          stompSessionRoutingService.sendMessageToUser(sessionId, "/delete", event,
-              event.getProjectId());
+          stompSessionRoutingService.sendMessageToUser(
+              sessionId, "/delete", event, event.getProjectId());
         }
         break;
     }

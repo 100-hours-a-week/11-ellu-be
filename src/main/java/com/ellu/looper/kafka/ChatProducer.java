@@ -37,7 +37,7 @@ public class ChatProducer {
   public record ChatResponseWrapper(String message, ChatResponseToken data) {}
 
   public void sendChatbotResponse(Long userId, String rawJson) {
-    if (rawJson.equals("connected")){
+    if (rawJson.equals("connected")) {
       log.info("Skipping SSE handshake message: {}", rawJson);
       return;
     }

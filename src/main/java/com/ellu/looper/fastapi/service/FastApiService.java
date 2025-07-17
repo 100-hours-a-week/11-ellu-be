@@ -14,14 +14,12 @@ import com.ellu.looper.project.entity.ProjectMember;
 import com.ellu.looper.project.repository.ProjectMemberRepository;
 import com.ellu.looper.project.repository.ProjectRepository;
 import com.ellu.looper.schedule.dto.ProjectScheduleCreateRequest.ProjectScheduleDto;
-import com.ellu.looper.schedule.service.PreviewHolder;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
@@ -35,7 +33,6 @@ public class FastApiService {
 
   private final WebClient fastApiSummaryWebClient;
   private final WebClient fastApiChatbotWebClient;
-  private final PreviewHolder previewHolder;
   private final NotificationService notificationService;
   private final ProjectRepository projectRepository;
   private final ProjectMemberRepository projectMemberRepository;
@@ -43,13 +40,11 @@ public class FastApiService {
   public FastApiService(
       @Qualifier("fastApiSummaryWebClient") WebClient fastApiSummaryWebClient,
       @Qualifier("fastApiChatbotWebClient") WebClient fastApiChatbotWebClient,
-      PreviewHolder previewHolder,
       NotificationService notificationService,
       ProjectRepository projectRepository,
       ProjectMemberRepository projectMemberRepository) {
     this.fastApiSummaryWebClient = fastApiSummaryWebClient;
     this.fastApiChatbotWebClient = fastApiChatbotWebClient;
-    this.previewHolder = previewHolder;
     this.notificationService = notificationService;
     this.projectRepository = projectRepository;
     this.projectMemberRepository = projectMemberRepository;
@@ -76,45 +71,6 @@ public class FastApiService {
     log.info(
         "[FastApiService] Successfully handled wiki completion response for project: {}",
         projectId);
-  }
-
-  // 예외 상황 처리
-  public void handleAiPreviewError(Long projectId, Throwable error) {
-    previewHolder.completeWithError(projectId, error);
-  }
-
-  public void sendNoteToAI(
-      MeetingNoteRequest noteRequest,
-      Consumer<MeetingNoteResponse> onSuccess,
-      Consumer<Throwable> onError) {
-    log.info("Sending note to AI server for project: {}", noteRequest.getProject_id());
-    fastApiSummaryWebClient
-        .post()
-        .uri(
-            uriBuilder ->
-                uriBuilder.path("/projects/{projectId}/notes").build(noteRequest.getProject_id()))
-        .contentType(MediaType.APPLICATION_JSON)
-        .bodyValue(noteRequest)
-        .retrieve()
-        .bodyToMono(MeetingNoteResponse.class)
-        .timeout(Duration.ofMinutes(10)) // AI 서버와 통신 timeout
-        .subscribe(
-            // 성공 시
-            response -> {
-              log.info(
-                  "Successfully sent note to AI server for project: {}. Response will be handled by FastAPI callback.",
-                  noteRequest.getProject_id());
-            },
-            // 에러 발생 시
-            error -> {
-              log.error(
-                  "Failed to send note to AI server for project: {}, error: {}",
-                  noteRequest.getProject_id(),
-                  error.getMessage());
-              if (onError != null) {
-                onError.accept(error);
-              }
-            });
   }
 
   public void createWiki(Long projectId, WikiRequest request) {
@@ -272,5 +228,20 @@ public class FastApiService {
                     projectId,
                     error.getMessage()))
         .subscribe();
+  }
+
+  public MeetingNoteResponse sendNoteToAI(MeetingNoteRequest noteRequest) {
+    log.info("Sending note to AI server for project: {}", noteRequest.getProject_id());
+    return fastApiSummaryWebClient
+        .post()
+        .uri(
+            uriBuilder ->
+                uriBuilder.path("/projects/{projectId}/notes").build(noteRequest.getProject_id()))
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(noteRequest)
+        .retrieve()
+        .bodyToMono(MeetingNoteResponse.class)
+        .timeout(Duration.ofMinutes(10)) // AI 서버와 통신 timeout
+        .block();
   }
 }

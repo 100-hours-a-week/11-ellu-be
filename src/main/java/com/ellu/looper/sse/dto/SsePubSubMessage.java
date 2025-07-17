@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SsePubSubMessage implements Serializable {
-    private String targetSessionId;
-    private String eventName;
-    private String data;
-} 
+  private String targetSessionId;
+  private String eventName;
+  private String data;
+}

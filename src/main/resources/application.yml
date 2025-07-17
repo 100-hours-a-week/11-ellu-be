@@ -36,6 +36,10 @@ spring:
     properties:
       retries:
         3
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
   data:
     redis:
@@ -45,6 +49,9 @@ spring:
 
 server:
   forward-headers-strategy: framework
+  servlet:
+    session:
+      timeout: 60m
 
 cloud:
   aws:
@@ -67,8 +74,8 @@ jwt:
   secret: ${JWT_SECRET}
 
 fastapi:
-  summary-url: ${FASTAPI_SUMMARY_URL:http://localhost:8004}
-  chatbot-url: ${FASTAPI_CHATBOT_URL:http://localhost:8002}
+  summary-url: ${FASTAPI_SUMMARY_URL:http://localhost:8000}
+  chatbot-url: ${FASTAPI_CHATBOT_URL:http://localhost:8000}
 
 # 현재는 OpenTelemetry가 시스템에 영향을 주지 않도록 완전히 비활성화함
 otel:
@@ -114,7 +121,7 @@ kafka:
     preview:
       preview-result
   consumer:
-    group-id: chat-group
+    chat-group-id: chat-group
     preview-group-id: preview-consumer-group
     notification-group-id: notification-service-group
     schedule-group-id: schedule-service-group

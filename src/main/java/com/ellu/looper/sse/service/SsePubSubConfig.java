@@ -10,14 +10,14 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 @Configuration
 @RequiredArgsConstructor
 public class SsePubSubConfig {
-    private final RedisConnectionFactory redisConnectionFactory;
-    private final SsePubSubListener ssePubSubListener;
+  private final RedisConnectionFactory redisConnectionFactory;
+  private final SsePubSubListener ssePubSubListener;
 
-    @Bean
-    public RedisMessageListenerContainer redisMessageListenerContainer() {
-        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
-        container.setConnectionFactory(redisConnectionFactory);
-        container.addMessageListener(ssePubSubListener, new ChannelTopic("sse:events"));
-        return container;
-    }
-} 
+  @Bean
+  public RedisMessageListenerContainer redisMessageListenerContainer() {
+    RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+    container.setConnectionFactory(redisConnectionFactory);
+    container.addMessageListener(ssePubSubListener, new ChannelTopic("sse:events"));
+    return container;
+  }
+}
