@@ -12,6 +12,7 @@ import com.ellu.looper.project.repository.ProjectMemberRepository;
 import com.ellu.looper.project.service.ProjectService;
 import java.io.IOException;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -24,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 
+@Slf4j
 @RestController
 @RequestMapping("/projects")
 public class ProjectController {
@@ -75,7 +77,7 @@ public class ProjectController {
     String aiResponse =
         webClient
             .post()
-            .uri("ai/audio")
+            .uri("/ai/audio")
             .contentType(MediaType.MULTIPART_FORM_DATA)
             .body(BodyInserters.fromMultipartData(formData))
             .retrieve()
@@ -114,7 +116,7 @@ public class ProjectController {
   }
 
   @PostMapping("/{projectId}/notes")
-  public ResponseEntity<ApiResponse<?>> createMeetingNote(
+  public ResponseEntity<?> createMeetingNote(
       @CurrentUser Long userId,
       @PathVariable Long projectId,
       @RequestBody MeetingNoteRequest request) {
@@ -128,6 +130,19 @@ public class ProjectController {
       return ResponseEntity.badRequest().body(ApiResponse.error("Content must not be empty"));
     }
     MeetingNoteResponse response = projectService.sendNote(projectId, userId, request);
-    return ResponseEntity.ok(ApiResponse.success("preview_result", response));
+
+    if (response.getDetail() != null) {
+      response
+          .getDetail()
+          .forEach(
+              preview -> {
+                log.info("[Meeting Note Result from FastApi] Task: {}", preview.getTask());
+                log.info("[Meeting Note Result from FastApi] Subtasks: {}", preview.getSubtasks());
+              });
+    } else {
+      log.warn("[Meeting Note Result from FastApi] No data received in the response");
+    }
+
+    return ResponseEntity.ok(response);
   }
 }
