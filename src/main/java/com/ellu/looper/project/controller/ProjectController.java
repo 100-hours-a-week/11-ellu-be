@@ -54,7 +54,7 @@ public class ProjectController {
   }
 
   @PostMapping("/{projectId}/audio")
-  public ResponseEntity<ApiResponse<?>> relayAudioToAI(
+  public ResponseEntity<?> relayAudioToAI(
       @PathVariable Long projectId, @RequestParam("file") MultipartFile file) throws IOException {
 
     // File size limit: 10MB
@@ -83,7 +83,7 @@ public class ProjectController {
             .retrieve()
             .bodyToMono(String.class)
             .block();
-    return ResponseEntity.ok(ApiResponse.success("file_sent_to_ai", aiResponse));
+    return ResponseEntity.ok(aiResponse);
   }
 
   @GetMapping
