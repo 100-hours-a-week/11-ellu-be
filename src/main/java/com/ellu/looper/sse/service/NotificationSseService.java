@@ -121,7 +121,7 @@ public class NotificationSseService {
       throw new IllegalStateException("No emitter found for local session " + sessionId);
     } catch (Exception e) {
       log.error("Error sending notification to local session {}: {}", sessionId, e.getMessage(), e);
-      throw new RuntimeException(e);
+      throw new RuntimeException(e.getMessage(), e);
     }
   }
 
@@ -163,7 +163,7 @@ public class NotificationSseService {
     if (sessionId != null) {
       sendNotification(userId, sessionId, dto);
     } else {
-      log.warn("No sessionId found for userId {} when trying to send message", userId);
+      log.warn("No active session for userId {} when trying to send message", userId);
     }
   }
 
