@@ -160,7 +160,7 @@ public class NotificationSseService {
   // userId로부터 sessionId를 조회해 메시지 전송
   public void sendNotificationToUser(Long userId, NotificationMessage dto) {
     String sessionId = (String) redisTemplate.opsForValue().get(routingKeyPrefix + userId);
-    if (sessionId != null) {
+    if (sessionId != null && emitters.containsKey(sessionId)) {
       sendNotification(userId, sessionId, dto);
     } else {
       log.warn("No active session for userId {} when trying to send message", userId);
