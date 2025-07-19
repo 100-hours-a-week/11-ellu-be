@@ -23,15 +23,18 @@ public class SsePubSubListener implements MessageListener {
       SsePubSubMessage pubSubMessage = (SsePubSubMessage) serializer.deserialize(message.getBody());
       if (pubSubMessage == null) return;
       String sessionId = pubSubMessage.getTargetSessionId();
-      if (chatSseService.getEmitter(sessionId) != null) {
-        chatSseService.sendToLocalSession(
-            sessionId, pubSubMessage.getEventName(), pubSubMessage.getData());
-        log.info("[CHAT SSE] Delivered chat SSE message to local session {} via PubSub", sessionId);
-      }
-      if (notificationSseService.getEmitter(sessionId) != null) {
-        notificationSseService.sendToLocalSession(
-            sessionId, pubSubMessage.getEventName(), pubSubMessage.getData());
-        log.info("[NOTIFICATION SSE] Delivered notification SSE message to local session {} via PubSub", sessionId);
+      String eventName = pubSubMessage.getEventName();
+
+      if ("message".equals(eventName) || "token".equals(eventName) || "schedule".equals(eventName)) {
+        if (chatSseService.getEmitter(sessionId) != null) {
+          chatSseService.sendToLocalSession(sessionId, eventName, pubSubMessage.getData());
+          log.info("[CHAT SSE] Delivered chat SSE message to local session {} via PubSub", sessionId);
+        }
+      } else if ("notification".equals(eventName)) {
+        if (notificationSseService.getEmitter(sessionId) != null) {
+          notificationSseService.sendToLocalSession(sessionId, eventName, pubSubMessage.getData());
+          log.info("[NOTIFICATION SSE] Delivered notification SSE message to local session {} via PubSub", sessionId);
+        }
       }
     } catch (Exception e) {
       log.error("[SSE] Failed to process SSE PubSub message", e);
