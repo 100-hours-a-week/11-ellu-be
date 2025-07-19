@@ -1,3 +1,14 @@
+## [1.5.2](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.5.1...v1.5.2) (2025-07-19)
+
+
+### Bug Fixes
+
+* added authorization check for fetching project details and changing project schedules ([f52db0e](https://github.com/100-hours-a-week/11-ellu-be/commit/f52db0ed85c41db473bb765d82a09daa20970f9a))
+* ignore case for nickname query ([7a1f2b2](https://github.com/100-hours-a-week/11-ellu-be/commit/7a1f2b2f8ddeef482def91f3b3ee841ba307a464))
+* minor change in processing meeting note ([67845b3](https://github.com/100-hours-a-week/11-ellu-be/commit/67845b36ea7442334dcdc41fcf4230e6d5f58f57))
+* sse 메시지 중복 처리 개선 ([e61e788](https://github.com/100-hours-a-week/11-ellu-be/commit/e61e788f01e406ba38b2fcab5b41b5b6b0d70522))
+* 권한 체크, 닉네임 조회 수정 ([#202](https://github.com/100-hours-a-week/11-ellu-be/issues/202)) ([409f76b](https://github.com/100-hours-a-week/11-ellu-be/commit/409f76bac233e681ea577be96f02ef97f8c57274))
+
 ## [1.5.1](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.5.0...v1.5.1) (2025-07-19)
 
 
