@@ -29,11 +29,11 @@ public class ChatSseService {
     String sessionId = request.getSession().getId();
     SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
     emitters.put(sessionId, emitter);
-    log.info("SessionId {} is connected to chat stream.", sessionId);
+    log.info("[CHAT SSE] SessionId {} is connected to chat stream.", sessionId);
 
     emitter.onCompletion(
         () -> {
-          log.info("SSE completed for session: {}", sessionId);
+          log.info("[CHAT SSE] SSE completed for session: {}", sessionId);
           emitters.remove(sessionId);
           unregisterSession(userId);
         });
@@ -42,12 +42,12 @@ public class ChatSseService {
         () -> {
           emitters.remove(sessionId);
           unregisterSession(userId);
-          log.info("SSE timeout for session: {}", sessionId);
+          log.info("[CHAT SSE] SSE timeout for session: {}", sessionId);
         });
 
     emitter.onError(
         e -> {
-          log.error("SSE error for session: {}", sessionId, e);
+          log.error("[CHAT SSE] SSE error for session: {}", sessionId, e);
           emitters.remove(sessionId);
           unregisterSession(userId);
         });
@@ -58,13 +58,13 @@ public class ChatSseService {
   public void registerSession(Long userId, String sessionId) {
     String key = routingKeyPrefix + userId;
     redisTemplate.opsForValue().set(key, sessionId, 1, TimeUnit.HOURS); // 1시간 라우팅 타임아웃
-    log.info("Registered session {} to routing.", userId);
+    log.info("[CHAT SSE] Registered session {} to routing.", userId);
   }
 
   public void unregisterSession(Long userId) {
     String key = routingKeyPrefix + userId;
     redisTemplate.delete(key);
-    log.info("Unregistered session {} from routing.", userId);
+    log.info("[CHAT SSE] Unregistered session {} from routing.", userId);
   }
 
   public SseEmitter getEmitter(String sessionId) {
@@ -80,13 +80,13 @@ public class ChatSseService {
       SseEmitter emitter = getEmitter(sessionId);
       if (emitter != null) {
         emitter.send(SseEmitter.event().name(eventName).data(data));
-        log.info("Sent message to local session {}: {} - {}", sessionId, eventName, data);
+        log.info("!![CHAT SSE] Sent message to local session {}: {} - {}", sessionId, eventName, data);
         return;
       }
-      log.warn("No emitter found for local session {}", sessionId);
+      log.warn("[CHAT SSE] No emitter found for local session {}", sessionId);
       throw new IllegalStateException("No emitter found for local session " + sessionId);
     } catch (Exception e) {
-      log.error("Error sending message to local session {}", sessionId, e);
+      log.error("[CHAT SSE] Error sending message to local session {}", sessionId, e);
     }
   }
 
@@ -109,9 +109,9 @@ public class ChatSseService {
       // Redis Pub/Sub을 통해 메시지 전달
       SsePubSubMessage message = new SsePubSubMessage(targetSessionId, eventName, data);
       redisTemplate.convertAndSend(SSE_CHANNEL, message);
-      log.info("Published SSE message to channel {} for session {}", SSE_CHANNEL, targetSessionId);
+      log.info("!![CHAT SSE] Published SSE message to channel {} for session {}", SSE_CHANNEL, targetSessionId);
     } catch (Exception e) {
-      log.error("Error publishing SSE message to channel {}: {}", SSE_CHANNEL, e.getMessage());
+      log.error("[CHAT SSE] Error publishing SSE message to channel {}: {}", SSE_CHANNEL, e.getMessage());
     }
   }
 
@@ -121,7 +121,7 @@ public class ChatSseService {
     if (sessionId != null) {
       sendToken(Long.valueOf(userId), sessionId, token, done);
     } else {
-      log.warn("No sessionId found for userId {} when trying to send message", userId);
+      log.warn("[CHAT SSE] No sessionId found for userId {} when trying to send message", userId);
     }
   }
 
@@ -129,7 +129,7 @@ public class ChatSseService {
     try {
       String targetSessionId = getTargetSession(userId);
       if (targetSessionId == null) {
-        log.warn("No routing information found for session {}", sessionId);
+        log.warn("[CHAT SSE] No routing information found for session {}", sessionId);
         return;
       }
       if (isCurrentSession(userId, sessionId)) {
@@ -144,7 +144,7 @@ public class ChatSseService {
             targetSessionId, "token", "{\"token\":\"" + token + "\",\"done\":" + done + "}");
       }
     } catch (Exception e) {
-      log.error("Error sending message to session {}: {}", sessionId, e.getMessage());
+      log.error("[CHAT SSE] Error sending message to session {}: {}", sessionId, e.getMessage());
       removeEmitter(sessionId);
       unregisterSession(userId);
     }
@@ -156,7 +156,7 @@ public class ChatSseService {
     if (sessionId != null) {
       sendMessage(userId, sessionId, message, done);
     } else {
-      log.warn("No sessionId found for userId {} when trying to send message", userId);
+      log.warn("[CHAT SSE] No sessionId found for userId {} when trying to send message", userId);
     }
   }
 
@@ -164,7 +164,7 @@ public class ChatSseService {
     try {
       String targetSessionId = getTargetSession(userId);
       if (targetSessionId == null) {
-        log.warn("No routing information found for session {}", sessionId);
+        log.warn("[CHAT SSE] No routing information found for session {}", sessionId);
         return;
       }
       if (isCurrentSession(userId, targetSessionId)) {
@@ -179,7 +179,7 @@ public class ChatSseService {
             targetSessionId, "message", "{\"message\":\"" + message + "\",\"done\":" + done + "}");
       }
     } catch (Exception e) {
-      log.error("Error sending message to session {}: {}", sessionId, e.getMessage());
+      log.error("[CHAT SSE] Error sending message to session {}: {}", sessionId, e.getMessage());
       removeEmitter(sessionId);
       unregisterSession(userId);
     }
@@ -199,7 +199,7 @@ public class ChatSseService {
       sendSchedulePreview(
           userId, sessionId, taskTitle, category, subtaskTitle, startTime, endTime, done);
     } else {
-      log.warn("No sessionId found for userId {} when trying to send message", userId);
+      log.warn("[CHAT SSE] No sessionId found for userId {} when trying to send message", userId);
     }
   }
 
@@ -215,7 +215,7 @@ public class ChatSseService {
     try {
       String targetSessionId = getTargetSession(userId);
       if (targetSessionId == null) {
-        log.warn("No routing information found for session {}", sessionId);
+        log.warn("[CHAT SSE] No routing information found for session {}", sessionId);
         return;
       }
       // JSON 객체 생성을 위해 ObjectMapper 사용
@@ -242,7 +242,7 @@ public class ChatSseService {
         forwardToSession(targetSessionId, "schedule", rootNode.toString());
       }
     } catch (Exception e) {
-      log.error("Error sending message to session {}: {}", sessionId, e.getMessage());
+      log.error("[CHAT SSE] Error sending message to session {}: {}", sessionId, e.getMessage());
       removeEmitter(sessionId);
       unregisterSession(userId);
     }

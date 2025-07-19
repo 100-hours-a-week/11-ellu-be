@@ -34,7 +34,7 @@ public class StompPubSubListener implements MessageListener {
           pubSubMessage.getEventName(),
           pubSubMessage.getData());
     } catch (Exception e) {
-      log.error("Failed to process STOMP PubSub message", e);
+      log.error("[STOMP] Failed to process STOMP PubSub message", e);
     }
   }
 }

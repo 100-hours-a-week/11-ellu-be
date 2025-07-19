@@ -56,10 +56,10 @@ public class UserService {
       userProjections =
           userRepository.findTop10ByNicknameChoseongStartingWithOrderByNicknameAsc(query);
     } else {
-      // 일반 검색 (부분 일치 포함)
+      // 일반 검색 (부분 일치 포함, 대소문자 구분 없음)
       userProjections =
           userRepository
-              .findTop10ByNicknameStartingWithOrNicknameChoseongStartingWithOrderByNicknameAsc(
+              .findTop10ByNicknameStartingWithIgnoreCaseOrNicknameChoseongStartingWithOrderByNicknameAsc(
                   query, query);
     }
 

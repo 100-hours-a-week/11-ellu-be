@@ -130,7 +130,7 @@ public class ScheduleEventConsumer implements Runnable {
       case "SCHEDULE_CREATED":
         List<ProjectScheduleResponse> createdList =
             projectScheduleService.createSchedules(
-                Long.valueOf(event.getProjectId()), event.getUserId(), event.getCreateRequest());
+                projectId, event.getUserId(), event.getCreateRequest());
         for (ProjectScheduleResponse response : createdList) {
           event = event.toBuilder().schedule(projectScheduleService.toDto(response)).build();
           // WebSocket 브로드캐스트 (실제 접속 중인 세션에만)
@@ -158,7 +158,7 @@ public class ScheduleEventConsumer implements Runnable {
 
       case "SCHEDULE_TAKEN":
         projectScheduleService.takeSchedule(
-            Long.valueOf(event.getProjectId()), event.getScheduleId(), event.getUserId());
+            projectId, event.getScheduleId(), event.getUserId());
         // 반영된 스케줄 정보 조회
         ProjectSchedule updatedSchedule =
             projectScheduleRepository
