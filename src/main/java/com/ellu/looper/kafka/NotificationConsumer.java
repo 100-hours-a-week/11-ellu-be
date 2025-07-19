@@ -290,45 +290,51 @@ public class NotificationConsumer implements Runnable {
         cacheService.setProjectCache(projectCacheKey, projectDto, PROJECT_CACHE_TTL_SECONDS);
 
       } else if (event.getType().equals("PROJECT_DELETED")) {
-        Project deletedProject = project.toBuilder().deletedAt(LocalDateTime.now()).build();
-        projectRepository.save(deletedProject);
+        if (project.getDeletedAt() != null) {
+          // SSE 구독 중인 유저에게 전송
+          notificationSseService.sendNotificationToUser(
+              userId, event.toBuilder().notificationId(saved.getId()).build());
+        } else {
+          Project deletedProject = project.toBuilder().deletedAt(LocalDateTime.now()).build();
+          projectRepository.save(deletedProject);
 
-        // 캐시 무효화
-        redisTemplate.delete(PROJECT_DETAIL_CACHE_KEY_PREFIX + event.getProjectId());
-
-        // 프로젝트 스케줄 assignees 삭제
-        List<Assignee> assignees =
-            assigneeRepository.findByProjectIdThroughScheduleAndDeletedAtIsNull(project.getId());
-        for (Assignee assignee : assignees) {
-          assignee.softDelete();
-        }
-        assigneeRepository.saveAll(assignees);
-
-        // 프로젝트의 스케줄 삭제
-        List<ProjectSchedule> schedules =
-            projectScheduleRepository.findByProjectAndDeletedAtIsNull(project);
-        for (ProjectSchedule schedule : schedules) {
-          schedule.softDelete();
-        }
-        projectScheduleRepository.saveAll(schedules);
-
-        // 프로젝트 멤버 삭제
-        List<ProjectMember> members =
-            projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
-        for (ProjectMember member : members) {
-          member.setDeletedAt(LocalDateTime.now());
           // 캐시 무효화
-          redisTemplate.delete(PROJECT_LIST_CACHE_KEY_PREFIX + member.getUser().getId());
+          redisTemplate.delete(PROJECT_DETAIL_CACHE_KEY_PREFIX + event.getProjectId());
+
+          // 프로젝트 스케줄 assignees 삭제
+          List<Assignee> assignees =
+              assigneeRepository.findByProjectIdThroughScheduleAndDeletedAtIsNull(project.getId());
+          for (Assignee assignee : assignees) {
+            assignee.softDelete();
+          }
+          assigneeRepository.saveAll(assignees);
+
+          // 프로젝트의 스케줄 삭제
+          List<ProjectSchedule> schedules =
+              projectScheduleRepository.findByProjectAndDeletedAtIsNull(project);
+          for (ProjectSchedule schedule : schedules) {
+            schedule.softDelete();
+          }
+          projectScheduleRepository.saveAll(schedules);
+
+          // 프로젝트 멤버 삭제
+          List<ProjectMember> members =
+              projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
+          for (ProjectMember member : members) {
+            member.setDeletedAt(LocalDateTime.now());
+            // 캐시 무효화
+            redisTemplate.delete(PROJECT_LIST_CACHE_KEY_PREFIX + member.getUser().getId());
+          }
+          projectMemberRepository.saveAll(members);
+
+          // send wiki deletion request to FastApi
+          fastApiService.deleteWiki(project.getId());
         }
-        projectMemberRepository.saveAll(members);
 
-        // send wiki deletion request to FastApi
-        fastApiService.deleteWiki(project.getId());
+        // SSE 구독 중인 유저에게 전송
+        notificationSseService.sendNotificationToUser(
+            userId, event.toBuilder().notificationId(saved.getId()).build());
       }
-
-      // SSE 구독 중인 유저에게 전송
-      notificationSseService.sendNotificationToUser(
-          userId, event.toBuilder().notificationId(saved.getId()).build());
     }
   }
 }
