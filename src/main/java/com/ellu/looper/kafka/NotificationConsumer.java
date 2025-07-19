@@ -290,6 +290,10 @@ public class NotificationConsumer implements Runnable {
         cacheService.setProjectCache(projectCacheKey, projectDto, PROJECT_CACHE_TTL_SECONDS);
 
       } else if (event.getType().equals("PROJECT_DELETED")) {
+        if (project.getDeletedAt() == null) {
+          // send wiki deletion request to FastApi
+          fastApiService.deleteWiki(project.getId());
+        }
         Project deletedProject = project.toBuilder().deletedAt(LocalDateTime.now()).build();
         projectRepository.save(deletedProject);
 
@@ -321,9 +325,6 @@ public class NotificationConsumer implements Runnable {
           redisTemplate.delete(PROJECT_LIST_CACHE_KEY_PREFIX + member.getUser().getId());
         }
         projectMemberRepository.saveAll(members);
-
-        // send wiki deletion request to FastApi
-        fastApiService.deleteWiki(project.getId());
       }
 
       // SSE 구독 중인 유저에게 전송

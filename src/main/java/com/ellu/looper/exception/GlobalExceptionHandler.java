@@ -11,6 +11,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -67,11 +69,29 @@ public class GlobalExceptionHandler {
     return ResponseEntity.badRequest().body(responseBody);
   }
 
+  @ExceptionHandler({AsyncRequestTimeoutException.class, AsyncRequestNotUsableException.class})
+  public void handleSseAsyncExceptions(Exception ex) {
+    String message = ex.getMessage();
+    if (message == null) {
+      if (ex instanceof AsyncRequestTimeoutException) {
+        message = "SSE connection timed out";
+      } else if (ex instanceof AsyncRequestNotUsableException) {
+        message = "SSE connection became unusable (client disconnected)";
+      } else {
+        message = "Unknown SSE async error";
+      }
+    }
+    System.err.println("[GlobalExceptionHandler] SSE async error: " + ex.getClass().getName() + ", message=" + message);
+  }
+
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
-    ex.printStackTrace(); // 서버 콘솔에 로그 남기기
+    // Detailed logging for debugging
+    System.err.println("[GlobalExceptionHandler] Exception caught: type=" + ex.getClass().getName() + ", message=" + ex.getMessage());
+    ex.printStackTrace();
+    String message = ex.getMessage() != null ? ex.getMessage() : "internal_server_error";
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .body(new ErrorResponse("internal_server_error"));
+        .body(new ErrorResponse(message));
   }
 
   @Getter
