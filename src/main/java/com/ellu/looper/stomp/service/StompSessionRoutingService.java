@@ -31,7 +31,7 @@ public class StompSessionRoutingService {
     String key = ROUTING_KEY_PREFIX + userId;
     redisTemplate.opsForValue().set(key, sessionId, SESSION_TIMEOUT_HOURS, TimeUnit.HOURS);
     localSessionMap.put(sessionId, true);
-    log.info("Registered STOMP session {} for user {}", sessionId, userId);
+    log.info("[STOMP] Registered STOMP session {} for user {}", sessionId, userId);
   }
 
   // 세션 해제
@@ -42,22 +42,26 @@ public class StompSessionRoutingService {
     if (sessionId != null) {
       localSessionMap.remove(sessionId);
     }
-    log.info("Unregistered STOMP session for user {}", userId);
+    log.info("[STOMP] Unregistered STOMP session for user {}", userId);
   }
 
   // 메시지 포워딩 (Pub/Sub)
   public void forwardToSession(Object message) {
     redisTemplate.convertAndSend(STOMP_CHANNEL, message);
-    log.info("Published STOMP message to channel {}", STOMP_CHANNEL);
+    log.info("!![STOMP] Published STOMP message to channel {}", STOMP_CHANNEL);
   }
 
   // 실제 세션에 메시지 전송
   public void sendToLocalSession(
       String sessionId, String eventName, String data, String projectId) {
+    // 실제로 현재 Pod에 세션이 있는지 확인
+    if (!isCurrentSession(sessionId)) {
+      return;
+    }
     String destination = "/topic/" + projectId;
     messagingTemplate.convertAndSend(destination, data);
     log.info(
-        "[STOMP] Sent message to local session {}: event={}, data={}", sessionId, eventName, data);
+        "!![STOMP] Sent message to local session {}: event={}, data={}", sessionId, eventName, data);
   }
 
   // 프로젝트 단위 세션 등록
@@ -66,14 +70,14 @@ public class StompSessionRoutingService {
     redisTemplate.opsForSet().add(key, sessionId);
     // 세션 만료 관리(옵션): 일정 시간 후 자동 삭제
     redisTemplate.expire(key, SESSION_TIMEOUT_HOURS, TimeUnit.HOURS);
-    log.info("Registered session {} to project {} set", sessionId, projectId);
+    log.info("[STOMP] Registered session {} to project {} set", sessionId, projectId);
   }
 
   // 프로젝트 단위 세션 해제
   public void unregisterProjectSession(Long projectId, String sessionId) {
     String key = PROJECT_SESSION_SET_PREFIX + projectId;
     redisTemplate.opsForSet().remove(key, sessionId);
-    log.info("Unregistered session {} from project {} set", sessionId, projectId);
+    log.info("[STOMP] Unregistered session {} from project {} set", sessionId, projectId);
   }
 
   // 프로젝트 단위 세션 Set 조회
@@ -114,9 +118,11 @@ public class StompSessionRoutingService {
     }
     if (isCurrentSession(sessionId)) {
       // 현재 pod에 세션이 있으면 직접 전송
+      log.debug("[STOMP] Sending to local session {}: event={}", sessionId, eventName);
       sendToLocalSession(sessionId, eventName, data, projectId);
     } else {
       // Pub/Sub으로 포워딩
+      log.debug("[STOMP] Forwarding to remote session {}: event={}", sessionId, eventName);
       StompPubSubMessage pubSubMessage =
           new StompPubSubMessage(sessionId, eventName, data, projectId);
       forwardToSession(pubSubMessage);
@@ -131,6 +137,6 @@ public class StompSessionRoutingService {
         redisTemplate.opsForSet().remove(key, sessionId);
       }
     }
-    log.info("Removed session {} from all project sets", sessionId);
+    log.info("[STOMP] Removed session {} from all project sets", sessionId);
   }
 }

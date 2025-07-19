@@ -26,15 +26,15 @@ public class SsePubSubListener implements MessageListener {
       if (chatSseService.getEmitter(sessionId) != null) {
         chatSseService.sendToLocalSession(
             sessionId, pubSubMessage.getEventName(), pubSubMessage.getData());
-        log.info("Delivered chat SSE message to local session {} via PubSub", sessionId);
+        log.info("[CHAT SSE] Delivered chat SSE message to local session {} via PubSub", sessionId);
       }
       if (notificationSseService.getEmitter(sessionId) != null) {
         notificationSseService.sendToLocalSession(
             sessionId, pubSubMessage.getEventName(), pubSubMessage.getData());
-        log.info("Delivered notification SSE message to local session {} via PubSub", sessionId);
+        log.info("[NOTIFICATION SSE] Delivered notification SSE message to local session {} via PubSub", sessionId);
       }
     } catch (Exception e) {
-      log.error("Failed to process SSE PubSub message", e);
+      log.error("[SSE] Failed to process SSE PubSub message", e);
     }
   }
 }

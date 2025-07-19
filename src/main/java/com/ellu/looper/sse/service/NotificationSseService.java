@@ -28,34 +28,34 @@ public class NotificationSseService {
     String sessionId = request.getSession().getId();
     SseEmitter emitter = new SseEmitter(60L * 1000 * 60); // 60분 타임아웃
     emitters.put(sessionId, emitter);
-    log.info("SessionId {} is connected to notification sse.", sessionId);
+    log.info("[NOTIFICATION SSE] SessionId {} is connected to notification sse.", sessionId);
 
     emitter.onCompletion(
         () -> {
           emitters.remove(sessionId);
           unregisterSession(userId);
-          log.info("SessionId {} is disconnected from notification sse.", sessionId);
+          log.info("[NOTIFICATION SSE] SessionId {} is disconnected from notification sse.", sessionId);
         });
 
     emitter.onTimeout(
         () -> {
           if (sessionId == null) {
-            log.warn("SSE timeout: sessionId is null");
+            log.warn("[NOTIFICATION SSE] SSE timeout: sessionId is null");
             return;
           }
           if (userId == null) {
-            log.warn("SSE timeout for session {}: userId is null", sessionId);
+            log.warn("[NOTIFICATION SSE] SSE timeout for session {}: userId is null", sessionId);
             emitters.remove(sessionId);
             return;
           }
           emitters.remove(sessionId);
           unregisterSession(userId);
-          log.info("SSE timeout for session: {} (userId: {})", sessionId, userId);
+          log.info("[NOTIFICATION SSE] SSE timeout for session: {} (userId: {})", sessionId, userId);
         });
 
     emitter.onError(
         e -> {
-          log.error("SSE error for session: {}", sessionId, e);
+          log.error("[NOTIFICATION SSE] SSE error for session: {}", sessionId, e);
           emitters.remove(sessionId);
           unregisterSession(userId);
         });
@@ -66,13 +66,13 @@ public class NotificationSseService {
   public void registerSession(Long userId, String sessionId) {
     String key = routingKeyPrefix + userId;
     redisTemplate.opsForValue().set(key, sessionId, 1, java.util.concurrent.TimeUnit.HOURS);
-    log.info("Registered session {} to notification routing.", userId);
+    log.info("[NOTIFICATION SSE] Registered session {} to notification routing.", userId);
   }
 
   public void unregisterSession(Long userId) {
     String key = routingKeyPrefix + userId;
     redisTemplate.delete(key);
-    log.info("Unregistered session {} from notification routing.", userId);
+    log.info("[NOTIFICATION SSE] Unregistered session {} from notification routing.", userId);
   }
 
   public SseEmitter getEmitter(String sessionId) {
@@ -87,14 +87,14 @@ public class NotificationSseService {
     try {
       if (sessionId == null) {
         log.error(
-            "sendToLocalSession called with null sessionId. eventName: {}, data: {}",
+            "[NOTIFICATION SSE] sendToLocalSession called with null sessionId. eventName: {}, data: {}",
             eventName,
             data);
         return;
       }
       if (data == null) {
         log.error(
-            "sendToLocalSession called with null data for sessionId: {}, eventName: {}",
+            "[NOTIFICATION SSE] sendToLocalSession called with null data for sessionId: {}, eventName: {}",
             sessionId,
             eventName);
         return;
@@ -104,7 +104,7 @@ public class NotificationSseService {
         notificationMessage = objectMapper.readValue(data, NotificationMessage.class);
       } catch (Exception parseEx) {
         log.error(
-            "Failed to parse data to NotificationMessage for sessionId: {}, eventName: {}, data: {}",
+            "[NOTIFICATION SSE] Failed to parse data to NotificationMessage for sessionId: {}, eventName: {}, data: {}",
             sessionId,
             eventName,
             data,
@@ -114,13 +114,13 @@ public class NotificationSseService {
       SseEmitter emitter = getEmitter(sessionId);
       if (emitter != null) {
         emitter.send(SseEmitter.event().name(eventName).data(notificationMessage));
-        log.info("Sent notification to local session {}: {} - {}", sessionId, eventName, data);
+        log.info("!![NOTIFICATION SSE] Sent notification to local session {}: {} - {}", sessionId, eventName, data);
         return;
       }
-      log.warn("No emitter found for local session {}", sessionId);
+      log.warn("[NOTIFICATION SSE] No emitter found for local session {}", sessionId);
       throw new IllegalStateException("No emitter found for local session " + sessionId);
     } catch (Exception e) {
-      log.error("Error sending notification to local session {}: {}", sessionId, e.getMessage(), e);
+      log.error("[NOTIFICATION SSE] Error sending notification to local session {}: {}", sessionId, e.getMessage(), e);
       throw new RuntimeException(e.getMessage(), e);
     }
   }
@@ -146,12 +146,12 @@ public class NotificationSseService {
       SsePubSubMessage message = new SsePubSubMessage(targetSessionId, eventName, jsonData);
       redisTemplate.convertAndSend(SSE_CHANNEL, message);
       log.info(
-          "Published notification SSE message to channel {} for session {}",
+          "!![NOTIFICATION SSE] Published notification SSE message to channel {} for session {}",
           SSE_CHANNEL,
           targetSessionId);
     } catch (Exception e) {
       log.error(
-          "Error publishing notification SSE message to channel {}: {}",
+          "[NOTIFICATION SSE] Error publishing notification SSE message to channel {}: {}",
           SSE_CHANNEL,
           e.getMessage());
     }
@@ -160,10 +160,10 @@ public class NotificationSseService {
   // userId로부터 sessionId를 조회해 메시지 전송
   public void sendNotificationToUser(Long userId, NotificationMessage dto) {
     String sessionId = (String) redisTemplate.opsForValue().get(routingKeyPrefix + userId);
-    if (sessionId != null && emitters.containsKey(sessionId)) {
+    if (sessionId != null) {
       sendNotification(userId, sessionId, dto);
     } else {
-      log.warn("No active session for userId {} when trying to send message", userId);
+      log.warn("[NOTIFICATION SSE] No active session for userId {} when trying to send message", userId);
     }
   }
 
@@ -171,7 +171,7 @@ public class NotificationSseService {
     try {
       String targetSessionId = getTargetSession(userId);
       if (targetSessionId == null) {
-        log.warn("No routing information found for session {}", sessionId);
+        log.warn("[NOTIFICATION SSE] No routing information found for session {}", sessionId);
         return;
       }
       if (isCurrentSession(userId, sessionId)) {
@@ -184,7 +184,7 @@ public class NotificationSseService {
         forwardToSession(targetSessionId, "notification", dto);
       }
     } catch (Exception e) {
-      log.error("Error sending notification message to session {}: {}", sessionId, e.getMessage());
+      log.error("[NOTIFICATION SSE] Error sending notification message to session {}: {}", sessionId, e.getMessage());
       removeEmitter(sessionId);
       unregisterSession(userId);
     }
@@ -198,9 +198,9 @@ public class NotificationSseService {
       SseEmitter emitter = entry.getValue();
       try {
         emitter.send(SseEmitter.event().name("keep-alive").data("ping"));
-        log.debug("Sent keep-alive to session {}", sessionId);
+        log.debug("[NOTIFICATION SSE] Sent keep-alive to session {}", sessionId);
       } catch (Exception e) {
-        log.warn("Failed to send keep-alive to session {}: {}", sessionId, e.getMessage());
+        log.warn("[NOTIFICATION SSE] Failed to send keep-alive to session {}: {}", sessionId, e.getMessage());
       }
     }
   }
