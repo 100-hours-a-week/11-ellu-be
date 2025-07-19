@@ -19,6 +19,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
   List<UserProjection> findTop10ByNicknameChoseongStartingWithOrderByNicknameAsc(String prefix);
 
   List<UserProjection>
-      findTop10ByNicknameStartingWithOrNicknameChoseongStartingWithOrderByNicknameAsc(
+      findTop10ByNicknameStartingWithIgnoreCaseOrNicknameChoseongStartingWithOrderByNicknameAsc(
           String nicknamePrefix, String choseongPrefix);
 }

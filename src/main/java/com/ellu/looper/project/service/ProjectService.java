@@ -37,6 +37,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronizationAdapter;
@@ -181,6 +182,12 @@ public class ProjectService {
 
   @Transactional(readOnly = true)
   public CreatorExcludedProjectResponse getProjectDetail(Long projectId, Long userId) {
+    boolean isProjectMember = projectMemberRepository.existsByProjectIdAndUserIdAndDeletedAtIsNull(projectId,
+        userId);
+    if (!isProjectMember) {
+      throw new AccessDeniedException("Only project members can view their project detail");
+    }
+
     String cacheKey = PROJECT_DETAIL_CACHE_KEY_PREFIX + projectId;
     CreatorExcludedProjectResponse response =
         cacheService.getWithLock(
@@ -217,7 +224,7 @@ public class ProjectService {
             .orElseThrow(() -> new IllegalArgumentException("Project not found"));
 
     if (!project.getMember().getId().equals(userId)) {
-      throw new SecurityException("Only project creator can delete this project");
+      throw new AccessDeniedException("Only project creator can delete this project");
     }
 
     List<ProjectMember> members = projectMemberRepository.findByProjectAndDeletedAtIsNull(project);
@@ -234,7 +241,7 @@ public class ProjectService {
             .orElseThrow(() -> new IllegalArgumentException("Project not found"));
 
     if (!project.getMember().getId().equals(userId)) {
-      throw new SecurityException("Only project creator can update this project");
+      throw new AccessDeniedException("Only project creator can update this project");
     }
 
     if (request.getTitle() != null && request.getTitle().trim().isEmpty()) {
