@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.5.0...v1.5.1) (2025-07-19)
+
+
+### Bug Fixes
+
+* minor change in processing meeting note ([e393d80](https://github.com/100-hours-a-week/11-ellu-be/commit/e393d80a7aabec4e21a442e61dc03a25154e6be0))
+
 # [1.5.0](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.4.7...v1.5.0) (2025-07-17)
 
 
