@@ -74,6 +74,7 @@ public class ProjectController {
     formData.add("audio_file", file.getResource());
     formData.add("project_id", projectId.toString());
 
+    log.info("Sending audio file to AI server...");
     String aiResponse =
         webClient
             .post()
@@ -83,6 +84,7 @@ public class ProjectController {
             .retrieve()
             .bodyToMono(String.class)
             .block();
+    log.info("AI server replied with {}", aiResponse);
     return ResponseEntity.ok(aiResponse);
   }
 
