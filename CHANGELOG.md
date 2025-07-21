@@ -1,3 +1,11 @@
+## [1.5.4](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.5.3...v1.5.4) (2025-07-21)
+
+
+### Bug Fixes
+
+* logging 추가 ([49783f5](https://github.com/100-hours-a-week/11-ellu-be/commit/49783f50e5801b13978978a06dc0757e4c21db8d))
+* logging 추가 ([#205](https://github.com/100-hours-a-week/11-ellu-be/issues/205)) ([994f556](https://github.com/100-hours-a-week/11-ellu-be/commit/994f5561af38b0281a94594238d669d418ad43a2))
+
 ## [1.5.3](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.5.2...v1.5.3) (2025-07-21)
 
 
