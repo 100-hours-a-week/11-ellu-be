@@ -14,8 +14,7 @@ import org.springframework.stereotype.Component;
 public class SsePubSubListener implements MessageListener {
   private final ChatSseService chatSseService;
   private final NotificationSseService notificationSseService;
-  private final GenericJackson2JsonRedisSerializer serializer =
-      new GenericJackson2JsonRedisSerializer(); // SsePubSubMessage.class 지정 불필요
+  private final GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer();
 
   @Override
   public void onMessage(Message message, byte[] pattern) {
