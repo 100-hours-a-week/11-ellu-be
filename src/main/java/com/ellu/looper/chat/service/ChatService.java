@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -40,17 +41,20 @@ public class ChatService {
   // 지난 24시간의 대화 기록 조회
   public List<ChatMessageResponse> getRecentHistory(Long userId) {
     log.info("UserId {} fetched chat history. ", userId);
-    LocalDateTime cutoff = LocalDateTime.now().minusHours(24);
     ChatConversation recentConversation =
-        conversationRepository.findTop1ByUserIdAndUpdatedAtGreaterThanEqualOrderByCreatedAtDesc(
-            userId, cutoff);
+        conversationRepository.findTop1ByUserIdOrderByCreatedAtDesc(userId);
 
     if (recentConversation == null) {
       return Collections.emptyList();
     }
 
+    PageRequest pageRequest = PageRequest.of(0, 10);
+
     List<ChatMessage> messages =
-        chatMessageRepository.findConversationMessages(recentConversation.getId());
+        chatMessageRepository.findConversationMessages(recentConversation.getId(), pageRequest);
+
+    Collections.reverse(messages);
+
     return messages.stream()
         .map(msg -> new ChatMessageResponse(msg.getMessageType().name(), msg.getContent()))
         .collect(Collectors.toList());
