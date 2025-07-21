@@ -75,6 +75,7 @@ public class ProjectController {
     formData.add("project_id", projectId.toString());
 
     log.info("Sending audio file to AI server...");
+    log.info("Sending request to URI: {}{}", aiServerUrl, "/ai/audio");
     String aiResponse =
         webClient
             .post()
