@@ -2,6 +2,7 @@ package com.ellu.looper.user.service;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.ellu.looper.commons.util.S3Service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;

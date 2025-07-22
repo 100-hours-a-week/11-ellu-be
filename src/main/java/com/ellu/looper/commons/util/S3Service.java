@@ -1,4 +1,4 @@
-package com.ellu.looper.user.service;
+package com.ellu.looper.commons.util;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,15 +33,14 @@ public class S3Service {
     return generatePresignedUrl(fileName);
   }
 
-  // FE -> BE -> AI server로 전달하는 구조이므로 음성 파일을 따로 S3에 저장하지 않음(추후 필요에 따라 호출)
   public String uploadAudioFile(MultipartFile file) throws IOException {
-    String fileName = createFileName(file.getOriginalFilename());
+    String fileName = createFileName(Objects.requireNonNull(file.getOriginalFilename()));
     ObjectMetadata metadata = new ObjectMetadata();
     metadata.setContentType(file.getContentType());
     metadata.setContentLength(file.getSize());
 
     amazonS3Client.putObject(bucket, "audio/" + fileName, file.getInputStream(), metadata);
-    return generatePresignedUrl(fileName);
+    return generatePresignedUrl("audio/" + fileName);
   }
 
   private String generatePresignedUrl(String fileName) {
@@ -71,7 +71,8 @@ public class S3Service {
   }
 
   private String createFileName(String originalFileName) {
-    return UUID.randomUUID().toString() + getFileExtension(originalFileName);
+    String baseName = originalFileName.substring(0, originalFileName.lastIndexOf("."));
+    return baseName + "_" + UUID.randomUUID() + getFileExtension(originalFileName);
   }
 
   private String getFileExtension(String fileName) {
