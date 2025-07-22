@@ -63,6 +63,12 @@ public class ProjectController {
     if (file.getSize() > 10 * 1024 * 1024) {
       return ResponseEntity.badRequest().body(ApiResponse.error("File size exceeds 10MB limit."));
     }
+
+    log.info("=== RECEIVED REQUEST ===");
+    log.info("File name: {}", file.getOriginalFilename());
+    log.info("File size: {}", file.getSize());
+    log.info("Content type: {}", file.getContentType());
+    
     // File type limit: mp3, mp4, wav
     String contentType = file.getContentType();
     if (!("audio/mpeg".equals(contentType)
@@ -80,17 +86,26 @@ public class ProjectController {
 
     log.info("Sending audio file to AI server...");
     log.info("Sending request to URI: {}{}", aiServerUrl, "/ai/audio");
-    String aiResponse =
-        webClient
-            .post()
-            .uri("/ai/audio")
-            .contentType(MediaType.MULTIPART_FORM_DATA)
-            .body(BodyInserters.fromMultipartData(formData))
-            .retrieve()
-            .bodyToMono(String.class)
-            .block();
-    log.info("AI server replied with {}", aiResponse);
-    return ResponseEntity.ok(aiResponse);
+
+    
+    try {
+      String aiResponse = webClient
+          .post()
+          .uri("/ai/audio")
+          .contentType(MediaType.MULTIPART_FORM_DATA)
+          .body(BodyInserters.fromMultipartData(formData))
+          .retrieve()
+          .bodyToMono(String.class)
+          .block();
+
+      log.info("=== FASTAPI RESPONSE ===");
+      log.info("Response: {}", aiResponse);
+      return ResponseEntity.ok(aiResponse);
+
+    } catch (Exception e) {
+      log.error("=== WEBCLIENT ERROR ===", e);
+      throw e;
+    }
   }
 
   @GetMapping
