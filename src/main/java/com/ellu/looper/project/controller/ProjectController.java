@@ -2,6 +2,7 @@ package com.ellu.looper.project.controller;
 
 import com.ellu.looper.commons.ApiResponse;
 import com.ellu.looper.commons.CurrentUser;
+import com.ellu.looper.commons.util.S3Service;
 import com.ellu.looper.fastapi.dto.MeetingNoteRequest;
 import com.ellu.looper.fastapi.dto.MeetingNoteResponse;
 import com.ellu.looper.project.dto.CreatorExcludedProjectResponse;
@@ -10,17 +11,16 @@ import com.ellu.looper.project.dto.ProjectResponse;
 import com.ellu.looper.project.dto.ProjectUpdateRequest;
 import com.ellu.looper.project.repository.ProjectMemberRepository;
 import com.ellu.looper.project.service.ProjectService;
-import com.ellu.looper.commons.MultipartInputStreamFileResource;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -33,16 +33,18 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class ProjectController {
 
   private final ProjectService projectService;
+  private final S3Service s3Service;
   private final WebClient webClient;
   private String aiServerUrl;
   private final ProjectMemberRepository projectMemberRepository;
 
   public ProjectController(
-      ProjectService projectService,
+      ProjectService projectService, S3Service s3Service,
       @Qualifier("fastApiSummaryWebClient") WebClient webClient,
       @Value("${fastapi.summary-url}") String aiServerUrl,
       ProjectMemberRepository projectMemberRepository) {
     this.projectService = projectService;
+    this.s3Service = s3Service;
     this.webClient = webClient;
     this.aiServerUrl = aiServerUrl;
     this.projectMemberRepository = projectMemberRepository;
@@ -77,23 +79,24 @@ public class ProjectController {
       return ResponseEntity.badRequest()
           .body(ApiResponse.error("Only mp3, mp4, and wav audio files are allowed."));
     }
+    // S3에 파일 업로드
+    String s3Url = s3Service.uploadAudioFile(file);
+    log.info("Uploaded audio file to S3: {}", s3Url);
 
-    MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
-    formData.add("audio_file", new MultipartInputStreamFileResource(
-    file.getInputStream(), file.getOriginalFilename()
-    ));
-    formData.add("project_id", projectId.toString());
+    // FastAPI에 S3 URL 전달
+    Map<String, Object> requestBody = new HashMap<>();
+    requestBody.put("audio_file", s3Url);
+    requestBody.put("project_id", projectId);
 
-    log.info("Sending audio file to AI server...");
+    log.info("Sending S3 audio URL to AI server...");
     log.info("Sending request to URI: {}{}", aiServerUrl, "/ai/audio");
 
-    
     try {
       String aiResponse = webClient
           .post()
           .uri("/ai/audio")
-          .contentType(MediaType.MULTIPART_FORM_DATA)
-          .body(BodyInserters.fromMultipartData(formData))
+          .contentType(MediaType.APPLICATION_JSON)
+          .body(BodyInserters.fromValue(requestBody))
           .retrieve()
           .bodyToMono(String.class)
           .block();

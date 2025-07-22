@@ -26,6 +26,10 @@ public class NotificationSseService {
 
   public SseEmitter subscribe(HttpServletRequest request, Long userId) {
     String sessionId = request.getSession().getId();
+
+    SseEmitter old = emitters.remove(sessionId);
+    if (old != null) old.complete();
+
     SseEmitter emitter = new SseEmitter(60L * 1000 * 60); // 60분 타임아웃
     emitters.put(sessionId, emitter);
     log.info("[NOTIFICATION SSE] SessionId {} is connected to notification sse.", sessionId);
@@ -190,18 +194,20 @@ public class NotificationSseService {
     }
   }
 
-  /** send keep-alive event to all connected SSE clients every 30 seconds */
-  @Scheduled(fixedRate = 30000)
-  public void sendKeepAlive() {
-    for (Map.Entry<String, SseEmitter> entry : emitters.entrySet()) {
-      String sessionId = entry.getKey();
-      SseEmitter emitter = entry.getValue();
-      try {
-        emitter.send(SseEmitter.event().name("keep-alive").data("ping"));
-        log.debug("[NOTIFICATION SSE] Sent keep-alive to session {}", sessionId);
-      } catch (Exception e) {
-        log.warn("[NOTIFICATION SSE] Failed to send keep-alive to session {}: {}", sessionId, e.getMessage());
-      }
-    }
-  }
+ /** send keep-alive event to all connected SSE clients every 30 seconds */
+ @Scheduled(fixedRate = 30000)
+ public void sendKeepAlive() {
+   for (Map.Entry<String, SseEmitter> entry : emitters.entrySet()) {
+     String sessionId = entry.getKey();
+     SseEmitter emitter = entry.getValue();
+     try {
+       emitter.send(SseEmitter.event().name("keep-alive").data("ping"));
+       log.debug("[NOTIFICATION SSE] Sent keep-alive to session {}", sessionId);
+     } catch (Exception e) {
+       log.warn("[NOTIFICATION SSE] Failed to send keep-alive to session {}: {}", sessionId, e.getMessage());
+       SseEmitter old = emitters.remove(sessionId);
+       if (old != null) old.complete();
+     }
+   }
+ }
 }

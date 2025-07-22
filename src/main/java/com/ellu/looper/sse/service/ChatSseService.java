@@ -27,6 +27,10 @@ public class ChatSseService {
 
   public SseEmitter createEmitter(HttpServletRequest request, Long userId) {
     String sessionId = request.getSession().getId();
+
+    SseEmitter old = emitters.remove(sessionId);
+    if (old != null) old.complete();
+
     SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
     emitters.put(sessionId, emitter);
     log.info("[CHAT SSE] SessionId {} is connected to chat stream.", sessionId);
