@@ -71,7 +71,9 @@ public class ProjectController {
     }
 
     MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
-    formData.add("audio_file", file.getResource());
+    formData.add("audio_file", new MultipartInputStreamFileResource(
+    file.getInputStream(), file.getOriginalFilename()
+    ));
     formData.add("project_id", projectId.toString());
 
     log.info("Sending audio file to AI server...");
