@@ -1,3 +1,12 @@
+## [1.5.5](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.5.4...v1.5.5) (2025-07-22)
+
+
+### Bug Fixes
+
+* add missing import statement ([35b46f8](https://github.com/100-hours-a-week/11-ellu-be/commit/35b46f8e384ff12c92c2c166f99633d14df206cc))
+* multi part 파일 이름 버그 ([b4faf9f](https://github.com/100-hours-a-week/11-ellu-be/commit/b4faf9fed5d63b03e6a550bbfd636e64d5b2eb5f))
+* MultipartInputStreamFileResource 생성 ([b23d8a7](https://github.com/100-hours-a-week/11-ellu-be/commit/b23d8a70a0060406819b2e7f8ff1fca9706b27ab))
+
 ## [1.5.4](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.5.3...v1.5.4) (2025-07-21)
 
 
