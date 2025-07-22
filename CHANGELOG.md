@@ -1,3 +1,11 @@
+## [1.5.7](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.5.6...v1.5.7) (2025-07-22)
+
+
+### Bug Fixes
+
+* apply error handling for sse keep-alive ([1bf3923](https://github.com/100-hours-a-week/11-ellu-be/commit/1bf39231250edbe36d5dcbbed86e7e704d858cca))
+* upload audio file to s3 ([688bf30](https://github.com/100-hours-a-week/11-ellu-be/commit/688bf309a17acd2abedff18c995b736182410db2))
+
 ## [1.5.6](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.5.5...v1.5.6) (2025-07-22)
 
 
