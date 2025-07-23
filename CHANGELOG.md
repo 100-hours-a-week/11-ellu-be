@@ -1,3 +1,10 @@
+## [1.5.8](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.5.7...v1.5.8) (2025-07-23)
+
+
+### Bug Fixes
+
+* audio file request format revised ([5a8d151](https://github.com/100-hours-a-week/11-ellu-be/commit/5a8d15116aeeaef15c087e7b4ff19e649ec77484))
+
 ## [1.5.7](https://github.com/100-hours-a-week/11-ellu-be/compare/v1.5.6...v1.5.7) (2025-07-22)
 
 
