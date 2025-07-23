@@ -91,12 +91,14 @@ public class ProjectController {
     log.info("Sending S3 audio URL to AI server...");
     log.info("Sending request to URI: {}{}", aiServerUrl, "/ai/audio");
 
+    log.info("Sending request with Request body:{}",requestBody);
     try {
       String aiResponse = webClient
           .post()
           .uri("/ai/audio")
           .contentType(MediaType.APPLICATION_JSON)
-          .body(BodyInserters.fromValue(requestBody))
+          .body(BodyInserters.fromFormData("audio_file", s3Url)
+              .with("project_id", String.valueOf(projectId)))
           .retrieve()
           .bodyToMono(String.class)
           .block();
